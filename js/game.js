@@ -5,7 +5,7 @@ import {
 } from './config.js';
 import {
   makeCatTower, makeEnemy, makeMap, makeMouseHole, makeMilkBowl, makeRangeRing,
-  makeGhostTile, makeBullet, makeCatnipDrop, makeStars, tileToWorld,
+  makeGhostTile, makeBullet, makeCatnipDrop, makeStars, tileToWorld, makePathArrows,
 } from './models.js';
 import { Effects } from './fx.js';
 import { sfx } from './audio.js';
@@ -93,6 +93,8 @@ export class Game {
 
     scene.add(makeMap(this.pathTiles));
     scene.add(makeStars());
+    this.arrows = makePathArrows(this.waypoints);
+    scene.add(this.arrows);
 
     const startP = this.waypoints[0];
     const hole = makeMouseHole();
@@ -253,8 +255,12 @@ export class Game {
     const tile = this._tileAt(p);
 
     if (this.placing) {
-      if (this._buildable(tile)) this.placeTower(this.placing, tile);
-      else { sfx.deny(); this.ui.toast('Can’t build there'); }
+      if (this._buildable(tile)) { this.placeTower(this.placing, tile); return; }
+      // Tapping a cat you already own inspects it instead of nagging you.
+      const existing = tile && this.occupied.get(tile.key);
+      if (existing) { this.setPlacing(null); this.selectTower(existing); return; }
+      sfx.deny();
+      this.ui.toast(this.gold < TOWERS[this.placing].cost ? 'Not enough fish' : 'Can’t build on the path');
       return;
     }
 
@@ -959,6 +965,10 @@ export class Game {
   }
 
   _animateScenery(dt) {
+    for (const a of this.arrows.userData.arrows) {
+      a.position.y = 0.24 + Math.sin(this.time * 3 - a.userData.phase) * 0.07;
+    }
+    this.arrows.userData.material.opacity = 0.3 + Math.sin(this.time * 3) * 0.12;
     const milk = this.bowl.userData.milk;
     if (milk) milk.position.y = 0.52 + Math.sin(this.time * 2) * 0.015;
     this.bowl.rotation.y += dt * 0.2;

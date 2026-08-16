@@ -154,3 +154,15 @@ run a wave, no console errors. Camera framing verified numerically at 390×844,
   mice every 3.5 seconds from its own position.
 - Boss waves are announced during the previous prep phase so nobody gets
   ambushed while saving up.
+
+## 2026-08-16 — polish pass
+
+- **Path chevrons**: soft glowing arrows bob along the route so the walk
+  direction is obvious at a glance on a 360px-wide screen.
+- **Tap rules tightened**: while a cat is selected in the shop, tapping a tile
+  that already holds a cat opens its upgrade panel instead of scolding you, and
+  the refusal toast now says *why* (no fish vs. on the path).
+- Final boss HP raised to 6000 after a stress test where 24 level-3 cats
+  deleted the Rat King in seconds.
+- Verified with touch events (not just mouse clicks) in both 390×844 portrait and
+  844×390 landscape: shop tap ➜ tile tap places, second tap selects, no errors.

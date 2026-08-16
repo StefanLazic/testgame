@@ -293,6 +293,35 @@ export function makeMap(pathTiles) {
   return g;
 }
 
+// Glowing chevrons along the path so the route (and its direction) reads
+// instantly on a small screen.
+export function makePathArrows(waypoints) {
+  const g = new THREE.Group();
+  const geo = new THREE.ConeGeometry(0.3, 0.55, 4);
+  const material = new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0.4 });
+  const arrows = [];
+  for (let i = 1; i < waypoints.length; i++) {
+    const a = waypoints[i - 1];
+    const b = waypoints[i];
+    const dir = b.clone().sub(a);
+    const len = dir.length();
+    dir.normalize();
+    for (let d = TILE * 0.75; d < len; d += TILE * 1.5) {
+      const m = new THREE.Mesh(geo, material);
+      const p = a.clone().addScaledVector(dir, d);
+      m.position.set(p.x, 0.24, p.z);
+      m.rotation.x = Math.PI / 2;
+      m.rotation.y = Math.atan2(dir.x, dir.z) + Math.PI / 4;
+      m.userData.phase = (d + i * 3) * 0.35;
+      g.add(m);
+      arrows.push(m);
+    }
+  }
+  g.userData.arrows = arrows;
+  g.userData.material = material;
+  return g;
+}
+
 export function makeMouseHole() {
   const g = new THREE.Group();
   const arch = new THREE.Mesh(new THREE.CircleGeometry(0.7, 16, 0, Math.PI), mat(0x120a1e));

@@ -79,7 +79,7 @@ export const ENEMIES = {
     armor: 8, leak: 3, boss: 'mini', base: 'dog', howl: true,
   },
   ratking: {
-    name: 'The Rat King', hp: 4200, speed: 1.5, bounty: 600, scale: 3.6, flying: false,
+    name: 'The Rat King', hp: 6000, speed: 1.5, bounty: 600, scale: 3.6, flying: false,
     armor: 10, leak: 9, boss: 'main', base: 'mouse', spawner: true, enrage: true,
   },
 };
