@@ -54,4 +54,10 @@ js/audio.js     WebAudio synthesised sound effects (no audio files)
 vendor/         three.js r180 build (MIT, see vendor/THREE_LICENSE)
 ```
 
+## Docs
+
+- [`docs/cats.md`](docs/cats.md) — every cat tower, its stats and abilities
+- [`docs/enemies.md`](docs/enemies.md) — every enemy, its stats and behaviours
+- [`docs/AGENTS.md`](docs/AGENTS.md) — rules for keeping those docs in sync
+
 See `notes.md` for the development log.
