@@ -8,6 +8,7 @@ const ui = {
   manaFill: $('mana-fill'), manaText: $('mana-text'),
   waveText: $('wave-text'), scoreText: $('score-text'),
   toastEl: $('toast'), frenzyEl: $('frenzy-banner'),
+  bossBar: $('boss-bar'), bossFill: $('boss-fill'),
   buttons: {
     claw: $('btn-claw'),
     hairball: $('btn-hairball'),
@@ -41,6 +42,10 @@ const ui = {
     this.toastEl.classList.add('show');
   },
   frenzy(on) { this.frenzyEl.classList.toggle('hidden', !on); },
+  boss(ratio) {
+    this.bossBar.classList.toggle('hidden', ratio == null);
+    if (ratio != null) this.bossFill.style.width = `${Math.max(0, ratio) * 100}%`;
+  },
   hitFlash() {
     document.body.classList.remove('hit');
     void document.body.offsetWidth;
@@ -88,6 +93,8 @@ try {
 }
 
 show('title');
+// Handy for debugging in the browser console.
+window.game = game;
 
 function startGame() {
   initAudio();

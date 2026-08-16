@@ -5,6 +5,7 @@ export class Input {
   constructor() {
     this.move = { x: 0, y: 0 };
     this.pressed = { claw: false, hairball: false, thunder: false };
+    this.held = { claw: false, hairball: false, thunder: false };
     this.keys = new Set();
     this._touchId = null;
     this._origin = { x: 0, y: 0 };
@@ -21,17 +22,31 @@ export class Input {
 
     for (const [id, name] of [['btn-claw', 'claw'], ['btn-hairball', 'hairball'], ['btn-thunder', 'thunder']]) {
       const el = document.getElementById(id);
-      el.addEventListener('pointerdown', (e) => { e.preventDefault(); this.pressed[name] = true; });
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        this.pressed[name] = true;
+        this.held[name] = true;
+        el.setPointerCapture?.(e.pointerId);
+      });
+      const release = () => { this.held[name] = false; };
+      el.addEventListener('pointerup', release);
+      el.addEventListener('pointercancel', release);
+      el.addEventListener('pointerleave', release);
       el.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
     window.addEventListener('keydown', (e) => {
       this.keys.add(e.code);
-      if (e.code === 'Space' || e.code === 'KeyJ') this.pressed.claw = true;
-      if (e.code === 'KeyK') this.pressed.hairball = true;
-      if (e.code === 'KeyL') this.pressed.thunder = true;
+      if (e.code === 'Space' || e.code === 'KeyJ') { this.pressed.claw = true; this.held.claw = true; }
+      if (e.code === 'KeyK') { this.pressed.hairball = true; this.held.hairball = true; }
+      if (e.code === 'KeyL') { this.pressed.thunder = true; this.held.thunder = true; }
     });
-    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
+    window.addEventListener('keyup', (e) => {
+      this.keys.delete(e.code);
+      if (e.code === 'Space' || e.code === 'KeyJ') this.held.claw = false;
+      if (e.code === 'KeyK') this.held.hairball = false;
+      if (e.code === 'KeyL') this.held.thunder = false;
+    });
   }
 
   _down = (e) => {
@@ -88,13 +103,13 @@ export class Input {
   }
 
   consume(name) {
-    if (!this.pressed[name]) return false;
-    this.pressed[name] = false;
-    return true;
+    if (this.pressed[name]) { this.pressed[name] = false; return true; }
+    return this.held[name]; // hold to keep firing once off cooldown
   }
 
   reset() {
     this.pressed.claw = this.pressed.hairball = this.pressed.thunder = false;
+    this.held.claw = this.held.hairball = this.held.thunder = false;
     this.move.x = this.move.y = 0;
     this._touchId = null;
     this.base.classList.remove('active');

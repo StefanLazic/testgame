@@ -49,3 +49,21 @@ ES modules directly and three.js is vendored into `/vendor`.
 Served locally with `python3 -m http.server` and smoke-tested in headless Chromium
 (SwiftShader) at a 390x844 mobile viewport: no console errors, title -> play ->
 joystick drag -> all three abilities.
+
+## 2026-08-16 — polish pass
+
+- **Boss health bar**: when the Mouse King is alive a gold/red bar appears under the
+  HUD so you can see the fight going somewhere.
+- **Hold to attack**: ability buttons now repeat while held (pointer capture +
+  `held` flags in `input.js`), so you don't have to jackhammer the screen. Keyboard
+  keys behave the same way.
+- **Bug fixes found while testing**:
+  - Enemy update iterated the live array while damage could splice from it and the
+    king could push new spawns into it — now iterates a snapshot.
+  - `flash` was uninitialised on pooled enemies.
+- **Instrumented headless testing** (`window.game` is exposed for the console):
+  45s autoplay soak at 360x740 under SwiftShader software rendering held ~27fps with
+  no console errors, no particle/geometry leaks (sprites return to the pool, ring and
+  projectile geometries are disposed), ~72 draw calls.
+- Verified landscape 740x360 (buttons stay inside the viewport), game over → restart,
+  and a forced wave-5 Mouse King fight including its guaranteed catnip drop.

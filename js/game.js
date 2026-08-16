@@ -118,6 +118,7 @@ export class Game {
     this.ui.setScore(0);
     this.ui.setWave(1);
     this.ui.frenzy(false);
+    this.ui.boss(null);
   }
 
   start() {
@@ -190,6 +191,7 @@ export class Game {
     e.radius = def.radius;
     e.score = def.score;
     e.stun = 0;
+    e.flash = 0;
     e.hitCd = 0;
     e.wobble = Math.random() * 10;
     e.charge = 0;
@@ -443,6 +445,9 @@ export class Game {
     this._updateProjectiles(dt);
     this._updatePickups(dt);
     this._animateArena(dt);
+
+    const king = this.enemies.find((e) => e.kind === 'king');
+    this.ui.boss(king ? king.hp / king.maxHp : null);
   }
 
   _updateWaves(dt) {
@@ -468,7 +473,9 @@ export class Game {
   }
 
   _updateEnemies(dt, frenzied) {
-    for (const e of this.enemies) {
+    // Snapshot: damage can kill (splice) and the king can spawn reinforcements.
+    for (const e of [...this.enemies]) {
+      if (e.dead) continue;
       const g = e.group;
       if (e.dropping) {
         g.position.y -= dt * 16;
