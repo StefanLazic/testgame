@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Whisker Wizard — Cat vs Mice</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#160c26" />
+<meta name="description" content="A 3D mobile arena game where a magic cat battles waves of mice." />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🐱</text></svg>" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+  <canvas id="scene"></canvas>
+
+  <!-- Heads-up display -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="bar-wrap">
+        <div class="bar-label">❤️ <span id="hp-text">9 / 9</span></div>
+        <div class="bar"><div id="hp-fill" class="fill hp"></div></div>
+      </div>
+      <div class="stats">
+        <div id="wave-text">Wave 1</div>
+        <div id="score-text">0 🐭</div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-label">✨ <span id="mana-text">100</span></div>
+        <div class="bar"><div id="mana-fill" class="fill mana"></div></div>
+      </div>
+    </div>
+    <div id="toast"></div>
+    <div id="frenzy-banner" class="hidden">CATNIP FRENZY!</div>
+  </div>
+
+  <!-- Touch controls -->
+  <div id="controls" class="hidden">
+    <div id="stick-zone">
+      <div id="stick-base"><div id="stick-knob"></div></div>
+    </div>
+    <div id="buttons">
+      <button id="btn-claw" class="ability" type="button" aria-label="Claw swipe">
+        <span class="glyph">🐾</span><span class="cd"></span>
+      </button>
+      <button id="btn-hairball" class="ability magic" type="button" aria-label="Hairball comet">
+        <span class="glyph">☄️</span><span class="cd"></span><span class="cost">20</span>
+      </button>
+      <button id="btn-thunder" class="ability magic" type="button" aria-label="Thunder whiskers">
+        <span class="glyph">⚡</span><span class="cd"></span><span class="cost">45</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Screens -->
+  <div id="title" class="screen">
+    <div class="panel">
+      <h1><span class="cat">🐱</span> Whisker <span class="w">Wizard</span></h1>
+      <p class="tag">One cat. Nine lives. Infinite mice.</p>
+      <button id="btn-play" class="big" type="button">Play</button>
+      <button id="btn-help" class="ghost" type="button">How to play</button>
+      <p class="hint">Best on a phone — turn the sound of mice squeaking in your head all the way up.</p>
+    </div>
+  </div>
+
+  <div id="help" class="screen hidden">
+    <div class="panel">
+      <h2>How to play</h2>
+      <ul class="rules">
+        <li><b>Move:</b> drag anywhere on the left half of the screen.</li>
+        <li><b>🐾 Claw:</b> a quick melee swipe. Free, always ready.</li>
+        <li><b>☄️ Hairball Comet:</b> hurl a flaming hairball that explodes on impact.</li>
+        <li><b>⚡ Thunder Whiskers:</b> a ring of lightning that stuns and shreds everything nearby.</li>
+        <li><b>🌿 Catnip:</b> mice sometimes drop it. Grab it. Trust me.</li>
+      </ul>
+      <button id="btn-help-back" class="big" type="button">Got it</button>
+    </div>
+  </div>
+
+  <div id="gameover" class="screen hidden">
+    <div class="panel">
+      <h2 id="go-title">Out of lives</h2>
+      <p id="go-sub">The mice have claimed the rug.</p>
+      <div class="score-box">
+        <div><span id="go-score">0</span><small>mice routed</small></div>
+        <div><span id="go-wave">1</span><small>waves survived</small></div>
+        <div><span id="go-best">0</span><small>best score</small></div>
+      </div>
+      <button id="btn-again" class="big" type="button">Again!</button>
+    </div>
+  </div>
+
+  <div id="loading" class="screen">
+    <div class="panel"><p class="tag">Waking the cat…</p></div>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+<script type="module" src="./js/main.js"></script>
+<noscript><p style="color:#fff;text-align:center">This game needs JavaScript and WebGL.</p></noscript>
+</body>
+</html>
