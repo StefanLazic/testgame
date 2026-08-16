@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Whisker Wizard — Cat vs Mice</title>
+<title>Claw Defense — Cat Tower Defense</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#160c26" />
-<meta name="description" content="A 3D mobile arena game where a magic cat battles waves of mice." />
+<meta name="description" content="A 3D mobile tower defense game: place cat towers to stop waves of mice, dogs, snakes and birds." />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -19,53 +19,46 @@
   <!-- Heads-up display -->
   <div id="hud" class="hidden">
     <div class="hud-top">
-      <div class="bar-wrap">
-        <div class="bar-label">❤️ <span id="hp-text">9 / 9</span></div>
-        <div class="bar"><div id="hp-fill" class="fill hp"></div></div>
-      </div>
-      <div class="stats">
-        <div id="wave-text">Wave 1</div>
-        <div id="score-text">0 🐭</div>
-      </div>
-      <div class="bar-wrap">
-        <div class="bar-label">✨ <span id="mana-text">100</span></div>
-        <div class="bar"><div id="mana-fill" class="fill mana"></div></div>
-      </div>
+      <div class="chip lives">🥛 <span id="lives-text">9</span></div>
+      <div class="chip gold">🐟 <span id="gold-text">0</span></div>
+      <div class="chip wave">🌊 <span id="wave-text">1 / 10</span></div>
+      <button id="btn-speed" class="chip btn" type="button" aria-label="Game speed">▶▶ <span id="speed-text">1×</span></button>
     </div>
-    <div id="toast"></div>
+
     <div id="boss-bar" class="hidden">
-      <div class="boss-name">👑 MOUSE KING</div>
+      <div class="boss-name" id="boss-name">BOSS</div>
       <div class="bar"><div id="boss-fill" class="fill boss"></div></div>
     </div>
-    <div id="frenzy-banner" class="hidden">CATNIP FRENZY!</div>
-  </div>
 
-  <!-- Touch controls -->
-  <div id="controls" class="hidden">
-    <div id="stick-zone">
-      <div id="stick-base"><div id="stick-knob"></div></div>
+    <div id="toast"></div>
+    <div id="wave-banner" class="hidden"></div>
+
+    <!-- Selected-tower panel -->
+    <div id="tower-panel" class="hidden">
+      <div class="tp-head"><span id="tp-icon">🐱</span><b id="tp-name">Cat</b><span id="tp-level" class="lvl">Lv 1</span></div>
+      <div class="tp-stats" id="tp-stats"></div>
+      <div class="tp-actions">
+        <button id="btn-upgrade" class="pill up" type="button">Upgrade <span id="tp-upcost">🐟 0</span></button>
+        <button id="btn-sell" class="pill sell" type="button">Sell <span id="tp-sell">🐟 0</span></button>
+        <button id="btn-close-panel" class="pill ghost" type="button">✕</button>
+      </div>
     </div>
-    <div id="buttons">
-      <button id="btn-claw" class="ability" type="button" aria-label="Claw swipe">
-        <span class="glyph">🐾</span><span class="cd"></span>
-      </button>
-      <button id="btn-hairball" class="ability magic" type="button" aria-label="Hairball comet">
-        <span class="glyph">☄️</span><span class="cd"></span><span class="cost">20</span>
-      </button>
-      <button id="btn-thunder" class="ability magic" type="button" aria-label="Thunder whiskers">
-        <span class="glyph">⚡</span><span class="cd"></span><span class="cost">45</span>
-      </button>
+
+    <!-- Shop -->
+    <div id="shop">
+      <div id="shop-row"></div>
+      <button id="btn-next" class="next" type="button">Start wave <small id="next-bonus"></small></button>
     </div>
   </div>
 
   <!-- Screens -->
   <div id="title" class="screen">
     <div class="panel">
-      <h1><span class="cat">🐱</span> Whisker <span class="w">Wizard</span></h1>
-      <p class="tag">One cat. Nine lives. Infinite mice.</p>
+      <h1><span class="cat">🐱</span> Claw <span class="w">Defense</span></h1>
+      <p class="tag">Five cats. Ten waves. One bowl of milk to protect.</p>
       <button id="btn-play" class="big" type="button">Play</button>
       <button id="btn-help" class="ghost" type="button">How to play</button>
-      <p class="hint">Best on a phone — turn the sound of mice squeaking in your head all the way up.</p>
+      <p class="hint">Built for phones — tap a cat, tap the floor, watch the mice regret everything.</p>
     </div>
   </div>
 
@@ -73,11 +66,12 @@
     <div class="panel">
       <h2>How to play</h2>
       <ul class="rules">
-        <li><b>Move:</b> drag anywhere on the left half of the screen.</li>
-        <li><b>🐾 Claw:</b> a quick melee swipe. Free, always ready.</li>
-        <li><b>☄️ Hairball Comet:</b> hurl a flaming hairball that explodes on impact.</li>
-        <li><b>⚡ Thunder Whiskers:</b> a ring of lightning that stuns and shreds everything nearby.</li>
-        <li><b>🌿 Catnip:</b> mice sometimes drop it. Grab it. Trust me.</li>
+        <li><b>Place cats:</b> tap a cat in the shop, then tap any free floor tile.</li>
+        <li><b>Earn fish 🐟:</b> from every pest you stop and a bonus after each wave. Start a wave early for extra fish.</li>
+        <li><b>Upgrade:</b> tap a placed cat to upgrade or sell it (sell refunds 70%).</li>
+        <li><b>Protect the milk 🥛:</b> every pest that reaches it costs a life. Nine lives, no more.</li>
+        <li><b>Watch the sky:</b> 🐦 birds fly straight over your maze — only some cats can hit them.</li>
+        <li><b>Wave 5 &amp; 10:</b> a mini-boss and then something much, much worse.</li>
       </ul>
       <button id="btn-help-back" class="big" type="button">Got it</button>
     </div>
@@ -85,19 +79,19 @@
 
   <div id="gameover" class="screen hidden">
     <div class="panel">
-      <h2 id="go-title">Out of lives</h2>
-      <p id="go-sub">The mice have claimed the rug.</p>
+      <h2 id="go-title">The milk is gone</h2>
+      <p id="go-sub">The pests have taken the kitchen.</p>
       <div class="score-box">
-        <div><span id="go-score">0</span><small>mice routed</small></div>
-        <div><span id="go-wave">1</span><small>waves survived</small></div>
-        <div><span id="go-best">0</span><small>best score</small></div>
+        <div><span id="go-wave">1</span><small>waves held</small></div>
+        <div><span id="go-kills">0</span><small>pests stopped</small></div>
+        <div><span id="go-best">0</span><small>best wave</small></div>
       </div>
       <button id="btn-again" class="big" type="button">Again!</button>
     </div>
   </div>
 
   <div id="loading" class="screen">
-    <div class="panel"><p class="tag">Waking the cat…</p></div>
+    <div class="panel"><p class="tag">Waking the cats…</p></div>
   </div>
 </div>
 

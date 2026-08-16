@@ -80,3 +80,57 @@ joystick drag -> all three abilities.
 - The game-over screen freezes the arena instead of cutting to the menu orbit, so you
   see the swarm that finally got you.
 - Added a README with controls and file layout.
+
+## 2026-08-16 — genre change: arena ➜ tower defense
+
+The game is now **Claw Defense**. The player no longer drives a cat around; they
+place cat *towers* along a winding kitchen path and defend a bowl of milk from
+ten waves of pests. Everything is still plain static files (`index.html` + ES
+modules + vendored three.js), no build step.
+
+- **`js/config.js` (new)** — single source of balance truth: board size, path
+  waypoints, tower/enemy stats, wave table, prices. Tuning the game never means
+  touching engine code.
+- **Board**: a 9×19 grid (tall, so it fills a phone screen) with a serpentine
+  brown path from the mouse hole to the milk bowl. Tiles off the path are
+  buildable; the `pathTiles` set is derived from the waypoint list so the path
+  and the build grid can never disagree.
+- **Camera**: fixed, no panning or pinch — instead `_fitCamera()` projects the
+  board corners and binary-searches the camera distance, then pans vertically
+  until the top/bottom margins match. That keeps the whole board on screen and
+  clear of the HUD chips and shop bar on any aspect ratio, portrait or landscape.
+- **Removed** `js/input.js` (virtual joystick) — controls are now taps.
+- **Deleted** the old arena/player code; `models.js` was rewritten for towers,
+  four pest species, bosses, the map, bowl, bullets and pickups. `fx.js` and the
+  WebAudio `audio.js` survived (audio gained a new sfx table).
+
+### The five cats
+
+| Cat | Cost | Role |
+| --- | --- | --- |
+| 🏹 Archer | 70 | cheap, reliable single target, hits air |
+| 🔮 Wizard | 120 | slow arcane orbs with splash, hits air |
+| ❄️ Frost | 95 | weak damage but chills and slows a small area, hits air |
+| 🥷 Ninja | 150 | 3.6 shots/sec shuriken, ground only, 22% crits for 3× |
+| 🍳 Chef | 210 | lobs a frying pan, huge splash, ground only |
+
+Each upgrades twice (+62% damage, +13% range, +18% fire rate per level) and
+gains a visible golden collar. Selling refunds 70%.
+
+### Pests
+
+Mice, snakes (fast), dogs (armoured), and **birds that fly in a straight line
+over the whole maze** — only Archer/Wizard/Frost can touch them, which is what
+stops a wall of Ninjas from solving the game.
+
+### Economy
+
+Start with 🐟 260. Fish come from kills, a post-wave bonus (`45 + 18×wave`) and
+an *early bird* bonus of 3 fish per second of prep time skipped — so a confident
+player can snowball.
+
+### Testing
+
+Headless Chromium (SwiftShader) smoke test: title ➜ play ➜ place all five cats ➜
+run a wave, no console errors. Camera framing verified numerically at 390×844,
+360×640, 820×1180 and 844×390.

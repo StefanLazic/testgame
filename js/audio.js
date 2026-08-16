@@ -48,18 +48,30 @@ function noise({ dur = 0.25, vol = 0.4, freq = 1200, q = 1, delay = 0 }) {
 }
 
 export const sfx = {
-  claw() { noise({ dur: 0.16, vol: 0.35, freq: 2600, q: 0.8 }); tone({ freq: 620, type: 'triangle', dur: 0.09, vol: 0.18, slide: -260 }); },
-  hairball() { tone({ freq: 180, type: 'sawtooth', dur: 0.3, vol: 0.25, slide: 260 }); noise({ dur: 0.2, vol: 0.2, freq: 700 }); },
-  boom() { noise({ dur: 0.45, vol: 0.5, freq: 260, q: 0.6 }); tone({ freq: 110, type: 'sine', dur: 0.35, vol: 0.35, slide: -60 }); },
-  thunder() {
-    noise({ dur: 0.6, vol: 0.55, freq: 3000, q: 0.4 });
-    tone({ freq: 900, type: 'square', dur: 0.12, vol: 0.2, slide: -700 });
-    tone({ freq: 70, type: 'sine', dur: 0.6, vol: 0.4, slide: -25, delay: 0.03 });
+  place() { tone({ freq: 420, type: 'triangle', dur: 0.14, vol: 0.28, slide: 260 }); noise({ dur: 0.12, vol: 0.18, freq: 900 }); },
+  deny() { tone({ freq: 220, type: 'square', dur: 0.14, vol: 0.2, slide: -90 }); },
+  sell() { [660, 520, 400].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.12, vol: 0.2, delay: i * 0.06 })); },
+  upgrade() { [523, 784, 1046].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.18, vol: 0.24, delay: i * 0.07 })); },
+  coin() { [880, 1320].forEach((f, i) => tone({ freq: f, type: 'square', dur: 0.1, vol: 0.16, delay: i * 0.06 })); },
+  shoot(kind) {
+    if (kind === 'archer') { noise({ dur: 0.09, vol: 0.16, freq: 2400, q: 1.2 }); }
+    else if (kind === 'wizard') { tone({ freq: 520, type: 'sine', dur: 0.18, vol: 0.16, slide: 380 }); }
+    else if (kind === 'frost') { tone({ freq: 1500, type: 'triangle', dur: 0.13, vol: 0.12, slide: 700 }); }
+    else if (kind === 'ninja') { noise({ dur: 0.06, vol: 0.1, freq: 3600, q: 2 }); }
+    else { tone({ freq: 160, type: 'sawtooth', dur: 0.16, vol: 0.16, slide: 90 }); }
   },
+  boom() { noise({ dur: 0.4, vol: 0.42, freq: 260, q: 0.6 }); tone({ freq: 110, type: 'sine', dur: 0.32, vol: 0.3, slide: -60 }); },
+  pop() { tone({ freq: 700 + Math.random() * 400, type: 'square', dur: 0.07, vol: 0.11, slide: -300 }); },
   squeak() { tone({ freq: 900 + Math.random() * 500, type: 'square', dur: 0.09, vol: 0.13, slide: 500 }); },
-  hurt() { tone({ freq: 300, type: 'sawtooth', dur: 0.28, vol: 0.3, slide: -180 }); },
-  pickup() { [660, 880, 1320].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.16, vol: 0.25, delay: i * 0.07 })); },
-  wave() { [523, 659, 784, 1046].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.22, vol: 0.22, delay: i * 0.1 })); },
+  leak() { tone({ freq: 300, type: 'sawtooth', dur: 0.34, vol: 0.3, slide: -190 }); noise({ dur: 0.3, vol: 0.2, freq: 400 }); },
+  catnip() { [523, 659, 784, 1046, 1318].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.2, vol: 0.22, delay: i * 0.06 })); },
+  wave() { [523, 659, 784].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.2, vol: 0.2, delay: i * 0.09 })); },
+  waveClear() { [784, 988, 1175, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.24, vol: 0.2, delay: i * 0.09 })); },
+  boss() {
+    [110, 110, 146, 110].forEach((f, i) => tone({ freq: f, type: 'sawtooth', dur: 0.36, vol: 0.3, delay: i * 0.22 }));
+    noise({ dur: 0.8, vol: 0.28, freq: 180, q: 0.5 });
+  },
+  bossDown() { [440, 330, 262, 196, 131].forEach((f, i) => tone({ freq: f, type: 'square', dur: 0.3, vol: 0.26, delay: i * 0.12 })); },
+  victory() { [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.34, vol: 0.26, delay: i * 0.14 })); },
   gameover() { [440, 370, 294, 220].forEach((f, i) => tone({ freq: f, type: 'sawtooth', dur: 0.4, vol: 0.22, delay: i * 0.18 })); },
-  purr() { tone({ freq: 60, type: 'sawtooth', dur: 0.5, vol: 0.18, slide: 20 }); },
 };
