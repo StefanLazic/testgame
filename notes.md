@@ -67,3 +67,16 @@ joystick drag -> all three abilities.
   projectile geometries are disposed), ~72 draw calls.
 - Verified landscape 740x360 (buttons stay inside the viewport), game over → restart,
   and a forced wave-5 Mouse King fight including its guaranteed catnip drop.
+
+## 2026-08-16 — look & feel
+
+- Title screen is now a live diorama: the camera orbits the cat while a ring of mice
+  (including the King) circles it. The menu overlay was lightened so the 3D scene reads
+  through it instead of being a flat purple wash.
+- Brightened the lighting rig (hemisphere 1.15 → 1.5, warmer sun) and the rug colour.
+  Measured average frame colour from headless screenshots before/after: the playfield
+  went from roughly rgb(46,26,74) to rgb(70,41,112), which is much more readable on a
+  phone screen in daylight.
+- The game-over screen freezes the arena instead of cutting to the menu orbit, so you
+  see the swarm that finally got you.
+- Added a README with controls and file layout.

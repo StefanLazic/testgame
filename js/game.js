@@ -41,8 +41,8 @@ export class Game {
     this.camOffset = new THREE.Vector3(0, 13.5, 12.5);
     this.camLook = new THREE.Vector3();
 
-    this.scene.add(new THREE.HemisphereLight(0xc9a4ff, 0x241238, 1.15));
-    const sun = new THREE.DirectionalLight(0xffe9c9, 1.15);
+    this.scene.add(new THREE.HemisphereLight(0xd9c0ff, 0x3a1f5c, 1.5));
+    const sun = new THREE.DirectionalLight(0xfff0d6, 1.35);
     sun.position.set(9, 18, 7);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
@@ -62,6 +62,15 @@ export class Game {
 
     this.cat = makeCat();
     this.scene.add(this.cat.group);
+
+    // Decorative mice that circle the cat on the title screen.
+    this.menuMice = [];
+    for (let i = 0; i < 6; i++) {
+      const m = makeMouse(i === 0 ? 'king' : (i % 3 === 0 ? 'fast' : 'grunt'));
+      m.group.scale.setScalar(i === 0 ? 1.6 : 1);
+      this.scene.add(m.group);
+      this.menuMice.push({ g: m.group, a: (i / 6) * Math.PI * 2, r: 4.2 + (i % 3) * 0.9, s: 0.5 + i * 0.06 });
+    }
 
     this.fx = new Effects(this.scene);
     this.input = new Input();
@@ -124,6 +133,7 @@ export class Game {
   start() {
     this.reset();
     this.input.reset();
+    for (const m of this.menuMice) m.g.visible = false;
     this.state = 'playing';
     this.ui.toast('Wave 1');
     sfx.wave();
@@ -371,7 +381,7 @@ export class Game {
     this.time += dt;
 
     if (this.state === 'playing') this._update(dt);
-    else this._idle(dt);
+    else if (this.state === 'menu') this._idle(dt);
 
     this.fx.update(dt);
     this._updateCamera(dt);
@@ -379,14 +389,21 @@ export class Game {
   }
 
   _idle(dt) {
-    // Slow orbit + tail wag for the title screen backdrop.
+    // Slow orbit + tail wag for the title screen backdrop, with a ring of mice
+    // circling the cat like sharks.
     const t = this.time * 0.25;
-    this.camera.position.set(Math.cos(t) * 15, 8.5, Math.sin(t) * 15);
-    this.camera.lookAt(0, 1.4, 0);
+    this.camera.position.set(Math.cos(t) * 14, 6.5, Math.sin(t) * 14);
+    this.camera.lookAt(0, -0.6, 0);
     this.cat.group.rotation.y += dt * 0.35;
     this._animateCat(dt, 0);
     this._animateArena(dt);
     this.catLight.position.copy(this.cat.group.position).setY(2.2);
+    for (const m of this.menuMice) {
+      m.a += dt * m.s;
+      m.g.visible = true;
+      m.g.position.set(Math.cos(m.a) * m.r, Math.abs(Math.sin(this.time * 8 + m.a)) * 0.12, Math.sin(m.a) * m.r);
+      m.g.rotation.y = -m.a + Math.PI / 2;
+    }
   }
 
   _update(dt) {

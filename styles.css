@@ -29,8 +29,8 @@ html, body {
   position: absolute; inset: 0; z-index: 30;
   display: flex; align-items: center; justify-content: center;
   padding: calc(16px + var(--safe-t)) 16px calc(16px + var(--safe-b));
-  background: radial-gradient(120% 90% at 50% 10%, rgba(90,40,140,.75), rgba(12,6,22,.94));
-  backdrop-filter: blur(3px);
+  background: radial-gradient(120% 90% at 50% 12%, rgba(60,25,110,.35), rgba(12,6,22,.82));
+  backdrop-filter: blur(2px);
 }
 
 .panel {

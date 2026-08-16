@@ -157,7 +157,7 @@ export function makeArena(radius = 18) {
 
   const floor = new THREE.Mesh(
     new THREE.CircleGeometry(radius, 48),
-    new THREE.MeshLambertMaterial({ color: 0x35235c })
+    new THREE.MeshLambertMaterial({ color: 0x4b3186 })
   );
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
@@ -168,7 +168,7 @@ export function makeArena(radius = 18) {
     const r = (radius / 4) * i;
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(r - 0.14, r, 64),
-      new THREE.MeshBasicMaterial({ color: 0x6b45b0, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
+      new THREE.MeshBasicMaterial({ color: 0xa77dff, transparent: true, opacity: 0.4, side: THREE.DoubleSide })
     );
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = 0.02;
