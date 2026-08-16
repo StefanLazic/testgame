@@ -80,3 +80,89 @@ joystick drag -> all three abilities.
 - The game-over screen freezes the arena instead of cutting to the menu orbit, so you
   see the swarm that finally got you.
 - Added a README with controls and file layout.
+
+## 2026-08-16 — genre change: arena ➜ tower defense
+
+The game is now **Claw Defense**. The player no longer drives a cat around; they
+place cat *towers* along a winding kitchen path and defend a bowl of milk from
+ten waves of pests. Everything is still plain static files (`index.html` + ES
+modules + vendored three.js), no build step.
+
+- **`js/config.js` (new)** — single source of balance truth: board size, path
+  waypoints, tower/enemy stats, wave table, prices. Tuning the game never means
+  touching engine code.
+- **Board**: a 9×19 grid (tall, so it fills a phone screen) with a serpentine
+  brown path from the mouse hole to the milk bowl. Tiles off the path are
+  buildable; the `pathTiles` set is derived from the waypoint list so the path
+  and the build grid can never disagree.
+- **Camera**: fixed, no panning or pinch — instead `_fitCamera()` projects the
+  board corners and binary-searches the camera distance, then pans vertically
+  until the top/bottom margins match. That keeps the whole board on screen and
+  clear of the HUD chips and shop bar on any aspect ratio, portrait or landscape.
+- **Removed** `js/input.js` (virtual joystick) — controls are now taps.
+- **Deleted** the old arena/player code; `models.js` was rewritten for towers,
+  four pest species, bosses, the map, bowl, bullets and pickups. `fx.js` and the
+  WebAudio `audio.js` survived (audio gained a new sfx table).
+
+### The five cats
+
+| Cat | Cost | Role |
+| --- | --- | --- |
+| 🏹 Archer | 70 | cheap, reliable single target, hits air |
+| 🔮 Wizard | 120 | slow arcane orbs with splash, hits air |
+| ❄️ Frost | 95 | weak damage but chills and slows a small area, hits air |
+| 🥷 Ninja | 150 | 3.6 shots/sec shuriken, ground only, 22% crits for 3× |
+| 🍳 Chef | 210 | lobs a frying pan, huge splash, ground only |
+
+Each upgrades twice (+62% damage, +13% range, +18% fire rate per level) and
+gains a visible golden collar. Selling refunds 70%.
+
+### Pests
+
+Mice, snakes (fast), dogs (armoured), and **birds that fly in a straight line
+over the whole maze** — only Archer/Wizard/Frost can touch them, which is what
+stops a wall of Ninjas from solving the game.
+
+### Economy
+
+Start with 🐟 260. Fish come from kills, a post-wave bonus (`45 + 18×wave`) and
+an *early bird* bonus of 3 fish per second of prep time skipped — so a confident
+player can snowball.
+
+### Testing
+
+Headless Chromium (SwiftShader) smoke test: title ➜ play ➜ place all five cats ➜
+run a wave, no console errors. Camera framing verified numerically at 390×844,
+360×640, 820×1180 and 844×390.
+
+## 2026-08-16 — balance, bosses and the title diorama
+
+- **Automated playtest**: a headless Chromium script drives a deliberately naive
+  AI (buys the most expensive affordable cat on the tile touching the most path
+  segments, occasionally upgrades a random one) at 3× speed. It died on wave 9
+  with 222 kills, which felt like the right shape for a game a thinking player
+  should be able to win. Mini-boss HP trimmed 1500 ➜ 1200 and the final boss
+  5200 ➜ 4200 so bosses don't turn into a stalemate.
+- **Title screen is now a live diorama**: `startDemo()` places one of each cat on
+  random path-adjacent tiles and trickles mice/snakes/birds down the path with
+  no stakes — leaks and kills are silent in `demo` phase. It doubles as a
+  permanent smoke test: if the sim is broken, the title screen shows it.
+- **Sir Barksalot howls** every 6 seconds: a shockwave ring that cleanses slows
+  and gives every pest within 9 units +45% speed for 3 seconds. It turns wave 5
+  from "big health bar" into a timing problem.
+- **The Rat King** enrages below 45% HP (+50% speed) and coughs out three extra
+  mice every 3.5 seconds from its own position.
+- Boss waves are announced during the previous prep phase so nobody gets
+  ambushed while saving up.
+
+## 2026-08-16 — polish pass
+
+- **Path chevrons**: soft glowing arrows bob along the route so the walk
+  direction is obvious at a glance on a 360px-wide screen.
+- **Tap rules tightened**: while a cat is selected in the shop, tapping a tile
+  that already holds a cat opens its upgrade panel instead of scolding you, and
+  the refusal toast now says *why* (no fish vs. on the path).
+- Final boss HP raised to 6000 after a stress test where 24 level-3 cats
+  deleted the Rat King in seconds.
+- Verified with touch events (not just mouse clicks) in both 390×844 portrait and
+  844×390 landscape: shop tap ➜ tile tap places, second tap selects, no errors.

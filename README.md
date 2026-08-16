@@ -1,41 +1,56 @@
-# 🐱 Whisker Wizard
+# 🐱 Claw Defense
 
-A 3D mobile arena game: a magic cat defends the rug against endless waves of mice.
+A 3D mobile **tower defense** game: place cat towers around the kitchen and stop
+ten waves of mice, snakes, dogs and birds before they reach the milk bowl.
 
-Built with [three.js](https://threejs.org/) as **plain static files** — no build step,
-no bundler, no CDN. Open `index.html` (or serve the folder) and play.
+Built with [three.js](https://threejs.org/) as **plain static files** — no build
+step, no bundler, no CDN. Open `index.html` (or serve the folder) and play.
 
 ```bash
 python3 -m http.server 8000   # then visit http://localhost:8000
 ```
 
-## Controls
+## How to play
 
-| Action | Touch | Keyboard |
+| Action | How |
+| --- | --- |
+| Place a cat | tap a cat in the shop, then tap any free floor tile |
+| Inspect / upgrade / sell | tap a cat you already placed |
+| Start the next wave early | tap the big button — you keep 🐟 3 per second skipped |
+| Fast forward | tap the ▶▶ chip to cycle 1× / 2× / 3× |
+
+Every pest that reaches the milk costs lives (dogs cost 2, bosses far more).
+Nine lives, ten waves.
+
+## The five cats
+
+| Cat | Cost | Role |
 | --- | --- | --- |
-| Move | drag anywhere on the left half of the screen | WASD / arrows |
-| 🐾 Claw swipe | tap/hold the paw button | Space or J |
-| ☄️ Hairball Comet | tap the comet button (20 mana) | K |
-| ⚡ Thunder Whiskers | tap the bolt button (45 mana) | L |
+| 🏹 Archer | 70 | cheap, reliable single-target shots — hits air |
+| 🔮 Wizard | 120 | slow arcane orbs that explode — hits air |
+| ❄️ Frost | 95 | chills an area and slows everything in it — hits air |
+| 🥷 Ninja | 150 | 3.6 shuriken a second with 3× crits — ground only |
+| 🍳 Chef | 210 | lobs a frying pan for huge splash damage — ground only |
 
-Attacks auto-aim at the nearest mouse, so one thumb is enough.
+Each cat upgrades twice for more damage, range and fire rate.
 
 ## Things to find out for yourself
 
-Mice fall from the ceiling. Every fifth wave brings a crowned Mouse King who charges
-and calls for backup. And mice sometimes drop catnip — pick it up.
+Birds ignore your beautiful maze. Golden mice are worth a fortune if you can
+catch them. Catnip sometimes drops — tap it. Wave 5 brings a mini-boss who
+howls, and wave 10 brings a king who does not come alone.
 
 ## Layout
 
 ```
-index.html      title / help / game-over screens, HUD and touch controls
+index.html      title / help / game-over screens, HUD, shop and tower panel
 styles.css      mobile-first UI (safe-area aware, portrait + landscape)
-js/main.js      boot, screen management, HUD bindings
-js/game.js      simulation: waves, enemies, abilities, camera
-js/models.js    procedural low-poly cat, mice, arena
-js/fx.js        pooled particles, shockwave rings, lightning, camera shake
+js/config.js    all balance data: board, path, towers, enemies, waves
+js/main.js      boot, screen management, HUD + shop bindings
+js/game.js      simulation: placement, targeting, waves, bosses, economy
+js/models.js    procedural low-poly cats, pests, map, bowl, projectiles
+js/fx.js        pooled particles, shockwave rings, camera shake
 js/audio.js     WebAudio synthesised sound effects (no audio files)
-js/input.js     dynamic virtual joystick + buttons + keyboard fallback
 vendor/         three.js r180 build (MIT, see vendor/THREE_LICENSE)
 ```
 

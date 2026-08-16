@@ -1,684 +1,982 @@
 import * as THREE from 'three';
-import { makeCat, makeMouse, makeArena, makeStars, makeCatnip } from './models.js';
+import {
+  TILE, COLS, ROWS, PATH, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
+  TOWERS, MAX_LEVEL, upgradeCost, towerStats, ENEMIES, hpScale, WAVES, waveBonus,
+} from './config.js';
+import {
+  makeCatTower, makeEnemy, makeMap, makeMouseHole, makeMilkBowl, makeRangeRing,
+  makeGhostTile, makeBullet, makeCatnipDrop, makeStars, tileToWorld, makePathArrows,
+} from './models.js';
 import { Effects } from './fx.js';
-import { Input } from './input.js';
-import { initAudio, sfx } from './audio.js';
+import { sfx } from './audio.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
-const tmp = new THREE.Vector3();
-
-const CONFIG = {
-  arena: 18,
-  cat: { speed: 8, hp: 9, mana: 100, manaRegen: 7, radius: 0.8 },
-  claw: { cd: 0.4, range: 3.2, arc: Math.PI * 0.7, dmg: 3, knock: 6 },
-  hairball: { cd: 1.1, cost: 20, speed: 19, dmg: 7, splash: 3.4, life: 1.6 },
-  thunder: { cd: 6.5, cost: 45, dmg: 12, radius: 7.5, stun: 1.6 },
-  frenzy: { time: 9 },
-};
-
-const ENEMY_TYPES = {
-  grunt: { hp: 4, speed: 2.7, dmg: 1, scale: 1, score: 1, radius: 0.6 },
-  fast: { hp: 3, speed: 5.0, dmg: 1, scale: 0.85, score: 2, radius: 0.5 },
-  tank: { hp: 15, speed: 1.9, dmg: 2, scale: 1.5, score: 3, radius: 0.95 },
-  king: { hp: 70, speed: 2.6, dmg: 3, scale: 3.2, score: 25, radius: 2.0 },
-};
+const GROUND = new THREE.Plane(UP, 0);
+const FLY_Y = 3.6;
+const TOWER_SCALE = 1.25;   // cats are bigger than a floor tile is wide
 
 export class Game {
   constructor(canvas, ui) {
-    this.ui = ui;
     this.canvas = canvas;
+    this.ui = ui;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: window.devicePixelRatio < 2 });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    this.renderer.setClearColor(0x140a24, 1);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x150c24);
-    this.scene.fog = new THREE.Fog(0x150c24, 26, 62);
+    this.scene.fog = new THREE.Fog(0x140a24, 46, 96);
+    this.camera = new THREE.PerspectiveCamera(52, 1, 0.1, 300);
 
-    this.camera = new THREE.PerspectiveCamera(58, 1, 0.1, 200);
-    this.camOffset = new THREE.Vector3(0, 13.5, 12.5);
-    this.camLook = new THREE.Vector3();
+    this._buildWorld();
 
-    this.scene.add(new THREE.HemisphereLight(0xd9c0ff, 0x3a1f5c, 1.5));
-    const sun = new THREE.DirectionalLight(0xfff0d6, 1.35);
-    sun.position.set(9, 18, 7);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    const s = 24;
-    sun.shadow.camera.left = -s; sun.shadow.camera.right = s;
-    sun.shadow.camera.top = s; sun.shadow.camera.bottom = -s;
-    sun.shadow.camera.far = 60;
-    this.scene.add(sun);
-    this.sun = sun;
+    this.raycaster = new THREE.Raycaster();
+    this.pointer = new THREE.Vector2();
+    this.effects = new Effects(this.scene);
 
-    this.arena = makeArena(CONFIG.arena);
-    this.scene.add(this.arena.group);
-    this.scene.add(makeStars());
-
-    this.catLight = new THREE.PointLight(0xff9ad8, 1.4, 14, 2);
-    this.scene.add(this.catLight);
-
-    this.cat = makeCat();
-    this.scene.add(this.cat.group);
-
-    // Decorative mice that circle the cat on the title screen.
-    this.menuMice = [];
-    for (let i = 0; i < 6; i++) {
-      const m = makeMouse(i === 0 ? 'king' : (i % 3 === 0 ? 'fast' : 'grunt'));
-      m.group.scale.setScalar(i === 0 ? 1.6 : 1);
-      this.scene.add(m.group);
-      this.menuMice.push({ g: m.group, a: (i / 6) * Math.PI * 2, r: 4.2 + (i % 3) * 0.9, s: 0.5 + i * 0.06 });
-    }
-
-    this.fx = new Effects(this.scene);
-    this.input = new Input();
-
+    this.towers = [];
     this.enemies = [];
-    this.projectiles = [];
-    this.pickups = [];
-    this.enemyPool = { grunt: [], fast: [], tank: [], king: [] };
+    this.bullets = [];
+    this.drops = [];
+    this.enemyPool = {};
 
-    this.state = 'menu';
-    this.time = 0;
-    this._resize();
-    window.addEventListener('resize', () => this._resize());
-    window.addEventListener('orientationchange', () => setTimeout(() => this._resize(), 250));
+    this.placing = null;       // tower kind selected in the shop
+    this.selected = null;      // placed tower currently inspected
+    this.speed = 1;
+    this.phase = 'idle';
+    this.frenzy = 0;
 
-    this.reset(true);
-    this._last = performance.now();
-    this._loop = this._loop.bind(this);
-    requestAnimationFrame(this._loop);
+    this._bindPointer();
+    window.addEventListener('resize', () => this.resize());
+    this.resize();
+
+    this.clock = new THREE.Clock();
+    this.renderer.setAnimationLoop(() => this._frame());
+    this.startDemo();
   }
 
-  // -------------------------------------------------------------- lifecycle
-  reset(menu = false) {
-    for (const e of this.enemies) this._despawn(e);
-    this.enemies.length = 0;
-    for (const p of this.projectiles) this.scene.remove(p.mesh);
-    this.projectiles.length = 0;
-    for (const p of this.pickups) this.scene.remove(p.mesh);
-    this.pickups.length = 0;
+  // ------------------------------------------------------------------ world
+  _buildWorld() {
+    const scene = this.scene;
 
-    this.pos = new THREE.Vector3(0, 0, 0);
-    this.vel = new THREE.Vector3();
-    this.facing = new THREE.Vector3(0, 0, 1);
-    this.hp = CONFIG.cat.hp;
-    this.mana = CONFIG.cat.mana;
-    this.score = 0;
-    this.wave = 0;
-    this.waveKills = 0;
-    this.waveTarget = 0;
-    this.spawnQueue = [];
-    this.spawnTimer = 0;
-    this.intermission = 1.6;
-    this.frenzy = 0;
-    this.cd = { claw: 0, hairball: 0, thunder: 0 };
-    this.invuln = 0;
-    this.cat.group.position.set(0, 0, 0);
-    this.cat.group.scale.setScalar(1);
-    this.cat.group.rotation.y = 0;
-    this.camera.position.copy(this.camOffset);
-    this.camLook.set(0, 0, 0);
-    this.state = menu ? 'menu' : 'playing';
-    this.ui.setHP(this.hp, CONFIG.cat.hp);
-    this.ui.setMana(this.mana, CONFIG.cat.mana);
-    this.ui.setScore(0);
-    this.ui.setWave(1);
-    this.ui.frenzy(false);
-    this.ui.boss(null);
+    scene.add(new THREE.HemisphereLight(0xffd9f5, 0x2a1a46, 1.15));
+    const key = new THREE.DirectionalLight(0xfff0e0, 1.5);
+    key.position.set(14, 26, 12);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    const d = 26;
+    key.shadow.camera.left = -d; key.shadow.camera.right = d;
+    key.shadow.camera.top = d; key.shadow.camera.bottom = -d;
+    key.shadow.camera.far = 80;
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0x9a7bff, 0.7);
+    rim.position.set(-16, 12, -14);
+    scene.add(rim);
+
+    // Path tiles + world-space waypoints
+    this.pathTiles = new Set();
+    this.waypoints = [];
+    for (let i = 0; i < PATH.length; i++) {
+      const [c, r] = PATH[i];
+      this.waypoints.push(tileToWorld(c, r));
+      if (i === 0) { this.pathTiles.add(`${c},${r}`); continue; }
+      const [pc, pr] = PATH[i - 1];
+      const dc = Math.sign(c - pc);
+      const dr = Math.sign(r - pr);
+      let cc = pc, rr = pr;
+      while (cc !== c || rr !== r) {
+        cc += dc; rr += dr;
+        this.pathTiles.add(`${cc},${rr}`);
+      }
+    }
+
+    scene.add(makeMap(this.pathTiles));
+    scene.add(makeStars());
+    this.arrows = makePathArrows(this.waypoints);
+    scene.add(this.arrows);
+
+    const startP = this.waypoints[0];
+    const hole = makeMouseHole();
+    hole.position.set(startP.x - TILE * 0.6, 0, startP.z);
+    hole.rotation.y = -Math.PI / 2;
+    scene.add(hole);
+
+    this.goal = this.waypoints[this.waypoints.length - 1].clone();
+    this.bowl = makeMilkBowl();
+    this.bowl.position.copy(this.goal);
+    scene.add(this.bowl);
+
+    this.ghost = makeGhostTile();
+    this.ghost.visible = false;
+    scene.add(this.ghost);
+    this.ghostRing = makeRangeRing(1);
+    this.ghostRing.visible = false;
+    scene.add(this.ghostRing);
+    this.selRing = makeRangeRing(1);
+    this.selRing.visible = false;
+    scene.add(this.selRing);
+
+    this.occupied = new Map(); // "c,r" -> tower
+  }
+
+  resize() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setSize(w, h, false);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this._fitCamera(w, h);
+  }
+
+  // Frame the whole board for any screen shape by projecting its corners and
+  // binary-searching the camera distance, then panning so the margins match
+  // (HUD chips at the top, shop bar at the bottom).
+  _fitCamera(w, h) {
+    const portrait = h >= w;
+    const halfW = ((COLS + 1.6) * TILE) / 2;
+    const halfD = ((ROWS + 1.6) * TILE) / 2;
+    const corners = [];
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        corners.push(new THREE.Vector3(sx * halfW, 0, sz * halfD));
+        corners.push(new THREE.Vector3(sx * halfW, FLY_Y, sz * halfD));
+      }
+    }
+    const topPx = 58;
+    const botPx = portrait ? 132 : 96;
+    const topLimit = 1 - (topPx / h) * 2;
+    const botLimit = -1 + (botPx / h) * 2;
+    const pitch = portrait ? 1.14 : 0.72;
+    const dir = new THREE.Vector3(0, Math.sin(pitch), Math.cos(pitch));
+
+    let tz = 0;
+    let dist = 60;
+    const place = (d, targetZ) => {
+      this.camera.position.copy(dir).multiplyScalar(d).add(new THREE.Vector3(0, 0, targetZ));
+      this.camera.lookAt(0, 0, targetZ);
+      this.camera.updateMatrixWorld();
+    };
+    const extents = () => {
+      let minY = Infinity, maxY = -Infinity, maxX = 0;
+      for (const c of corners) {
+        const p = c.clone().project(this.camera);
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+        maxX = Math.max(maxX, Math.abs(p.x));
+      }
+      return { minY, maxY, maxX };
+    };
+
+    for (let iter = 0; iter < 8; iter++) {
+      let lo = 12, hi = 220;
+      for (let i = 0; i < 26; i++) {
+        const mid = (lo + hi) / 2;
+        place(mid, tz);
+        const e = extents();
+        const fits = e.maxX <= 0.985 && e.maxY <= topLimit && e.minY >= botLimit;
+        if (fits) hi = mid; else lo = mid;
+      }
+      dist = hi;
+      place(dist, tz);
+      const e = extents();
+      // Re-centre vertically inside the free area.
+      const drift = ((topLimit - e.maxY) - (e.minY - botLimit)) / 2;
+      if (Math.abs(drift) < 0.004) break;
+      tz += drift * 12;
+    }
+
+    place(dist, tz);
+    this.camBase = this.camera.position.clone();
+    this.camTarget = new THREE.Vector3(0, 0, tz);
+  }
+
+  // ---------------------------------------------------------------- pointer
+  _bindPointer() {
+    const c = this.canvas;
+    let downXY = null;
+    const toNDC = (e) => {
+      this.pointer.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+    };
+    c.addEventListener('pointerdown', (e) => {
+      downXY = { x: e.clientX, y: e.clientY };
+      toNDC(e);
+      if (this.placing) this._updateGhost();
+    });
+    c.addEventListener('pointermove', (e) => {
+      if (!this.placing) return;
+      if (e.pointerType === 'mouse' || downXY) { toNDC(e); this._updateGhost(); }
+    });
+    c.addEventListener('pointerup', (e) => {
+      const moved = downXY ? Math.hypot(e.clientX - downXY.x, e.clientY - downXY.y) : 0;
+      downXY = null;
+      if (moved > 24) { this.ghost.visible = false; this.ghostRing.visible = false; return; }
+      toNDC(e);
+      this._tap();
+    });
+    c.addEventListener('pointercancel', () => { downXY = null; });
+  }
+
+  _groundPoint() {
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const hit = new THREE.Vector3();
+    return this.raycaster.ray.intersectPlane(GROUND, hit) ? hit : null;
+  }
+
+  _tileAt(p) {
+    if (!p) return null;
+    const col = Math.round(p.x / TILE + (COLS - 1) / 2);
+    const row = Math.round(p.z / TILE + (ROWS - 1) / 2);
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
+    return { col, row, key: `${col},${row}` };
+  }
+
+  _buildable(tile) {
+    return !!tile && !this.pathTiles.has(tile.key) && !this.occupied.has(tile.key);
+  }
+
+  _updateGhost() {
+    const tile = this._tileAt(this._groundPoint());
+    const ok = this._buildable(tile) && this.gold >= TOWERS[this.placing].cost;
+    this.ghost.visible = !!tile;
+    this.ghostRing.visible = !!tile;
+    if (!tile) return;
+    const p = tileToWorld(tile.col, tile.row);
+    this.ghost.position.set(p.x, 0.08, p.z);
+    this.ghostRing.position.set(p.x, 0.09, p.z);
+    this.ghostRing.scale.setScalar(TOWERS[this.placing].range);
+    const color = ok ? 0x9dffd8 : 0xff6b6b;
+    this.ghost.material.color.setHex(color);
+    this.ghostRing.material.color.setHex(color);
+  }
+
+  _tap() {
+    const p = this._groundPoint();
+    const tile = this._tileAt(p);
+
+    if (this.placing) {
+      if (this._buildable(tile)) { this.placeTower(this.placing, tile); return; }
+      // Tapping a cat you already own inspects it instead of nagging you.
+      const existing = tile && this.occupied.get(tile.key);
+      if (existing) { this.setPlacing(null); this.selectTower(existing); return; }
+      sfx.deny();
+      this.ui.toast(this.gold < TOWERS[this.placing].cost ? 'Not enough fish' : 'Can’t build on the path');
+      return;
+    }
+
+    // Catnip pickup beats tower selection.
+    if (p) {
+      for (const drop of this.drops) {
+        if (drop.group.position.distanceTo(p) < 2.2) { this._takeCatnip(drop); return; }
+      }
+    }
+
+    const tower = tile && this.occupied.get(tile.key);
+    if (tower) this.selectTower(tower);
+    else this.selectTower(null);
+  }
+
+  // ------------------------------------------------------------------ flow
+  // A little self-playing diorama behind the title screen: a few cats already
+  // on duty, an endless trickle of mice, nothing at stake.
+  startDemo() {
+    this.lives = START_LIVES;
+    this.gold = 0;
+    this.wave = 1;
+    this.kills = 0;
+    this.phase = 'demo';
+    this.demoTimer = 0;
+    const spots = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const key = `${c},${r}`;
+        if (this.pathTiles.has(key)) continue;
+        let adj = 0;
+        for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (this.pathTiles.has(`${c + dc},${r + dr}`)) adj++;
+        if (adj) spots.push({ col: c, row: r, key });
+      }
+    }
+    const kinds = ['archer', 'wizard', 'frost', 'ninja', 'chef'];
+    for (const kind of kinds) {
+      const spot = spots.splice(Math.floor(Math.random() * spots.length), 1)[0];
+      if (!spot) break;
+      this.gold = TOWERS[kind].cost;
+      this.placeTower(kind, spot);
+    }
+    this.gold = 0;
   }
 
   start() {
-    this.reset();
-    this.input.reset();
-    for (const m of this.menuMice) m.g.visible = false;
-    this.state = 'playing';
-    this.ui.toast('Wave 1');
-    sfx.wave();
+    // Reset everything for a fresh run.
+    for (const t of this.towers) this.scene.remove(t.group);
+    for (const e of this.enemies) this.scene.remove(e.group);
+    for (const b of this.bullets) this.scene.remove(b.mesh);
+    for (const d of this.drops) this.scene.remove(d.group);
+    this.towers = []; this.enemies = []; this.bullets = []; this.drops = [];
+    this.occupied.clear();
+
+    this.lives = START_LIVES;
+    this.gold = START_GOLD;
+    this.wave = 0;
+    this.kills = 0;
+    this.frenzy = 0;
+    this.spawnQueue = [];
+    this.waveTimer = FIRST_PREP;
+    this.phase = 'prep';
+    this.selectTower(null);
+    this.setPlacing(null);
+    this.speed = 1;
+    this.boss = null;
+
+    this.ui.setGold(this.gold);
+    this.ui.setLives(this.lives);
+    this.ui.setWave(1);
+    this.ui.setSpeed(1);
+    this.ui.boss(null);
+    this.ui.setPhase('prep', this.waveTimer);
+    this.ui.toast('Build your defense!');
   }
 
-  gameOver() {
-    this.state = 'over';
-    sfx.gameover();
-    this.ui.gameOver(this.score, this.wave);
+  setSpeed(mult) {
+    this.speed = mult;
+    this.ui.setSpeed(mult);
   }
 
-  _resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    this.renderer.setSize(w, h, false);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.camera.aspect = w / h;
-    // Pull the camera back on tall/narrow phone screens so the arena still fits.
-    const portrait = h > w;
-    this.camOffset.set(0, portrait ? 15.5 : 12.5, portrait ? 13.5 : 12);
-    this.camera.fov = portrait ? 62 : 55;
-    this.camera.updateProjectionMatrix();
+  setPlacing(kind) {
+    this.placing = kind;
+    this.ghost.visible = false;
+    this.ghostRing.visible = false;
+    if (kind) this.selectTower(null);
+    this.ui.setPlacing(kind);
   }
 
-  // ----------------------------------------------------------------- waves
-  _startWave(n) {
-    this.wave = n;
-    this.waveKills = 0;
-    this.ui.setWave(n);
-    const queue = [];
-    const grunts = 4 + Math.floor(n * 1.7);
-    for (let i = 0; i < grunts; i++) queue.push('grunt');
-    for (let i = 0; i < Math.floor(n * 0.9); i++) queue.push('fast');
-    for (let i = 0; i < Math.floor((n - 1) / 2); i++) queue.push('tank');
-    if (n % 5 === 0) queue.push('king');
-    // shuffle for variety
-    for (let i = queue.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [queue[i], queue[j]] = [queue[j], queue[i]];
+  selectTower(tower) {
+    this.selected = tower;
+    if (!tower) {
+      this.selRing.visible = false;
+      this.ui.showTower(null);
+      return;
     }
-    this.spawnQueue = queue;
-    this.waveTarget = queue.length;
-    this.spawnTimer = 0;
-    if (n % 5 === 0) this.ui.toast(`Wave ${n} — MOUSE KING!`);
-    else this.ui.toast(`Wave ${n}`);
+    const st = towerStats(tower.kind, tower.level);
+    this.selRing.visible = true;
+    this.selRing.position.set(tower.group.position.x, 0.1, tower.group.position.z);
+    this.selRing.scale.setScalar(st.range);
+    this.ui.showTower(this._towerInfo(tower));
+  }
+
+  _towerInfo(tower) {
+    const base = TOWERS[tower.kind];
+    const st = towerStats(tower.kind, tower.level);
+    const maxed = tower.level >= MAX_LEVEL;
+    return {
+      kind: tower.kind, icon: base.icon, name: base.name, level: tower.level, maxed,
+      damage: Math.round(st.damage), range: st.range.toFixed(1), rate: st.rate.toFixed(2),
+      blurb: base.blurb,
+      upCost: maxed ? 0 : upgradeCost(tower.kind, tower.level),
+      sellValue: Math.floor(tower.spent * 0.7),
+      canAfford: !maxed && this.gold >= upgradeCost(tower.kind, tower.level),
+    };
+  }
+
+  placeTower(kind, tile) {
+    const cost = TOWERS[kind].cost;
+    if (this.gold < cost) { sfx.deny(); this.ui.toast('Not enough fish'); return; }
+    this.gold -= cost;
+    this.ui.setGold(this.gold);
+
+    const model = makeCatTower(kind, TOWERS[kind]);
+    const p = tileToWorld(tile.col, tile.row);
+    model.group.position.set(p.x, 0.06, p.z);
+    model.group.rotation.y = Math.atan2(this.goal.x - p.x, this.goal.z - p.z);
+    this.scene.add(model.group);
+
+    const tower = {
+      kind, level: 1, spent: cost, tile: tile.key,
+      group: model.group, head: model.head, arm: model.arm, body: model.body,
+      cool: 0, recoil: 0, pos: new THREE.Vector3(p.x, 0.9, p.z), pop: 0,
+    };
+    this.towers.push(tower);
+    this.occupied.set(tile.key, tower);
+    this.effects.ring(p, { color: 0x9dffd8, from: 0.3, to: 2.4, life: 0.4 });
+    this.effects.burst(new THREE.Vector3(p.x, 0.6, p.z), { count: 10, color: 0xfff0d8, speed: 3, size: 0.35 });
+    sfx.place();
+
+    this.ghost.visible = false;
+    this.ghostRing.visible = false;
+    if (this.gold < cost) this.setPlacing(null);
+    this.ui.setGold(this.gold);
+  }
+
+  upgradeSelected() {
+    const t = this.selected;
+    if (!t || t.level >= MAX_LEVEL) return;
+    const cost = upgradeCost(t.kind, t.level);
+    if (this.gold < cost) { sfx.deny(); this.ui.toast('Not enough fish'); return; }
+    this.gold -= cost;
+    t.spent += cost;
+    t.level++;
+    t.pop = 0.4;
+    t.group.scale.setScalar(TOWER_SCALE + (t.level - 1) * 0.1);
+    // Visible upgrade: a golden collar per level.
+    const collar = new THREE.Mesh(
+      new THREE.TorusGeometry(0.3, 0.055, 6, 14),
+      new THREE.MeshLambertMaterial({ color: 0xffd166, emissive: 0x6b5200 })
+    );
+    collar.position.set(0, 0.7 + (t.level - 2) * 0.08, 0.06);
+    collar.rotation.x = Math.PI / 2.1;
+    t.group.add(collar);
+    this.effects.ring(t.group.position, { color: 0xffd166, from: 0.3, to: 2.6, life: 0.45 });
+    this.effects.burst(t.pos, { count: 14, color: 0xffd166, speed: 4, size: 0.4 });
+    sfx.upgrade();
+    this.ui.setGold(this.gold);
+    this.selectTower(t);
+  }
+
+  sellSelected() {
+    const t = this.selected;
+    if (!t) return;
+    const refund = Math.floor(t.spent * 0.7);
+    this.gold += refund;
+    this.occupied.delete(t.tile);
+    this.towers.splice(this.towers.indexOf(t), 1);
+    this.scene.remove(t.group);
+    this.effects.burst(t.pos, { count: 12, color: 0xff9ec4, speed: 3.4, size: 0.4 });
+    sfx.sell();
+    this.ui.setGold(this.gold);
+    this.ui.toast(`Sold for 🐟 ${refund}`);
+    this.selectTower(null);
+  }
+
+  startWaveNow() {
+    if (this.phase !== 'prep') return;
+    const bonus = Math.floor(Math.max(0, this.waveTimer) * 3);
+    if (bonus > 0) {
+      this.gold += bonus;
+      this.ui.setGold(this.gold);
+      this.ui.toast(`Early bird: +🐟 ${bonus}`);
+    }
+    this._beginWave();
+  }
+
+  _beginWave() {
+    this.wave++;
+    const def = WAVES[this.wave - 1];
+    this.phase = 'running';
+    this.spawnQueue = [];
+    for (const [kind, count, gap, delay] of def.groups) {
+      for (let i = 0; i < count; i++) this.spawnQueue.push({ kind, time: delay + i * gap });
+    }
+    // Surprise: a golden mouse sneaks in with most waves. Big bounty, very fast.
+    if (this.wave >= 2 && Math.random() < 0.75) {
+      const last = this.spawnQueue[this.spawnQueue.length - 1].time;
+      this.spawnQueue.push({ kind: 'golden', time: Math.random() * last * 0.8 + 1 });
+    }
+    this.spawnQueue.sort((a, b) => a.time - b.time);
+    this.waveClock = 0;
+    this.ui.setWave(this.wave);
+    this.ui.setPhase('running');
+    this.ui.banner(`Wave ${this.wave}`, def.name);
     sfx.wave();
   }
 
+  _endWave() {
+    const bonus = waveBonus(this.wave);
+    this.gold += bonus;
+    this.ui.setGold(this.gold);
+    this.ui.toast(`Wave cleared! +🐟 ${bonus}`);
+    sfx.waveClear();
+    this.boss = null;
+    this.ui.boss(null);
+
+    if (this.wave >= WAVES.length) {
+      this.phase = 'over';
+      this.ui.gameOver(true, this.wave, this.kills);
+      sfx.victory();
+      return;
+    }
+    this.phase = 'prep';
+    this.waveTimer = PREP_TIME;
+    this.ui.setPhase('prep', this.waveTimer);
+    const next = this.wave + 1;
+    if (next === 5) setTimeout(() => this.ui.toast('⚠️ Wave 5: a mini-boss is coming'), 1800);
+    if (next === 10) setTimeout(() => this.ui.toast('⚠️ Wave 10: THE RAT KING approaches'), 1800);
+  }
+
+  // --------------------------------------------------------------- spawning
   _spawn(kind) {
-    const def = ENEMY_TYPES[kind];
-    let e = this.enemyPool[kind].pop();
-    if (!e) {
-      const model = makeMouse(kind);
-      e = { kind, model, group: model.group };
-      this.scene.add(model.group);
+    const def = ENEMIES[kind];
+    const pooled = (this.enemyPool[kind] || []).pop();
+    const model = pooled || makeEnemy(kind);
+    const g = model.group;
+    g.visible = true;
+    g.scale.setScalar(def.scale);
+    this.scene.add(g);
+
+    const start = this.waypoints[0].clone();
+    start.x -= TILE * 0.4;
+    const hp = def.hp * (def.boss ? 1 : hpScale(this.wave));
+    const e = {
+      kind, def, model, group: g,
+      hp, maxHp: hp,
+      speed: def.speed * (def.boss ? 1 : 1 + 0.012 * this.wave),
+      flying: !!def.flying,
+      seg: 1, progress: 0, alive: true,
+      slowT: 0, slowF: 0, hurt: 0, wobble: Math.random() * 6,
+      spawnT: 0, spawnTimer: 3.5, enraged: false,
+    };
+    e.pos = start;
+    if (e.flying) {
+      e.route = [start.clone(), this.goal.clone()];
+      g.position.set(start.x, FLY_Y, start.z);
+    } else {
+      e.route = this.waypoints;
+      g.position.copy(start);
     }
-    e.group.visible = true;
-    const a = Math.random() * Math.PI * 2;
-    const r = CONFIG.arena * (0.82 + Math.random() * 0.15);
-    e.pos = new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r);
-    e.hp = def.hp + (kind === 'king' ? this.wave * 8 : Math.floor(this.wave * 0.6));
-    e.maxHp = e.hp;
-    e.speed = def.speed * (0.9 + Math.random() * 0.25);
-    e.dmg = def.dmg;
-    e.radius = def.radius;
-    e.score = def.score;
-    e.stun = 0;
-    e.flash = 0;
-    e.hitCd = 0;
-    e.wobble = Math.random() * 10;
-    e.charge = 0;
-    e.chargeCd = 3;
-    e.dead = false;
-    e.group.scale.setScalar(def.scale);
-    e.group.position.copy(e.pos);
-    e.group.position.y = 6 + Math.random() * 3; // drop in from above: mice fall from the ceiling
-    e.dropping = true;
+    e.bar = this._makeBar();
+    g.add(e.bar.group);
+    e.bar.group.position.y = (e.flying ? 1.5 : 1.5) * (def.boss ? 1.2 : 1);
     this.enemies.push(e);
+
+    if (def.boss) {
+      this.boss = e;
+      this.ui.boss(1, def.name.toUpperCase());
+      this.ui.banner(def.boss === 'main' ? '👑 THE RAT KING' : '🐶 MINI BOSS', def.name);
+      this.effects.kick(0.9);
+      sfx.boss();
+    }
     return e;
   }
 
-  _despawn(e) {
-    e.group.visible = false;
-    this.enemyPool[e.kind].push(e);
+  _makeBar() {
+    const group = new THREE.Group();
+    const bg = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0x2a0f1c, depthTest: false, transparent: true, opacity: 0.85 }));
+    bg.scale.set(1.1, 0.16, 1);
+    const fg = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0x6bff9a, depthTest: false, transparent: true }));
+    fg.center.set(0, 0.5);
+    fg.position.set(-0.53, 0, 0.01);
+    fg.scale.set(1.06, 0.12, 1);
+    group.add(bg, fg);
+    group.visible = false;
+    group.renderOrder = 20;
+    return { group, fg };
   }
 
-  _kill(e, silent = false) {
-    e.dead = true;
-    const idx = this.enemies.indexOf(e);
-    if (idx >= 0) this.enemies.splice(idx, 1);
-    this._despawn(e);
-    if (silent) return;
-    this.score += e.score;
-    this.waveKills++;
-    this.ui.setScore(this.score);
-    this.fx.burst(e.group.position.clone().setY(0.5), {
-      count: e.kind === 'king' ? 40 : 12,
-      color: e.kind === 'king' ? 0xffd166 : 0xff9ec4,
-      speed: e.kind === 'king' ? 9 : 5,
-      size: e.kind === 'king' ? 1 : 0.5,
-    });
-    sfx.squeak();
-    if (e.kind === 'king') {
-      this.fx.ring(e.group.position, { color: 0xffd166, to: 10, life: 0.8 });
-      this.fx.kick(0.9);
-      this.ui.toast('The King has fallen!');
-      this._dropPickup(e.group.position, true);
-    } else if (Math.random() < 0.075) {
-      this._dropPickup(e.group.position);
-    }
+  _despawn(e, index) {
+    e.alive = false;
+    this.scene.remove(e.group);
+    e.group.remove(e.bar.group);
+    (this.enemyPool[e.kind] ||= []).push(e.model);
+    this.enemies.splice(index, 1);
+    if (this.boss === e) { this.boss = null; this.ui.boss(null); }
   }
 
-  _dropPickup(pos, forced = false) {
-    const mesh = makeCatnip();
-    mesh.position.set(pos.x, 0.4, pos.z);
-    this.scene.add(mesh);
-    this.pickups.push({ mesh, t: 0, life: forced ? 20 : 12 });
-  }
-
-  // ------------------------------------------------------------- abilities
-  _aim() {
-    // Aim at the nearest enemy in front, otherwise keep the facing direction.
-    let best = null;
-    let bestD = Infinity;
-    for (const e of this.enemies) {
-      const d = e.group.position.distanceTo(this.pos);
-      if (d < bestD) { bestD = d; best = e; }
-    }
-    if (best && bestD < 16) {
-      return tmp.copy(best.group.position).sub(this.pos).setY(0).normalize().clone();
-    }
-    return this.facing.clone();
-  }
-
-  _claw() {
-    if (this.cd.claw > 0) return;
-    this.cd.claw = this.frenzy > 0 ? CONFIG.claw.cd * 0.5 : CONFIG.claw.cd;
-    const dir = this._aim();
-    this.facing.copy(dir);
-    const range = CONFIG.claw.range * (this.frenzy > 0 ? 1.5 : 1);
-    const dmg = CONFIG.claw.dmg * (this.frenzy > 0 ? 2.5 : 1);
-    sfx.claw();
-
-    const center = this.pos.clone().addScaledVector(dir, range * 0.55).setY(0.6);
-    this.fx.burst(center, { count: 8, color: 0xffffff, speed: 3, size: 0.35, life: 0.3, gravity: 0 });
-    this.fx.ring(this.pos.clone().addScaledVector(dir, range * 0.4), {
-      color: this.frenzy > 0 ? 0xb6ff6b : 0xffffff, from: 0.6, to: range * 0.9, life: 0.22, y: 0.5,
-    });
-    this._swing = 0.22;
-
-    for (const e of [...this.enemies]) {
-      const to = tmp.copy(e.group.position).sub(this.pos).setY(0);
-      const d = to.length();
-      if (d > range + e.radius) continue;
-      if (d > 0.001 && to.normalize().dot(dir) < Math.cos(CONFIG.claw.arc / 2)) continue;
-      this._damage(e, dmg, dir, CONFIG.claw.knock);
-    }
-  }
-
-  _hairball() {
-    if (this.cd.hairball > 0 || this.mana < CONFIG.hairball.cost) return;
-    this.cd.hairball = CONFIG.hairball.cd;
-    this.mana -= CONFIG.hairball.cost;
-    const dir = this._aim();
-    this.facing.copy(dir);
-    const mesh = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(0.42, 1),
-      new THREE.MeshLambertMaterial({ color: 0xff8a3d, emissive: 0x883000 })
-    );
-    mesh.position.copy(this.pos).setY(0.9).addScaledVector(dir, 0.9);
-    this.scene.add(mesh);
-    this.projectiles.push({ mesh, dir: dir.clone(), life: CONFIG.hairball.life, spin: Math.random() * 6 });
-    sfx.hairball();
-  }
-
-  _thunder() {
-    if (this.cd.thunder > 0 || this.mana < CONFIG.thunder.cost) return;
-    this.cd.thunder = CONFIG.thunder.cd;
-    this.mana -= CONFIG.thunder.cost;
-    sfx.thunder();
-    this.fx.ring(this.pos, { color: 0xbff0ff, from: 0.6, to: CONFIG.thunder.radius * 2, life: 0.55 });
-    this.fx.ring(this.pos, { color: 0xffffff, from: 0.4, to: CONFIG.thunder.radius * 1.4, life: 0.35, y: 0.6 });
-    this.fx.kick(0.8);
-    this.flashLight = 0.25;
-
-    const head = this.pos.clone().setY(2.2);
-    for (const e of [...this.enemies]) {
-      const d = e.group.position.distanceTo(this.pos);
-      if (d > CONFIG.thunder.radius) continue;
-      this.fx.bolt(head, e.group.position.clone().setY(0.6));
-      e.stun = CONFIG.thunder.stun;
-      const dir = tmp.copy(e.group.position).sub(this.pos).setY(0).normalize().clone();
-      this._damage(e, CONFIG.thunder.dmg, dir, 5);
-    }
-  }
-
-  _damage(e, dmg, dir, knock = 0) {
-    if (e.dead) return;
-    e.hp -= dmg;
-    e.flash = 0.12;
-    if (knock && dir) e.pos.addScaledVector(dir, knock * 0.12);
-    this.fx.burst(e.group.position.clone().setY(0.6), { count: 5, color: 0xffe0f0, speed: 3, size: 0.3, life: 0.3 });
+  // ---------------------------------------------------------------- combat
+  damage(e, amount, { crit = false } = {}) {
+    if (!e.alive) return;
+    const armor = e.def.armor || 0;
+    const dealt = Math.max(amount * 0.25, amount - armor);
+    e.hp -= dealt;
+    e.hurt = 0.12;
+    if (crit) this.effects.burst(e.group.position.clone().setY(e.group.position.y + 0.6), { count: 6, color: 0xffe066, speed: 4, size: 0.3, life: 0.4 });
     if (e.hp <= 0) this._kill(e);
   }
 
-  _explode(pos) {
-    sfx.boom();
-    this.fx.burst(pos, { count: 26, color: 0xffb347, speed: 8, size: 0.8, life: 0.6 });
-    this.fx.ring(pos, { color: 0xff8a3d, from: 0.5, to: CONFIG.hairball.splash * 2, life: 0.4 });
-    this.fx.kick(0.5);
-    for (const e of [...this.enemies]) {
-      const d = e.group.position.distanceTo(pos);
-      if (d > CONFIG.hairball.splash + e.radius) continue;
-      const dir = tmp.copy(e.group.position).sub(pos).setY(0).normalize().clone();
-      const falloff = 1 - Math.min(1, d / (CONFIG.hairball.splash * 1.6));
-      this._damage(e, CONFIG.hairball.dmg * (0.5 + falloff), dir, 7);
+  _kill(e) {
+    if (!e.alive) return;
+    e.alive = false; // removed in the update sweep
+    if (this.phase === 'demo') {
+      this.effects.burst(e.group.position.clone().setY(0.6), { count: 10, color: 0xff8ab0, speed: 4, size: 0.35 });
+      sfx.pop();
+      return;
+    }
+    const bounty = Math.round(e.def.bounty * (1 + 0.02 * this.wave));
+    this.gold += bounty;
+    this.kills++;
+    this.ui.setGold(this.gold, true);
+    const p = e.group.position.clone();
+    this.effects.burst(p.clone().setY(p.y + 0.5), {
+      count: e.def.boss ? 40 : 12, color: e.def.golden ? 0xffd166 : 0xff8ab0,
+      speed: e.def.boss ? 9 : 4.5, size: e.def.boss ? 0.7 : 0.4,
+    });
+    if (e.def.boss) {
+      this.effects.ring(p, { color: 0xffd166, from: 0.5, to: 14, life: 0.9 });
+      this.effects.kick(1.2);
+      sfx.bossDown();
+      this.ui.toast(`${e.def.name} defeated! +🐟 ${bounty}`);
+    } else {
+      sfx.pop();
+    }
+    if (e.def.golden) { this.ui.toast(`Golden mouse! +🐟 ${bounty}`); sfx.coin(); }
+    // Catnip drops: guaranteed from bosses, rare otherwise.
+    if (e.def.boss || Math.random() < 0.035) this._dropCatnip(p);
+  }
+
+  _dropCatnip(pos) {
+    const group = makeCatnipDrop();
+    group.position.copy(pos).setY(0);
+    this.scene.add(group);
+    this.drops.push({ group, life: 14, t: 0 });
+    this.ui.toast('🌿 Catnip! Tap it!');
+  }
+
+  _takeCatnip(drop) {
+    this.scene.remove(drop.group);
+    this.drops.splice(this.drops.indexOf(drop), 1);
+    this.frenzy = 9;
+    this.ui.toast('🌿 CATNIP FRENZY — double speed claws!');
+    this.effects.ring(drop.group.position, { color: 0x8dff5a, from: 0.4, to: 18, life: 0.8 });
+    sfx.catnip();
+  }
+
+  _fire(tower, target) {
+    const st = towerStats(tower.kind, tower.level);
+    const from = tower.pos.clone().setY(1.15);
+    const mesh = makeBullet(st.bullet);
+    mesh.position.copy(from);
+    this.scene.add(mesh);
+    const crit = st.crit ? Math.random() < st.crit : false;
+    const b = {
+      mesh, from, target, speed: st.speed, lob: !!st.lob,
+      damage: st.damage * (crit ? 3 : 1), crit,
+      splash: st.splash || 0, slow: st.slow || 0, slowTime: st.slowTime || 0,
+      color: st.bullet === 'shard' ? 0xbdeaff : st.bullet === 'orb' ? 0xc9a7ff : 0xffd166,
+      t: 0, life: 3, type: st.bullet,
+      to: target.group.position.clone().setY(target.flying ? FLY_Y : 0.5),
+    };
+    if (b.lob) b.dur = Math.max(0.35, from.distanceTo(b.to) / st.speed);
+    this.bullets.push(b);
+    tower.recoil = 1;
+    sfx.shoot(tower.kind);
+  }
+
+  _impact(b, at) {
+    this.effects.burst(at, {
+      count: b.splash ? 14 : 6, color: b.color, speed: b.splash ? 6 : 3,
+      size: b.splash ? 0.55 : 0.3, life: 0.4, gravity: -3,
+    });
+    if (b.splash) {
+      this.effects.ring(at, { color: b.color, from: 0.3, to: b.splash * 2, life: 0.35, y: at.y });
+      if (b.type === 'pan') { this.effects.kick(0.2); sfx.boom(); }
+      for (const e of this.enemies) {
+        if (!e.alive) continue;
+        if (e.group.position.distanceTo(at) > b.splash) continue;
+        this.damage(e, b.damage * 0.8);
+        this._applySlow(e, b);
+      }
+    } else if (b.target && b.target.alive && b.target.group.position.distanceTo(at) < 1.4) {
+      this.damage(b.target, b.damage, { crit: b.crit });
+      this._applySlow(b.target, b);
     }
   }
 
-  _hurt(amount) {
-    if (this.invuln > 0 || this.state !== 'playing') return;
-    this.hp -= amount;
-    this.invuln = 1.0;
-    this.ui.setHP(Math.max(0, this.hp), CONFIG.cat.hp);
-    this.ui.hitFlash();
-    this.fx.kick(0.6);
-    sfx.hurt();
-    if (this.hp <= 0) this.gameOver();
+  _applySlow(e, b) {
+    if (!b.slow || !e.alive) return;
+    e.slowF = Math.max(e.slowF, b.slow);
+    e.slowT = Math.max(e.slowT, b.slowTime);
   }
 
-  _startFrenzy() {
-    this.frenzy = CONFIG.frenzy.time;
-    this.ui.frenzy(true);
-    this.ui.toast('CATNIP FRENZY!');
-    this.fx.ring(this.pos, { color: 0xb6ff6b, from: 0.5, to: 12, life: 0.7 });
-    sfx.pickup();
-    sfx.purr();
-  }
-
-  // ------------------------------------------------------------------ loop
-  _loop(now) {
-    requestAnimationFrame(this._loop);
-    const dt = Math.min(0.05, (now - this._last) / 1000);
-    this._last = now;
-    this.time += dt;
-
-    if (this.state === 'playing') this._update(dt);
-    else if (this.state === 'menu') this._idle(dt);
-
-    this.fx.update(dt);
-    this._updateCamera(dt);
+  // ----------------------------------------------------------------- frame
+  _frame() {
+    const raw = Math.min(this.clock.getDelta(), 0.05);
+    if (this.phase === 'prep' || this.phase === 'running' || this.phase === 'demo') {
+      const dt = raw * (this.phase === 'demo' ? 1 : this.speed);
+      this.update(dt, raw);
+    } else {
+      this.effects.update(raw);
+    }
+    this._shakeCamera(raw);
     this.renderer.render(this.scene, this.camera);
   }
 
-  _idle(dt) {
-    // Slow orbit + tail wag for the title screen backdrop, with a ring of mice
-    // circling the cat like sharks.
-    const t = this.time * 0.25;
-    this.camera.position.set(Math.cos(t) * 14, 6.5, Math.sin(t) * 14);
-    this.camera.lookAt(0, -0.6, 0);
-    this.cat.group.rotation.y += dt * 0.35;
-    this._animateCat(dt, 0);
-    this._animateArena(dt);
-    this.catLight.position.copy(this.cat.group.position).setY(2.2);
-    for (const m of this.menuMice) {
-      m.a += dt * m.s;
-      m.g.visible = true;
-      m.g.position.set(Math.cos(m.a) * m.r, Math.abs(Math.sin(this.time * 8 + m.a)) * 0.12, Math.sin(m.a) * m.r);
-      m.g.rotation.y = -m.a + Math.PI / 2;
+  _shakeCamera(dt) {
+    const s = this.effects.shake;
+    if (s > 0.001) {
+      this.camera.position.set(
+        this.camBase.x + (Math.random() - 0.5) * s,
+        this.camBase.y + (Math.random() - 0.5) * s,
+        this.camBase.z + (Math.random() - 0.5) * s
+      );
+    } else if (!this.camera.position.equals(this.camBase)) {
+      this.camera.position.copy(this.camBase);
     }
   }
 
-  _update(dt) {
-    const inp = this.input;
-    if (inp.consume('claw')) this._claw();
-    if (inp.consume('hairball')) this._hairball();
-    if (inp.consume('thunder')) this._thunder();
+  update(dt, raw) {
+    this.time = (this.time || 0) + dt;
+    if (this.frenzy > 0) this.frenzy = Math.max(0, this.frenzy - dt);
 
-    for (const k of Object.keys(this.cd)) this.cd[k] = Math.max(0, this.cd[k] - dt);
-    this.invuln = Math.max(0, this.invuln - dt);
-    if (this._swing) this._swing = Math.max(0, this._swing - dt);
-
-    const frenzied = this.frenzy > 0;
-    if (frenzied) {
-      this.frenzy -= dt;
-      if (this.frenzy <= 0) { this.ui.frenzy(false); this.cat.group.scale.setScalar(1); }
-      else {
-        const p = 1 + Math.sin(this.time * 18) * 0.06;
-        this.cat.group.scale.setScalar(1.35 * p);
-        this.fx.trail(this.pos.clone().setY(0.7), new THREE.Color().setHSL((this.time * 0.7) % 1, 1, 0.6).getHex(), 0.7);
+    if (this.phase === 'demo') {
+      this.demoTimer -= dt;
+      if (this.demoTimer <= 0 && this.enemies.length < 8) {
+        this.demoTimer = 0.9 + Math.random();
+        this._spawn(['mouse', 'mouse', 'snake', 'bird'][Math.floor(Math.random() * 4)]);
+      }
+    } else if (this.phase === 'prep') {
+      this.waveTimer -= dt;
+      this.ui.setPhase('prep', this.waveTimer);
+      if (this.waveTimer <= 0) this._beginWave();
+    } else if (this.phase === 'running') {
+      this.waveClock += dt;
+      while (this.spawnQueue.length && this.spawnQueue[0].time <= this.waveClock) {
+        this._spawn(this.spawnQueue.shift().kind);
       }
     }
 
-    this.mana = Math.min(CONFIG.cat.mana, this.mana + CONFIG.cat.manaRegen * (frenzied ? 3 : 1) * dt);
-    this.ui.setMana(this.mana, CONFIG.cat.mana);
-    this.ui.setCooldowns(this.cd, this.mana, CONFIG);
+    this._updateEnemies(dt);
+    this._updateTowers(dt);
+    this._updateBullets(dt);
+    this._updateDrops(dt);
+    this._animateScenery(dt);
+    this.effects.update(raw);
 
-    // --- movement
-    const dir = inp.direction();
-    const speed = CONFIG.cat.speed * (frenzied ? 1.5 : 1);
-    const want = tmp.set(dir.x, 0, dir.y).multiplyScalar(speed);
-    this.vel.lerp(want, 1 - Math.pow(0.0015, dt));
-    this.pos.addScaledVector(this.vel, dt);
-
-    const limit = CONFIG.arena - 1;
-    const distFromCenter = Math.hypot(this.pos.x, this.pos.z);
-    if (distFromCenter > limit) {
-      this.pos.multiplyScalar(limit / distFromCenter);
-      this.vel.multiplyScalar(0.4);
-    }
-    if (dir.len > 0.05) this.facing.set(dir.x, 0, dir.y).normalize();
-
-    this.cat.group.position.copy(this.pos);
-    const targetYaw = Math.atan2(this.facing.x, this.facing.z);
-    this.cat.group.rotation.y += shortestAngle(this.cat.group.rotation.y, targetYaw) * Math.min(1, dt * 14);
-    this._animateCat(dt, this.vel.length());
-    this.cat.group.visible = !(this.invuln > 0 && Math.floor(this.time * 18) % 2 === 0);
-
-    this.catLight.position.copy(this.pos).setY(2.4);
-    this.catLight.color.setHex(frenzied ? 0xb6ff6b : 0xff9ad8);
-    this.catLight.intensity = 1.4 + (this.flashLight > 0 ? 6 : 0);
-    if (this.flashLight > 0) this.flashLight -= dt;
-
-    this._updateWaves(dt);
-    this._updateEnemies(dt, frenzied);
-    this._updateProjectiles(dt);
-    this._updatePickups(dt);
-    this._animateArena(dt);
-
-    const king = this.enemies.find((e) => e.kind === 'king');
-    this.ui.boss(king ? king.hp / king.maxHp : null);
+    if (this.phase === 'running' && !this.spawnQueue.length && !this.enemies.length) this._endWave();
   }
 
-  _updateWaves(dt) {
-    if (this.spawnQueue.length > 0) {
-      this.spawnTimer -= dt;
-      if (this.spawnTimer <= 0) {
-        this._spawn(this.spawnQueue.pop());
-        this.spawnTimer = Math.max(0.16, 0.7 - this.wave * 0.03);
-      }
-    } else if (this.enemies.length === 0) {
-      this.intermission -= dt;
-      if (this.intermission <= 0) {
-        this.intermission = 3.2;
-        this._startWave(this.wave + 1);
-        // Reward for clearing: a bit of healing every few waves.
-        if (this.wave > 1 && this.wave % 3 === 1 && this.hp < CONFIG.cat.hp) {
-          this.hp = Math.min(CONFIG.cat.hp, this.hp + 2);
-          this.ui.setHP(this.hp, CONFIG.cat.hp);
-          this.ui.toast('+2 lives');
-        }
-      }
-    }
-  }
+  _updateEnemies(dt) {
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const e = this.enemies[i];
+      if (!e.alive) { this._despawn(e, i); continue; }
 
-  _updateEnemies(dt, frenzied) {
-    // Snapshot: damage can kill (splice) and the king can spawn reinforcements.
-    for (const e of [...this.enemies]) {
-      if (e.dead) continue;
-      const g = e.group;
-      if (e.dropping) {
-        g.position.y -= dt * 16;
-        if (g.position.y <= 0) {
-          g.position.y = 0;
-          e.dropping = false;
-          this.fx.burst(g.position.clone().setY(0.2), { count: 6, color: 0x9a7ad0, speed: 2.5, size: 0.4, life: 0.35 });
-        }
-        g.rotation.x += dt * 8;
-        continue;
-      }
-      g.rotation.x = 0;
+      if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slowF = 0; }
+      let speed = e.speed * (1 - e.slowF);
 
-      if (e.flash > 0) {
-        e.flash -= dt;
-        g.scale.setScalar(ENEMY_TYPES[e.kind].scale * (1 + e.flash * 1.6));
+      // Boss behaviours
+      if (e.def.enrage && !e.enraged && e.hp < e.maxHp * 0.45) {
+        e.enraged = true;
+        e.speed *= 1.5;
+        this.ui.toast('👑 The Rat King is ENRAGED!');
+        this.effects.kick(1);
+        sfx.boss();
       }
-
-      if (e.stun > 0) {
-        e.stun -= dt;
-        g.rotation.z = Math.sin(this.time * 30) * 0.25;
-        if (Math.random() < dt * 8) this.fx.trail(g.position.clone().setY(0.8), 0xbff0ff, 0.3);
-        continue;
-      }
-      g.rotation.z = 0;
-
-      const to = tmp.copy(this.pos).sub(e.pos).setY(0);
-      const d = to.length();
-      to.normalize();
-
-      let speed = e.speed;
-      if (e.kind === 'fast') {
-        // Weaving approach so they're harder to claw.
-        e.wobble += dt * 5;
-        const side = new THREE.Vector3().crossVectors(to, UP).multiplyScalar(Math.sin(e.wobble) * 0.6);
-        to.add(side).normalize();
-      }
-      if (e.kind === 'king') {
-        e.chargeCd -= dt;
-        if (e.charge > 0) {
-          e.charge -= dt;
-          speed = e.speed * 3.4;
-          this.fx.trail(e.pos.clone().setY(0.6), 0xff6bd0, 0.6);
-        } else if (e.chargeCd <= 0 && d < 14) {
-          e.charge = 1.1;
-          e.chargeCd = 4.5 + Math.random() * 2;
-          this.fx.ring(e.pos, { color: 0xff6bd0, from: 0.5, to: 4, life: 0.3 });
-          // The king yells for backup.
-          if (this.enemies.length < 28) {
-            for (let i = 0; i < 2; i++) this._spawn('grunt');
+      if (e.def.howl) {
+        e.spawnT += dt;
+        if (e.spawnT > 6) {
+          e.spawnT = 0;
+          this.effects.ring(e.group.position, { color: 0xffb347, from: 0.5, to: 9, life: 0.6 });
+          this.effects.kick(0.35);
+          sfx.howl();
+          this.ui.toast('🐶 Sir Barksalot howls — the pack speeds up!');
+          for (const other of this.enemies) {
+            if (other === e || !other.alive) continue;
+            if (other.group.position.distanceTo(e.group.position) > 9) continue;
+            other.slowF = 0; other.slowT = 0;
+            other.rally = 3;
           }
         }
       }
-
-      e.pos.addScaledVector(to, speed * dt);
-
-      // Separation so the swarm doesn't collapse into one point.
-      for (const o of this.enemies) {
-        if (o === e || o.dropping) continue;
-        const dx = e.pos.x - o.pos.x;
-        const dz = e.pos.z - o.pos.z;
-        const dd = Math.hypot(dx, dz);
-        const min = e.radius + o.radius;
-        if (dd > 0.0001 && dd < min) {
-          const push = (min - dd) * 0.5;
-          e.pos.x += (dx / dd) * push;
-          e.pos.z += (dz / dd) * push;
+      if (e.rally > 0) { e.rally -= dt; speed *= 1.45; }
+      if (e.def.spawner) {
+        e.spawnT += dt;
+        if (e.spawnT > e.spawnTimer) {
+          e.spawnT = 0;
+          for (let k = 0; k < 3; k++) {
+            const minion = this._spawn('mouse');
+            minion.seg = e.seg;
+            minion.progress = e.progress;
+            minion.pos.copy(e.pos);
+            minion.group.position.copy(e.group.position).setY(0);
+            minion.speed *= 1.2;
+          }
+          this.effects.ring(e.group.position, { color: 0xff5b7f, from: 0.4, to: 5, life: 0.5 });
+          sfx.squeak();
         }
       }
 
-      g.position.set(e.pos.x, Math.abs(Math.sin(this.time * 9 + e.wobble)) * 0.14, e.pos.z);
-      g.rotation.y = Math.atan2(to.x, to.z);
-
-      // Contact damage
-      e.hitCd = Math.max(0, e.hitCd - dt);
-      if (d < CONFIG.cat.radius + e.radius) {
-        if (frenzied) {
-          this._damage(e, 6, to.clone().negate(), 9);
-        } else if (e.hitCd <= 0) {
-          e.hitCd = 1.1;
-          this._hurt(e.dmg);
-          e.pos.addScaledVector(to, -1.2);
+      // Move along the route
+      const route = e.route;
+      let step = speed * dt;
+      while (step > 0 && e.seg < route.length) {
+        const target = route[e.seg];
+        const flat = new THREE.Vector3(target.x - e.pos.x, 0, target.z - e.pos.z);
+        const dist = flat.length();
+        if (dist <= step) {
+          e.pos.set(target.x, 0, target.z);
+          e.progress += dist;
+          step -= dist;
+          e.seg++;
+        } else {
+          flat.normalize();
+          e.pos.addScaledVector(flat, step);
+          e.progress += step;
+          e.facing = Math.atan2(flat.x, flat.z);
+          step = 0;
         }
       }
+      if (e.seg >= route.length) { this._leak(e, i); continue; }
+
+      const bob = Math.sin(this.time * 9 + e.wobble);
+      e.group.position.set(e.pos.x, e.flying ? FLY_Y + Math.sin(this.time * 2.2 + e.wobble) * 0.35 : Math.abs(bob) * 0.09, e.pos.z);
+      if (e.facing != null) {
+        const cur = e.group.rotation.y;
+        let diff = e.facing - cur;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        e.group.rotation.y = cur + diff * Math.min(1, dt * 10);
+      }
+
+      // Per-kind wiggle
+      const legs = e.model.legs;
+      if (e.kind === 'bird') {
+        for (const wing of legs) wing.rotation.z = wing.userData.side * (0.5 + Math.sin(this.time * 14 + e.wobble) * 0.6);
+      } else if (e.kind === 'snake') {
+        legs.forEach((seg, k) => { seg.position.x = Math.sin(this.time * 8 + k * 0.9) * 0.16; });
+      } else if (legs.length) {
+        legs.forEach((leg, k) => { leg.position.y = 0.16 + Math.abs(Math.sin(this.time * 8 + k * 1.6)) * 0.06; });
+      } else {
+        e.group.position.y += Math.abs(bob) * 0.05;
+      }
+      if (e.model.head) e.model.head.rotation.z = Math.sin(this.time * 7 + e.wobble) * 0.08;
+
+      // Health bar + hurt flash
+      const ratio = Math.max(0, e.hp / e.maxHp);
+      e.bar.group.visible = ratio < 0.999;
+      e.bar.fg.scale.x = 1.06 * ratio;
+      e.bar.fg.material.color.setHex(ratio > 0.55 ? 0x6bff9a : ratio > 0.25 ? 0xffd166 : 0xff5b5b);
+      if (e.hurt > 0) {
+        e.hurt -= dt;
+        e.group.scale.setScalar(e.def.scale * (1 + e.hurt * 0.6));
+      } else {
+        e.group.scale.setScalar(e.def.scale * (e.slowF ? 0.94 : 1));
+      }
+      if (e.slowF && Math.random() < dt * 6) {
+        this.effects.trail(e.group.position.clone().setY(e.group.position.y + 0.4), 0xbdeaff, 0.28);
+      }
+      if (this.boss === e) this.ui.boss(ratio, e.def.name.toUpperCase());
     }
   }
 
-  _updateProjectiles(dt) {
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const p = this.projectiles[i];
-      p.life -= dt;
-      p.mesh.position.addScaledVector(p.dir, CONFIG.hairball.speed * dt);
-      p.mesh.rotation.x += dt * 9;
-      p.mesh.rotation.y += dt * 7 * p.spin * 0.2;
-      this.fx.trail(p.mesh.position.clone(), 0xff8a3d, 0.5);
+  _leak(e, i) {
+    const cost = e.def.leak;
+    this._despawn(e, i);
+    if (this.phase === 'demo') return;
+    if (cost <= 0) { this.ui.toast('The golden mouse got away!'); return; }
+    this.lives = Math.max(0, this.lives - cost);
+    this.ui.setLives(this.lives);
+    this.ui.hitFlash();
+    this.effects.ring(this.goal, { color: 0xff3b6b, from: 0.5, to: 5, life: 0.5 });
+    this.effects.kick(0.5);
+    sfx.leak();
+    if (this.lives <= 0 && this.phase !== 'over') {
+      this.phase = 'over';
+      this.ui.boss(null);
+      this.ui.gameOver(false, this.wave, this.kills);
+      sfx.gameover();
+    }
+  }
 
-      let hit = p.life <= 0;
-      if (!hit) {
-        for (const e of this.enemies) {
-          if (e.dropping) continue;
-          if (e.group.position.distanceTo(p.mesh.position) < e.radius + 0.5) { hit = true; break; }
+  _updateTowers(dt) {
+    const frenzy = this.frenzy > 0 ? 2 : 1;
+    for (const t of this.towers) {
+      const st = towerStats(t.kind, t.level);
+      t.cool -= dt * st.rate * frenzy;
+      const target = this._pickTarget(t, st);
+
+      if (target) {
+        const dir = Math.atan2(target.group.position.x - t.pos.x, target.group.position.z - t.pos.z);
+        const cur = t.group.rotation.y;
+        let diff = dir - cur;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        t.group.rotation.y = cur + diff * Math.min(1, dt * 8);
+        if (t.cool <= 0) { t.cool = 1; this._fire(t, target); }
+      } else {
+        t.group.rotation.y += dt * 0.25;
+      }
+      t.cool = Math.max(t.cool, -1);
+
+      // Idle life: breathing, recoil, spinning shuriken, glowing orbs.
+      if (t.recoil > 0) t.recoil = Math.max(0, t.recoil - dt * 5);
+      if (t.pop > 0) t.pop = Math.max(0, t.pop - dt);
+      const breathe = 1 + Math.sin(this.time * 2.4 + t.pos.x) * 0.02;
+      const s = (TOWER_SCALE + (t.level - 1) * 0.1) * breathe * (1 + t.pop * 0.5) * (this.frenzy > 0 ? 1.08 : 1);
+      t.group.scale.set(s, s * (1 - t.recoil * 0.08), s);
+      if (t.arm) t.arm.position.z = 0.28 - t.recoil * 0.18;
+      const spin = t.group.userData.spin;
+      if (spin) spin.rotation.y += dt * 14;
+      const glow = t.group.userData.glow;
+      if (glow) glow.scale.setScalar(0.2 + Math.sin(this.time * 4 + t.pos.z) * 0.03 + (this.frenzy > 0 ? 0.06 : 0));
+    }
+  }
+
+  _pickTarget(t, st) {
+    let best = null;
+    let bestProgress = -1;
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      if (e.flying && !st.air) continue;
+      const dx = e.group.position.x - t.pos.x;
+      const dz = e.group.position.z - t.pos.z;
+      if (dx * dx + dz * dz > st.range * st.range) continue;
+      if (e.progress > bestProgress) { bestProgress = e.progress; best = e; }
+    }
+    return best;
+  }
+
+  _updateBullets(dt) {
+    for (let i = this.bullets.length - 1; i >= 0; i--) {
+      const b = this.bullets[i];
+      b.t += dt;
+      b.life -= dt;
+      let done = false;
+
+      if (b.lob) {
+        const k = Math.min(1, b.t / b.dur);
+        const p = b.from.clone().lerp(b.to, k);
+        p.y += Math.sin(k * Math.PI) * 5;
+        b.mesh.position.copy(p);
+        b.mesh.rotation.x += dt * 9;
+        b.mesh.rotation.z += dt * 6;
+        if (k >= 1) done = true;
+      } else {
+        if (b.target && b.target.alive) b.to.copy(b.target.group.position).setY(b.target.flying ? FLY_Y : 0.5);
+        const dir = b.to.clone().sub(b.mesh.position);
+        const dist = dir.length();
+        const step = b.speed * dt;
+        if (dist <= step) { b.mesh.position.copy(b.to); done = true; }
+        else {
+          dir.normalize();
+          b.mesh.position.addScaledVector(dir, step);
+          if (b.type === 'arrow') b.mesh.lookAt(b.to);
+          else if (b.type === 'star') b.mesh.rotation.y += dt * 30;
+          else b.mesh.rotation.x += dt * 6;
+          if (b.type !== 'arrow' && Math.random() < dt * 30) this.effects.trail(b.mesh.position.clone(), b.color, 0.22);
         }
       }
-      if (!hit && Math.hypot(p.mesh.position.x, p.mesh.position.z) > CONFIG.arena) hit = true;
 
-      if (hit) {
-        this._explode(p.mesh.position.clone().setY(0.6));
-        this.scene.remove(p.mesh);
-        p.mesh.geometry.dispose();
-        p.mesh.material.dispose();
-        this.projectiles.splice(i, 1);
+      if (done || b.life <= 0) {
+        if (done) this._impact(b, b.mesh.position.clone());
+        this.scene.remove(b.mesh);
+        this.bullets.splice(i, 1);
       }
     }
   }
 
-  _updatePickups(dt) {
-    for (let i = this.pickups.length - 1; i >= 0; i--) {
-      const p = this.pickups[i];
-      p.t += dt;
-      p.life -= dt;
-      p.mesh.rotation.y += dt * 2;
-      p.mesh.position.y = 0.45 + Math.sin(p.t * 3) * 0.15;
-      if (Math.random() < dt * 4) this.fx.trail(p.mesh.position.clone(), 0x8dff5a, 0.3);
-      const d = p.mesh.position.distanceTo(this.pos);
-      if (d < 4) p.mesh.position.lerp(this.pos.clone().setY(0.5), Math.min(1, dt * 3)); // magnetised
-      if (d < 1.2 || p.life <= 0) {
-        if (d < 1.2) this._startFrenzy();
-        this.scene.remove(p.mesh);
-        this.pickups.splice(i, 1);
-      }
+  _updateDrops(dt) {
+    for (let i = this.drops.length - 1; i >= 0; i--) {
+      const d = this.drops[i];
+      d.t += dt;
+      d.life -= dt;
+      d.group.rotation.y += dt * 1.6;
+      d.group.position.y = Math.sin(d.t * 3) * 0.18;
+      d.group.visible = d.life > 3 || Math.sin(d.life * 14) > 0;
+      if (Math.random() < dt * 4) this.effects.trail(d.group.position.clone().setY(0.7), 0x8dff5a, 0.24);
+      if (d.life <= 0) { this.scene.remove(d.group); this.drops.splice(i, 1); }
     }
   }
 
-  _animateCat(dt, speed) {
-    const t = this.time;
-    const run = Math.min(1, speed / CONFIG.cat.speed);
-    for (let i = 0; i < this.cat.legs.length; i++) {
-      const phase = t * 13 + i * Math.PI * 0.5;
-      this.cat.legs[i].position.y = 0.18 + Math.max(0, Math.sin(phase)) * 0.16 * run;
+  _animateScenery(dt) {
+    for (const a of this.arrows.userData.arrows) {
+      a.position.y = 0.24 + Math.sin(this.time * 3 - a.userData.phase) * 0.07;
     }
-    this.cat.head.position.y = 1.12 + Math.sin(t * 3) * 0.03 + (this._swing ? this._swing * 0.5 : 0);
-    this.cat.head.rotation.x = this._swing ? -this._swing * 2.2 : Math.sin(t * 1.7) * 0.05;
-    this.cat.body.rotation.z = Math.sin(t * 13) * 0.04 * run;
-    for (let i = 0; i < this.cat.tail.length; i++) {
-      const seg = this.cat.tail[i];
-      const k = i / this.cat.tail.length;
-      seg.position.set(
-        Math.sin(t * 4 + i * 0.6) * 0.28 * k,
-        k * 0.55 + Math.sin(t * 5 + i * 0.5) * 0.06,
-        -i * 0.18
-      );
+    this.arrows.userData.material.opacity = 0.3 + Math.sin(this.time * 3) * 0.12;
+    const milk = this.bowl.userData.milk;
+    if (milk) milk.position.y = 0.52 + Math.sin(this.time * 2) * 0.015;
+    this.bowl.rotation.y += dt * 0.2;
+    if (this.selected) {
+      this.selRing.material.opacity = 0.5 + Math.sin(this.time * 5) * 0.25;
     }
-  }
-
-  _animateArena(dt) {
-    for (let i = 0; i < this.arena.pillars.length; i++) {
-      const y = this.arena.pillars[i].userData.yarn;
-      y.rotation.y += dt * (0.6 + i * 0.1);
-      y.position.y = 1.5 + Math.sin(this.time * 1.6 + i) * 0.12;
+    if (this.frenzy > 0) {
+      this.ghostRing.material.color.setHSL((this.time * 0.5) % 1, 1, 0.7);
     }
-  }
-
-  _updateCamera(dt) {
-    if (this.state === 'menu') return;
-    const look = this.pos.clone().addScaledVector(this.facing, 1.6);
-    this.camLook.lerp(look, Math.min(1, dt * 4));
-    const want = this.pos.clone().add(this.camOffset);
-    this.camera.position.lerp(want, Math.min(1, dt * 5));
-    if (this.fx.shake > 0) {
-      const s = this.fx.shake * 0.5;
-      this.camera.position.x += (Math.random() - 0.5) * s;
-      this.camera.position.y += (Math.random() - 0.5) * s;
-      this.camera.position.z += (Math.random() - 0.5) * s;
-    }
-    this.camera.lookAt(this.camLook.x, 0.8, this.camLook.z);
-    this.sun.position.set(this.pos.x + 9, 18, this.pos.z + 7);
-    this.sun.target.position.copy(this.pos);
-    this.sun.target.updateMatrixWorld();
   }
 }
-
-function shortestAngle(from, to) {
-  let d = (to - from) % (Math.PI * 2);
-  if (d > Math.PI) d -= Math.PI * 2;
-  if (d < -Math.PI) d += Math.PI * 2;
-  return d;
-}
-
-export { CONFIG, initAudio };
