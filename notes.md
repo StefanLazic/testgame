@@ -134,3 +134,23 @@ player can snowball.
 Headless Chromium (SwiftShader) smoke test: title ➜ play ➜ place all five cats ➜
 run a wave, no console errors. Camera framing verified numerically at 390×844,
 360×640, 820×1180 and 844×390.
+
+## 2026-08-16 — balance, bosses and the title diorama
+
+- **Automated playtest**: a headless Chromium script drives a deliberately naive
+  AI (buys the most expensive affordable cat on the tile touching the most path
+  segments, occasionally upgrades a random one) at 3× speed. It died on wave 9
+  with 222 kills, which felt like the right shape for a game a thinking player
+  should be able to win. Mini-boss HP trimmed 1500 ➜ 1200 and the final boss
+  5200 ➜ 4200 so bosses don't turn into a stalemate.
+- **Title screen is now a live diorama**: `startDemo()` places one of each cat on
+  random path-adjacent tiles and trickles mice/snakes/birds down the path with
+  no stakes — leaks and kills are silent in `demo` phase. It doubles as a
+  permanent smoke test: if the sim is broken, the title screen shows it.
+- **Sir Barksalot howls** every 6 seconds: a shockwave ring that cleanses slows
+  and gives every pest within 9 units +45% speed for 3 seconds. It turns wave 5
+  from "big health bar" into a timing problem.
+- **The Rat King** enrages below 45% HP (+50% speed) and coughs out three extra
+  mice every 3.5 seconds from its own position.
+- Boss waves are announced during the previous prep phase so nobody gets
+  ambushed while saving up.

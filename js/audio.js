@@ -67,6 +67,7 @@ export const sfx = {
   catnip() { [523, 659, 784, 1046, 1318].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.2, vol: 0.22, delay: i * 0.06 })); },
   wave() { [523, 659, 784].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.2, vol: 0.2, delay: i * 0.09 })); },
   waveClear() { [784, 988, 1175, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.24, vol: 0.2, delay: i * 0.09 })); },
+  howl() { tone({ freq: 260, type: 'sawtooth', dur: 0.7, vol: 0.26, slide: 120 }); tone({ freq: 190, type: 'square', dur: 0.6, vol: 0.16, slide: 90, delay: 0.05 }); },
   boss() {
     [110, 110, 146, 110].forEach((f, i) => tone({ freq: f, type: 'sawtooth', dur: 0.36, vol: 0.3, delay: i * 0.22 }));
     noise({ dur: 0.8, vol: 0.28, freq: 180, q: 0.5 });

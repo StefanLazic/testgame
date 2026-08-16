@@ -53,6 +53,7 @@ export class Game {
 
     this.clock = new THREE.Clock();
     this.renderer.setAnimationLoop(() => this._frame());
+    this.startDemo();
   }
 
   // ------------------------------------------------------------------ world
@@ -270,6 +271,35 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ flow
+  // A little self-playing diorama behind the title screen: a few cats already
+  // on duty, an endless trickle of mice, nothing at stake.
+  startDemo() {
+    this.lives = START_LIVES;
+    this.gold = 0;
+    this.wave = 1;
+    this.kills = 0;
+    this.phase = 'demo';
+    this.demoTimer = 0;
+    const spots = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const key = `${c},${r}`;
+        if (this.pathTiles.has(key)) continue;
+        let adj = 0;
+        for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (this.pathTiles.has(`${c + dc},${r + dr}`)) adj++;
+        if (adj) spots.push({ col: c, row: r, key });
+      }
+    }
+    const kinds = ['archer', 'wizard', 'frost', 'ninja', 'chef'];
+    for (const kind of kinds) {
+      const spot = spots.splice(Math.floor(Math.random() * spots.length), 1)[0];
+      if (!spot) break;
+      this.gold = TOWERS[kind].cost;
+      this.placeTower(kind, spot);
+    }
+    this.gold = 0;
+  }
+
   start() {
     // Reset everything for a fresh run.
     for (const t of this.towers) this.scene.remove(t.group);
@@ -461,6 +491,9 @@ export class Game {
     this.phase = 'prep';
     this.waveTimer = PREP_TIME;
     this.ui.setPhase('prep', this.waveTimer);
+    const next = this.wave + 1;
+    if (next === 5) setTimeout(() => this.ui.toast('⚠️ Wave 5: a mini-boss is coming'), 1800);
+    if (next === 10) setTimeout(() => this.ui.toast('⚠️ Wave 10: THE RAT KING approaches'), 1800);
   }
 
   // --------------------------------------------------------------- spawning
@@ -545,6 +578,11 @@ export class Game {
   _kill(e) {
     if (!e.alive) return;
     e.alive = false; // removed in the update sweep
+    if (this.phase === 'demo') {
+      this.effects.burst(e.group.position.clone().setY(0.6), { count: 10, color: 0xff8ab0, speed: 4, size: 0.35 });
+      sfx.pop();
+      return;
+    }
     const bounty = Math.round(e.def.bounty * (1 + 0.02 * this.wave));
     this.gold += bounty;
     this.kills++;
@@ -634,8 +672,8 @@ export class Game {
   // ----------------------------------------------------------------- frame
   _frame() {
     const raw = Math.min(this.clock.getDelta(), 0.05);
-    if (this.phase === 'prep' || this.phase === 'running') {
-      const dt = raw * this.speed;
+    if (this.phase === 'prep' || this.phase === 'running' || this.phase === 'demo') {
+      const dt = raw * (this.phase === 'demo' ? 1 : this.speed);
       this.update(dt, raw);
     } else {
       this.effects.update(raw);
@@ -661,7 +699,13 @@ export class Game {
     this.time = (this.time || 0) + dt;
     if (this.frenzy > 0) this.frenzy = Math.max(0, this.frenzy - dt);
 
-    if (this.phase === 'prep') {
+    if (this.phase === 'demo') {
+      this.demoTimer -= dt;
+      if (this.demoTimer <= 0 && this.enemies.length < 8) {
+        this.demoTimer = 0.9 + Math.random();
+        this._spawn(['mouse', 'mouse', 'snake', 'bird'][Math.floor(Math.random() * 4)]);
+      }
+    } else if (this.phase === 'prep') {
       this.waveTimer -= dt;
       this.ui.setPhase('prep', this.waveTimer);
       if (this.waveTimer <= 0) this._beginWave();
@@ -698,6 +742,23 @@ export class Game {
         this.effects.kick(1);
         sfx.boss();
       }
+      if (e.def.howl) {
+        e.spawnT += dt;
+        if (e.spawnT > 6) {
+          e.spawnT = 0;
+          this.effects.ring(e.group.position, { color: 0xffb347, from: 0.5, to: 9, life: 0.6 });
+          this.effects.kick(0.35);
+          sfx.howl();
+          this.ui.toast('🐶 Sir Barksalot howls — the pack speeds up!');
+          for (const other of this.enemies) {
+            if (other === e || !other.alive) continue;
+            if (other.group.position.distanceTo(e.group.position) > 9) continue;
+            other.slowF = 0; other.slowT = 0;
+            other.rally = 3;
+          }
+        }
+      }
+      if (e.rally > 0) { e.rally -= dt; speed *= 1.45; }
       if (e.def.spawner) {
         e.spawnT += dt;
         if (e.spawnT > e.spawnTimer) {
@@ -781,6 +842,7 @@ export class Game {
   _leak(e, i) {
     const cost = e.def.leak;
     this._despawn(e, i);
+    if (this.phase === 'demo') return;
     if (cost <= 0) { this.ui.toast('The golden mouse got away!'); return; }
     this.lives = Math.max(0, this.lives - cost);
     this.ui.setLives(this.lives);

@@ -75,11 +75,11 @@ export const ENEMIES = {
   bird: { name: 'Bird', hp: 46, speed: 4.2, bounty: 14, scale: 1.25, flying: true, leak: 1 },
   golden: { name: 'Golden Mouse', hp: 40, speed: 6.4, bounty: 90, scale: 1.2, flying: false, leak: 0, golden: true },
   baron: {
-    name: 'Sir Barksalot', hp: 1500, speed: 1.7, bounty: 220, scale: 2.8, flying: false,
+    name: 'Sir Barksalot', hp: 1200, speed: 1.7, bounty: 220, scale: 2.8, flying: false,
     armor: 8, leak: 3, boss: 'mini', base: 'dog', howl: true,
   },
   ratking: {
-    name: 'The Rat King', hp: 5200, speed: 1.5, bounty: 600, scale: 3.6, flying: false,
+    name: 'The Rat King', hp: 4200, speed: 1.5, bounty: 600, scale: 3.6, flying: false,
     armor: 10, leak: 9, boss: 'main', base: 'mouse', spawner: true, enrage: true,
   },
 };
