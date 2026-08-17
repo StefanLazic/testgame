@@ -166,3 +166,38 @@ run a wave, no console errors. Camera framing verified numerically at 390×844,
   deleted the Rat King in seconds.
 - Verified with touch events (not just mouse clicks) in both 390×844 portrait and
   844×390 landscape: shop tap ➜ tile tap places, second tap selects, no errors.
+
+## 2026-08-17 — curses, pillows and a queen
+
+- **Frost lost its splash.** It was quietly the best value in the shop: an area
+  slow *and* area damage for 95 🐟. It is now a single-target chill (damage
+  nudged 7 ➜ 9 to pay for the lost area) so slowing a pack is a real investment
+  in several Frost cats rather than one.
+- **Chef ➜ 😴 Sleepy.** Same job (lobbed splash, ground only) with a new
+  personality: nightcap, closed eyes, a floating `zzz`, and a pillow that arcs
+  through the air and lands with a *whump*. Fire rate dropped 0.42 ➜ 0.34 and
+  damage rose 52 ➜ 58, so she is now unmistakably the slow, heavy hitter.
+- **🧙 Witch (300 🐟)** does zero damage. Every 60 seconds she hexes the
+  highest-HP pest in range, and her collar decides the hex: level 1 turns it
+  into a 🐸 **Frog** (mouse stats — a dog becoming a frog is the single funniest
+  thing in the game), level 2 **petrifies** it inside a stone shell for 10
+  seconds, level 3 **destroys** it outright. Bosses and mini-bosses are immune,
+  which keeps waves 5 and 10 honest. If she has no legal target the cooldown
+  retries every half second, so she never wastes a charge on an empty board.
+- **👑 Mimi-chan (3000 🐟)**, the queen, is priced by formula: ten times the
+  most expensive ordinary cat, computed in `config.js` so she rescales
+  automatically. She has one ability, no upgrades and no range ring — every 10
+  seconds the *entire board* stops to bow for 1 second, complete with a golden
+  shockwave and every pest nodding in unison. Saving up for her means playing
+  the first six waves poor; a full run only mints around 7000 🐟 total.
+- **New shared systems**: `stunT` (movement hard-stopped, damage still lands),
+  `bowT` (the nod animation), enemy `_transform()` that swaps one pest for
+  another while keeping its exact place in the queue, and a removable stone
+  shell that is cleaned up on despawn so pooled models never leak it.
+- **Mobile**: seven shop buttons no longer squeeze to nothing — the row scrolls
+  horizontally with a 54 px minimum touch target (and is capped to 62vw in
+  landscape). Verified at 360×740 and 390×844 with touch taps.
+- **Headless playtest** (Chromium + swiftshader): frog transform, 10-second
+  petrification (enemy progress frozen), instant kill, board-wide bow (16/17
+  pests bowing — the 17th had just died), and boss curse immunity all confirmed
+  with no console errors.

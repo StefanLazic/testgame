@@ -106,6 +106,11 @@ canvas#scene { position: absolute; inset: 0; width: 100%; height: 100%; display:
   padding-bottom: 2px;
 }
 #shop-row::-webkit-scrollbar { display: none; }
+/* Fade the right edge so it reads as "there is more shop over here". */
+#shop-row.more {
+  -webkit-mask-image: linear-gradient(90deg, #000 82%, rgba(0,0,0,0.25) 100%);
+  mask-image: linear-gradient(90deg, #000 82%, rgba(0,0,0,0.25) 100%);
+}
 .tower-btn {
   flex: 1 0 auto; min-width: 54px; max-width: 92px;
   background: var(--panel);

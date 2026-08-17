@@ -22,22 +22,25 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 Every pest that reaches the milk costs lives (dogs cost 2, bosses far more).
 Nine lives, ten waves.
 
-## The five cats
+## The seven cats
 
 | Cat | Cost | Role |
 | --- | --- | --- |
 | 🏹 Archer | 70 | cheap, reliable single-target shots — hits air |
 | 🔮 Wizard | 120 | slow arcane orbs that explode — hits air |
-| ❄️ Frost | 95 | chills an area and slows everything in it — hits air |
+| ❄️ Frost | 95 | chills one pest and slows it — hits air |
 | 🥷 Ninja | 150 | 3.6 shuriken a second with 3× crits — ground only |
-| 🍳 Chef | 210 | lobs a frying pan for huge splash damage — ground only |
+| 😴 Sleepy | 210 | lobs a pillow for huge splash damage, very slowly — ground only |
+| 🧙 Witch | 300 | curses one pest a minute: frog ➜ stone ➜ dust (bosses are immune) |
+| 👑 Mimi-chan | 3000 | the queen: every 10 s the whole board stops to bow for 1 s |
 
-Each cat upgrades twice for more damage, range and fire rate.
+Each cat upgrades twice for more damage, range and fire rate — the Witch's
+upgrades change *which* curse she casts, and Mimi-chan needs no upgrades.
 
 ## Things to find out for yourself
 
 Birds ignore your beautiful maze. Golden mice are worth a fortune if you can
-catch them. Catnip sometimes drops — tap it. Wave 5 brings a mini-boss who
+catch them. A dog that becomes a frog is still a dog's worth of embarrassment. Catnip sometimes drops — tap it. Wave 5 brings a mini-boss who
 howls, and wave 10 brings a king who does not come alone.
 
 ## Layout

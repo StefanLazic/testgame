@@ -24,6 +24,15 @@ for (const kind of TOWER_ORDER) {
   shopButtons[kind] = btn;
 }
 
+// Hint that the shop scrolls when the seven cats don't all fit on screen.
+const updateShopFade = () => {
+  const overflow = shopRow.scrollWidth - shopRow.clientWidth;
+  shopRow.classList.toggle('more', overflow > 4 && shopRow.scrollLeft < overflow - 4);
+};
+shopRow.addEventListener('scroll', updateShopFade, { passive: true });
+window.addEventListener('resize', updateShopFade);
+setTimeout(updateShopFade, 0);
+
 // --------------------------------------------------------------------- ui --
 const ui = {
   gold: 0,

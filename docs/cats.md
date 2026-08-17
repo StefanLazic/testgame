@@ -7,15 +7,17 @@ lives in [`js/config.js`](../js/config.js) (`TOWERS`, `TOWER_ORDER`,
 > Keep this file in sync with `TOWERS` whenever a cat is added, removed or
 > rebalanced — see [`docs/AGENTS.md`](AGENTS.md).
 
-## The five cats
+## The seven cats
 
 | Cat | Cost 🐟 | Damage | Range | Rate (shots/s) | Targets | Special |
 | --- | --- | --- | --- | --- | --- | --- |
 | 🏹 Archer | 70 | 13 | 6.4 | 1.15 | ground + air | — |
 | 🔮 Wizard | 120 | 24 | 6.0 | 0.62 | ground + air | splash 2.3 |
-| ❄️ Frost | 95 | 7 | 5.4 | 1.0 | ground + air | splash 1.8, slows 45% for 2.0 s |
+| ❄️ Frost | 95 | 9 | 5.4 | 1.0 | ground + air | single target, slows 45% for 2.0 s |
 | 🥷 Ninja | 150 | 10 | 4.4 | 3.6 | ground only | 22% chance of a 3× crit |
-| 🍳 Chef | 210 | 52 | 7.2 | 0.42 | ground only | lobbed shot, splash 3.2 |
+| 😴 Sleepy | 210 | 58 | 7.2 | 0.34 | ground only | lobbed pillow, splash 3.4 |
+| 🧙 Witch | 300 | — | 7.0 | — | ground + air | curse, once every 60 s |
+| 👑 Mimi-chan | 3000 | — | whole board | — | ground + air | royal bow, once every 10 s |
 
 ### 🏹 Archer
 Cheap, reliable single-target damage that hits flying pests. Fires an arrow at
@@ -26,24 +28,49 @@ Slow-moving arcane orbs (speed 14) that explode on impact for 2.3 splash
 radius. Hits air. Good against clumped groups.
 
 ### ❄️ Frost
-Low damage, but every shard chills a 1.8 radius area and slows everything hit
-by 45% for 2 seconds. Hits air. A support cat — pair it with Chef or Ninja.
+Low damage, but every shard chills the pest it hits and slows it by 45% for 2
+seconds. Hits air. **No splash** — the chill lands on a single target, so Frost
+is a support cat you pair with Sleepy or Ninja rather than a crowd answer.
 
 ### 🥷 Ninja
 3.6 shuriken per second at short range (4.4). Ground only. Each shot has a 22%
 chance to crit for triple damage. The highest sustained single-target DPS in
 the game once upgraded.
 
-### 🍳 Chef
-Lobs a hot frying pan in an arc for 52 damage with a 3.2 splash radius. Ground
-only, and the slowest fire rate in the game. Expensive, but devastating against
-crowds.
+### 😴 Sleepy
+Lobs a fluffy pillow in a lazy arc for 58 damage with a 3.4 splash radius.
+Ground only, and by far the slowest fire rate in the game (0.34 shots/s — about
+one pillow every three seconds). Expensive, but devastating against crowds; the
+pests never see it coming because neither does she.
+
+### 🧙 Witch
+Does no damage at all. Every **60 seconds** she hexes the highest-HP pest in
+range (ground or air). What the hex does depends on her level:
+
+| Level | Curse | Effect |
+| --- | --- | --- |
+| 1 | 🐸 Frog | the pest becomes a Frog — the same stats as a Mouse |
+| 2 | 🗿 Stone | the pest is petrified: it cannot move for 10 seconds |
+| 3 | 💀 Doom | the pest is destroyed instantly (you still collect its bounty) |
+
+**Bosses and mini-bosses are immune** to every curse, as are pests that are
+already frogs or already made of stone. The curse timer keeps ticking while she
+has no legal target, so she fires the moment one walks in.
+
+### 👑 Mimi-chan — the queen
+Costs **ten times the priciest ordinary cat** (`10 × 300 = 3000 🐟`) and is
+computed that way in `js/config.js`, so she rescales automatically if the other
+cats do. She has exactly one ability and it covers the **entire board**, no
+range ring required: every **10 seconds** every pest in the kitchen stops to
+**bow** for **1 second**. Bosses bow too. She cannot be upgraded (`maxLevel: 1`)
+— Her Majesty is already perfect.
 
 ## Upgrades
 
-Each cat can be upgraded to level 3 (`MAX_LEVEL`). The upgrade cost scales with
-the cat's base cost: `cost × (0.75 + 0.45 × level)`, and every level adds a
-golden collar to the model.
+Each cat can be upgraded to level 3 (`MAX_LEVEL`), except Mimi-chan, who is
+capped at level 1 (`maxLevel: 1`, read through the `maxLevel(kind)` helper). The
+upgrade cost scales with the cat's base cost: `cost × (0.75 + 0.45 × level)`,
+and every level adds a golden collar to the model.
 
 Per level above 1 (`l = level - 1`):
 
@@ -55,12 +82,21 @@ Per level above 1 (`l = level - 1`):
 | Splash radius | `× (1 + 0.12 · l)` |
 | Slow duration | `× (1 + 0.20 · l)` |
 
+Ability cats ignore the damage/rate growth: the Witch's cooldown stays at 60
+seconds and her level only decides which curse she casts, and Mimi-chan's bow
+stays at 1 second every 10 seconds.
+
 Tap a placed cat to inspect, upgrade or sell it.
 
 ## Shared mechanics
 
-- **Air targeting** — only cats with `air: true` (Archer, Wizard, Frost) can
-  shoot flying enemies. Ninja and Chef ignore birds completely.
+- **Air targeting** — only cats with `air: true` (Archer, Wizard, Frost, Witch,
+  Mimi-chan) reach flying enemies. Ninja and Sleepy ignore birds completely.
+- **Ability cats** — cats with an `ability` (Witch, Mimi-chan) never fire a
+  projectile. They charge a cooldown (visible in the tower panel) and then do
+  something to the board. Catnip frenzy halves those cooldowns too.
+- **Stuns** — petrified and bowing pests do not move at all, but they can still
+  be shot, and armour still applies.
 - **Armour** — enemy armour is subtracted from every hit, but a hit always
   deals at least 25% of its raw damage.
 - **Catnip frenzy** — picking up a catnip drop makes every cat fire at double
