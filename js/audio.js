@@ -85,6 +85,21 @@ export const sfx = {
     noise({ dur: 0.8, vol: 0.28, freq: 180, q: 0.5 });
   },
   bossDown() { [440, 330, 262, 196, 131].forEach((f, i) => tone({ freq: f, type: 'square', dur: 0.3, vol: 0.26, delay: i * 0.12 })); },
+  portal() {
+    [180, 260, 340, 520].forEach((f, i) => tone({ freq: f, type: 'sawtooth', dur: 0.4, vol: 0.2, slide: 120, delay: i * 0.09 }));
+    noise({ dur: 0.7, vol: 0.22, freq: 500, q: 0.6 });
+  },
+  banana() { tone({ freq: 620, type: 'sine', dur: 0.2, vol: 0.14, slide: 340 }); },
+  bonk() { tone({ freq: 300, type: 'square', dur: 0.16, vol: 0.24, slide: -180 }); noise({ dur: 0.16, vol: 0.16, freq: 800 }); },
+  egg() { tone({ freq: 1200, type: 'sine', dur: 0.1, vol: 0.12, slide: -400 }); },
+  dragonRoar() {
+    [70, 84, 62].forEach((f, i) => tone({ freq: f, type: 'sawtooth', dur: 1.1, vol: 0.34, slide: 40, delay: i * 0.32 }));
+    noise({ dur: 1.6, vol: 0.3, freq: 140, q: 0.4 });
+  },
+  dragonFire() {
+    noise({ dur: 0.8, vol: 0.34, freq: 900, q: 0.5 });
+    tone({ freq: 140, type: 'sawtooth', dur: 0.6, vol: 0.26, slide: -70 });
+  },
   victory() { [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.34, vol: 0.26, delay: i * 0.14 })); },
   gameover() { [440, 370, 294, 220].forEach((f, i) => tone({ freq: f, type: 'sawtooth', dur: 0.4, vol: 0.22, delay: i * 0.18 })); },
 };

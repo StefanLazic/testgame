@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import {
-  TILE, COLS, ROWS, PATH, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
+  TILE, COLS, ROWS, PATHS, SECOND_LANE_WAVE, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
   TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME,
-  ENEMIES, hpScale, WAVES, waveBonus,
+  ENEMIES, hpScale, WAVES, waveBonus, BANANA_STUN, DRAGON,
 } from './config.js';
 import {
   makeCatTower, makeEnemy, makeMap, makeMouseHole, makeMilkBowl, makeRangeRing,
   makeGhostTile, makeBullet, makeCatnipDrop, makeStars, tileToWorld, makePathArrows,
-  makeStoneShell,
+  makeStoneShell, makePortal, makeBanana, makeEgg,
 } from './models.js';
 import { Effects } from './fx.js';
 import { t } from './i18n.js';
@@ -45,6 +45,8 @@ export class Game {
     this.enemies = [];
     this.bullets = [];
     this.drops = [];
+    this.eggs = [];
+    this.hazards = [];
     this.enemyPool = {};
 
     this.placing = null;       // tower kind selected in the shop
@@ -80,33 +82,49 @@ export class Game {
     rim.position.set(-16, 12, -14);
     scene.add(rim);
 
-    // Path tiles + world-space waypoints
+    // Path tiles + world-space waypoints, one lane per entrance.
     this.pathTiles = new Set();
-    this.waypoints = [];
-    for (let i = 0; i < PATH.length; i++) {
-      const [c, r] = PATH[i];
-      this.waypoints.push(tileToWorld(c, r));
-      if (i === 0) { this.pathTiles.add(`${c},${r}`); continue; }
-      const [pc, pr] = PATH[i - 1];
-      const dc = Math.sign(c - pc);
-      const dr = Math.sign(r - pr);
-      let cc = pc, rr = pr;
-      while (cc !== c || rr !== r) {
-        cc += dc; rr += dr;
-        this.pathTiles.add(`${cc},${rr}`);
+    this.lanes = [];
+    for (const path of PATHS) {
+      const waypoints = [];
+      for (let i = 0; i < path.length; i++) {
+        const [c, r] = path[i];
+        waypoints.push(tileToWorld(c, r));
+        if (i === 0) { this.pathTiles.add(`${c},${r}`); continue; }
+        const [pc, pr] = path[i - 1];
+        const dc = Math.sign(c - pc);
+        const dr = Math.sign(r - pr);
+        let cc = pc, rr = pr;
+        while (cc !== c || rr !== r) {
+          cc += dc; rr += dr;
+          this.pathTiles.add(`${cc},${rr}`);
+        }
       }
+      this.lanes.push({ waypoints, open: this.lanes.length === 0 });
     }
+    this.waypoints = this.lanes[0].waypoints;
 
     scene.add(makeMap(this.pathTiles));
     scene.add(makeStars());
-    this.arrows = makePathArrows(this.waypoints);
-    scene.add(this.arrows);
+    for (const lane of this.lanes) {
+      lane.arrows = makePathArrows(lane.waypoints);
+      lane.arrows.visible = lane.open;
+      scene.add(lane.arrows);
+    }
+    this.arrows = this.lanes[0].arrows;
 
     const startP = this.waypoints[0];
     const hole = makeMouseHole();
     hole.position.set(startP.x - TILE * 0.6, 0, startP.z);
     hole.rotation.y = -Math.PI / 2;
     scene.add(hole);
+
+    // The second door, boarded up until wave 11.
+    const start2 = this.lanes[1].waypoints[0];
+    this.portal = makePortal();
+    this.portal.position.set(start2.x, 0, start2.z - TILE * 0.55);
+    scene.add(this.portal);
+    this.setLaneOpen(1, false);
 
     this.goal = this.waypoints[this.waypoints.length - 1].clone();
     this.bowl = makeMilkBowl();
@@ -124,6 +142,26 @@ export class Game {
     scene.add(this.selRing);
 
     this.occupied = new Map(); // "c,r" -> tower
+  }
+
+  // Opening the second door is a moment: the planks blow off, the rift lights
+  // up and its arrows start glowing.
+  setLaneOpen(index, open, dramatic = false) {
+    const lane = this.lanes[index];
+    if (!lane) return;
+    lane.open = open;
+    lane.arrows.visible = open;
+    if (this.portal) {
+      this.portal.userData.boards.visible = !open;
+      this.portal.userData.glow.material.opacity = open ? 0.9 : 0.25;
+    }
+    if (!open || !dramatic) return;
+    const p = this.portal.position;
+    this.effects.ring(p, { color: 0xc07bff, from: 0.5, to: 16, life: 0.9 });
+    this.effects.burst(p.clone().setY(0.8), { count: 26, color: 0xc07bff, speed: 7, size: 0.6 });
+    this.effects.kick(0.8);
+    sfx.portal();
+    this.ui.toast(t('toast.portalOpen'));
   }
 
   resize() {
@@ -319,8 +357,12 @@ export class Game {
     for (const e of this.enemies) this.scene.remove(e.group);
     for (const b of this.bullets) this.scene.remove(b.mesh);
     for (const d of this.drops) this.scene.remove(d.group);
+    for (const egg of this.eggs) this.scene.remove(egg.group);
+    for (const h of this.hazards) this.scene.remove(h.mesh);
     this.towers = []; this.enemies = []; this.bullets = []; this.drops = [];
+    this.eggs = []; this.hazards = [];
     this.occupied.clear();
+    this.setLaneOpen(1, false);
 
     this.lives = START_LIVES;
     this.gold = START_GOLD;
@@ -411,7 +453,7 @@ export class Game {
     const tower = {
       kind, level: 1, spent: cost, tile: tile.key,
       group: model.group, head: model.head, arm: model.arm, body: model.body,
-      cool: 0, recoil: 0, pos: new THREE.Vector3(p.x, 0.9, p.z), pop: 0,
+      cool: 0, recoil: 0, pos: new THREE.Vector3(p.x, 0.9, p.z), pop: 0, disabledT: 0,
       abilityCool: TOWERS[kind].ability ? TOWERS[kind].cooldown : 0,
     };
     this.towers.push(tower);
@@ -481,14 +523,17 @@ export class Game {
     this.wave++;
     const def = WAVES[this.wave - 1];
     this.phase = 'running';
+    if (this.wave >= SECOND_LANE_WAVE && !this.lanes[1].open) this.setLaneOpen(1, true, true);
     this.spawnQueue = [];
-    for (const [kind, count, gap, delay] of def.groups) {
-      for (let i = 0; i < count; i++) this.spawnQueue.push({ kind, time: delay + i * gap });
+    for (const [kind, count, gap, delay, lane = 0] of def.groups) {
+      const use = this.lanes[lane] && this.lanes[lane].open ? lane : 0;
+      for (let i = 0; i < count; i++) this.spawnQueue.push({ kind, time: delay + i * gap, lane: use });
     }
     // Surprise: a golden mouse sneaks in with most waves. Big bounty, very fast.
     if (this.wave >= 2 && Math.random() < 0.75) {
       const last = this.spawnQueue[this.spawnQueue.length - 1].time;
-      this.spawnQueue.push({ kind: 'golden', time: Math.random() * last * 0.8 + 1 });
+      const lane = this.lanes[1].open && Math.random() < 0.5 ? 1 : 0;
+      this.spawnQueue.push({ kind: 'golden', time: Math.random() * last * 0.8 + 1, lane });
     }
     this.spawnQueue.sort((a, b) => a.time - b.time);
     this.waveClock = 0;
@@ -517,12 +562,18 @@ export class Game {
     this.waveTimer = PREP_TIME;
     this.ui.setPhase('prep', this.waveTimer);
     const next = this.wave + 1;
-    if (next === 5) setTimeout(() => this.ui.toast(t('toast.warnMini')), 1800);
-    if (next === 10) setTimeout(() => this.ui.toast(t('toast.warnFinal')), 1800);
+    const warn = {
+      5: 'toast.warnMini', 10: 'toast.warnFinal', 11: 'toast.warnPortal',
+      15: 'toast.warnMini2', 20: 'toast.warnDragon',
+    }[next];
+    if (warn) setTimeout(() => this.ui.toast(t(warn)), 1800);
   }
 
   // --------------------------------------------------------------- spawning
-  _spawn(kind) {
+  // Sophie is far too big to skim the floor like a pigeon.
+  _flyY(e) { return e.def && e.def.dragon ? FLY_Y + 3.4 : FLY_Y; }
+
+  _spawn(kind, lane = 0, opts = {}) {
     const def = ENEMIES[kind];
     const pooled = (this.enemyPool[kind] || []).pop();
     const model = pooled || makeEnemy(kind);
@@ -531,11 +582,14 @@ export class Game {
     g.scale.setScalar(def.scale);
     this.scene.add(g);
 
-    const start = this.waypoints[0].clone();
-    start.x -= TILE * 0.4;
-    const hp = def.hp * (def.boss ? 1 : hpScale(this.wave));
+    const laneIndex = this.lanes[lane] ? lane : 0;
+    const laneDef = this.lanes[laneIndex];
+    const start = laneDef.waypoints[0].clone();
+    if (laneIndex === 0) start.x -= TILE * 0.4;
+    else start.z -= TILE * 0.4;
+    const hp = def.hp * (def.boss ? 1 : hpScale(this.wave)) * (opts.hpMult || 1);
     const e = {
-      kind, def, model, group: g,
+      kind, def, model, group: g, lane: laneIndex,
       hp, maxHp: hp,
       speed: def.speed * (def.boss ? 1 : 1 + 0.012 * this.wave),
       flying: !!def.flying,
@@ -543,26 +597,33 @@ export class Game {
       slowT: 0, slowF: 0, hurt: 0, wobble: Math.random() * 6,
       spawnT: 0, spawnTimer: 3.5, enraged: false,
       stunT: 0, bowT: 0, stone: null,
+      layT: Math.random() * 2, bananaT: Math.random(), summonIdx: 0, smashT: 0, swarmT: 0,
     };
     e.pos = start;
     if (e.flying) {
       e.route = [start.clone(), this.goal.clone()];
-      g.position.set(start.x, FLY_Y, start.z);
+      g.position.set(start.x, this._flyY(e), start.z);
     } else {
-      e.route = this.waypoints;
+      e.route = laneDef.waypoints;
       g.position.copy(start);
     }
+    if (def.dragon) { e.intro = 0; e.introDur = DRAGON.intro; }
     e.bar = this._makeBar();
     g.add(e.bar.group);
     e.bar.group.position.y = (e.flying ? 1.5 : 1.5) * (def.boss ? 1.2 : 1);
     this.enemies.push(e);
 
-    if (def.boss) {
+    if (def.boss && !opts.summoned) {
       this.boss = e;
       this.ui.boss(1, enemyName(e.kind).toUpperCase());
-      this.ui.banner(def.boss === 'main' ? t('banner.finalBoss') : t('banner.miniBoss'), enemyName(e.kind));
+      if (def.dragon) {
+        this.ui.cinematic(t('banner.dragon'), t('banner.dragonSub'));
+        sfx.dragonRoar();
+      } else {
+        this.ui.banner(def.boss === 'main' ? t('banner.finalBoss') : t('banner.miniBoss'), enemyName(e.kind));
+        sfx.boss();
+      }
       this.effects.kick(0.9);
-      sfx.boss();
     }
     return e;
   }
@@ -664,7 +725,7 @@ export class Game {
       color: st.bullet === 'shard' ? 0xbdeaff : st.bullet === 'orb' ? 0xc9a7ff
         : st.bullet === 'pillow' ? 0xdfe6ff : 0xffd166,
       t: 0, life: 3, type: st.bullet,
-      to: target.group.position.clone().setY(target.flying ? FLY_Y : 0.5),
+      to: target.group.position.clone().setY(target.flying ? this._flyY(target) : 0.5),
     };
     if (b.lob) b.dur = Math.max(0.35, from.distanceTo(b.to) / st.speed);
     this.bullets.push(b);
@@ -741,13 +802,16 @@ export class Game {
     } else if (this.phase === 'running') {
       this.waveClock += dt;
       while (this.spawnQueue.length && this.spawnQueue[0].time <= this.waveClock) {
-        this._spawn(this.spawnQueue.shift().kind);
+        const next = this.spawnQueue.shift();
+      this._spawn(next.kind, next.lane || 0);
       }
     }
 
     this._updateEnemies(dt);
     this._updateTowers(dt);
     this._updateBullets(dt);
+    this._updateHazards(dt);
+    this._updateEggs(dt);
     this._updateDrops(dt);
     this._animateScenery(dt);
     this.effects.update(raw);
@@ -759,6 +823,7 @@ export class Game {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       if (!e.alive) { this._despawn(e, i); continue; }
+      if (e.intro != null) { this._dragonEntrance(e, dt); continue; }
 
       if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slowF = 0; }
       let speed = e.speed * (1 - e.slowF);
@@ -808,12 +873,23 @@ export class Game {
         }
       }
       if (e.rally > 0) { e.rally -= dt; speed *= 1.45; }
+      // Chickens lay eggs, which hatch into more chickens. Yes, really.
+      if (e.def.lays && this.phase === 'running') {
+        e.layT += dt;
+        if (e.layT > 7 && this.eggs.length < 12) { e.layT = 0; this._layEgg(e); }
+      }
+      // Monkeys lob bananas at the cats.
+      if (e.def.banana && e.stunT <= 0) {
+        e.bananaT += dt;
+        if (e.bananaT >= e.def.banana) { e.bananaT = 0; this._throwBanana(e); }
+      }
+      if (e.def.dragon) this._dragonBrain(e, dt);
       if (e.def.spawner) {
         e.spawnT += dt;
         if (e.spawnT > e.spawnTimer) {
           e.spawnT = 0;
           for (let k = 0; k < 3; k++) {
-            const minion = this._spawn('mouse');
+            const minion = this._spawn('mouse', e.lane);
             minion.seg = e.seg;
             minion.progress = e.progress;
             minion.pos.copy(e.pos);
@@ -848,7 +924,7 @@ export class Game {
       if (e.seg >= route.length) { this._leak(e, i); continue; }
 
       const bob = Math.sin(this.time * 9 + e.wobble);
-      e.group.position.set(e.pos.x, e.flying ? FLY_Y + Math.sin(this.time * 2.2 + e.wobble) * 0.35 : Math.abs(bob) * 0.09, e.pos.z);
+      e.group.position.set(e.pos.x, e.flying ? this._flyY(e) + Math.sin(this.time * 2.2 + e.wobble) * 0.35 : Math.abs(bob) * 0.09, e.pos.z);
       if (e.facing != null) {
         const cur = e.group.rotation.y;
         let diff = e.facing - cur;
@@ -859,8 +935,12 @@ export class Game {
 
       // Per-kind wiggle
       const legs = e.model.legs;
-      if (e.kind === 'bird') {
-        for (const wing of legs) wing.rotation.z = wing.userData.side * (0.5 + Math.sin(this.time * 14 + e.wobble) * 0.6);
+      if (e.kind === 'bird' || e.kind === 'pig' || e.def.dragon) {
+        const rate = e.def.dragon ? 3.4 : e.kind === 'pig' ? 9 : 14;
+        for (const wing of legs) {
+          if (wing.userData.side == null) continue;
+          wing.rotation.z = wing.userData.side * (0.35 + Math.sin(this.time * rate + e.wobble) * 0.5);
+        }
       } else if (e.kind === 'frog') {
         const hop = Math.abs(Math.sin(this.time * 5 + e.wobble));
         e.group.position.y += hop * 0.35;
@@ -915,6 +995,14 @@ export class Game {
     const frenzy = this.frenzy > 0 ? 2 : 1;
     for (const t of this.towers) {
       const st = towerStats(t.kind, t.level);
+      // Banana'd: the cat sits there seeing stars and does nothing at all.
+      if (t.disabledT > 0) {
+        t.disabledT -= dt;
+        t.group.rotation.z = Math.sin(this.time * 18) * 0.14;
+        if (Math.random() < dt * 5) this.effects.trail(t.pos.clone().setY(1.9), 0xffe066, 0.24);
+        if (t.disabledT <= 0) { t.disabledT = 0; t.group.rotation.z = 0; }
+        continue;
+      }
       if (st.ability) { this._updateAbility(t, st, dt, frenzy); continue; }
       t.cool -= dt * st.rate * frenzy;
       const target = this._pickTarget(t, st);
@@ -1002,7 +1090,7 @@ export class Game {
   _castCurse(tower, e) {
     const curse = CURSES[tower.level] || CURSES[1];
     const from = tower.pos.clone().setY(1.5);
-    const to = e.group.position.clone().setY(e.flying ? FLY_Y : 0.6);
+    const to = e.group.position.clone().setY(e.flying ? this._flyY(e) : 0.6);
     this.effects.bolt(from, to, 0xc07bff);
     this.effects.ring(to, { color: 0xc07bff, from: 0.3, to: 3.4, life: 0.5, y: 0.1 });
     this.effects.burst(to, { count: 16, color: 0xc07bff, speed: 4, size: 0.4 });
@@ -1032,7 +1120,7 @@ export class Game {
     fresh.progress = e.progress;
     fresh.pos.copy(e.pos);
     fresh.flying = false;
-    fresh.route = this.waypoints;
+    fresh.route = this.lanes[e.lane] ? this.lanes[e.lane].waypoints : this.waypoints;
     fresh.group.position.copy(e.pos);
     e.alive = false;     // removed silently by the update sweep — no bounty
     return fresh;
@@ -1067,7 +1155,7 @@ export class Game {
     let best = null;
     let bestProgress = -1;
     for (const e of this.enemies) {
-      if (!e.alive) continue;
+      if (!e.alive || e.intro != null) continue;
       if (e.flying && !st.air) continue;
       const dx = e.group.position.x - t.pos.x;
       const dz = e.group.position.z - t.pos.z;
@@ -1093,7 +1181,7 @@ export class Game {
         b.mesh.rotation.z += dt * 6;
         if (k >= 1) done = true;
       } else {
-        if (b.target && b.target.alive) b.to.copy(b.target.group.position).setY(b.target.flying ? FLY_Y : 0.5);
+        if (b.target && b.target.alive) b.to.copy(b.target.group.position).setY(b.target.flying ? this._flyY(b.target) : 0.5);
         const dir = b.to.clone().sub(b.mesh.position);
         const dist = dir.length();
         const step = b.speed * dt;
@@ -1116,6 +1204,211 @@ export class Game {
     }
   }
 
+  // ------------------------------------------------------------ chicken eggs
+  _layEgg(e) {
+    const group = makeEgg();
+    group.position.copy(e.pos).setY(0);
+    this.scene.add(group);
+    this.eggs.push({ group, pos: e.pos.clone(), seg: e.seg, progress: e.progress, lane: e.lane, t: 0, hatch: 4.5 });
+    this.effects.trail(e.pos.clone().setY(0.4), 0xfff6e8, 0.3);
+    sfx.egg();
+  }
+
+  _updateEggs(dt) {
+    for (let i = this.eggs.length - 1; i >= 0; i--) {
+      const egg = this.eggs[i];
+      egg.t += dt;
+      const wobble = Math.min(1, egg.t / egg.hatch);
+      egg.group.rotation.z = Math.sin(egg.t * (4 + wobble * 22)) * 0.12 * wobble;
+      egg.group.scale.setScalar(1 + Math.sin(egg.t * 8) * 0.03 * wobble);
+      if (egg.t < egg.hatch) continue;
+
+      this.scene.remove(egg.group);
+      this.eggs.splice(i, 1);
+      if (this.phase !== 'running') continue;
+      const chick = this._spawn('chick', egg.lane);
+      chick.seg = egg.seg;
+      chick.progress = egg.progress;
+      chick.pos.copy(egg.pos);
+      chick.group.position.copy(egg.pos);
+      this.effects.burst(egg.pos.clone().setY(0.4), { count: 10, color: 0xffe066, speed: 3.4, size: 0.32 });
+      sfx.squeak();
+    }
+  }
+
+  // ---------------------------------------------------------------- bananas
+  _throwBanana(source) {
+    const reach = 9;
+    const here = source.group.position;
+    const options = this.towers.filter((tw) => tw.disabledT <= 0 && tw.pos.distanceTo(here) < reach);
+    if (!options.length) return;
+    const volley = Math.min(source.def.bananaVolley || 1, options.length);
+    for (let i = 0; i < volley; i++) {
+      const tw = options.splice(Math.floor(Math.random() * options.length), 1)[0];
+      const mesh = makeBanana();
+      const from = here.clone().setY(here.y + 0.9);
+      mesh.position.copy(from);
+      this.scene.add(mesh);
+      const to = tw.pos.clone().setY(1.15);
+      this.hazards.push({ mesh, from, to, t: 0, dur: Math.max(0.4, from.distanceTo(to) / 9), tower: tw });
+    }
+    sfx.banana();
+  }
+
+  _updateHazards(dt) {
+    for (let i = this.hazards.length - 1; i >= 0; i--) {
+      const h = this.hazards[i];
+      h.t += dt;
+      const k = Math.min(1, h.t / h.dur);
+      const p = h.from.clone().lerp(h.to, k);
+      p.y += Math.sin(k * Math.PI) * 3.2;
+      h.mesh.position.copy(p);
+      h.mesh.rotation.z += dt * 12;
+      h.mesh.rotation.x += dt * 6;
+      if (k < 1) continue;
+
+      this.scene.remove(h.mesh);
+      this.hazards.splice(i, 1);
+      if (!this.towers.includes(h.tower)) continue;
+      h.tower.disabledT = BANANA_STUN;
+      this.effects.burst(h.to.clone(), { count: 12, color: 0xffe066, speed: 4, size: 0.4 });
+      this.effects.ring(h.tower.group.position, { color: 0xffe066, from: 0.3, to: 2.6, life: 0.4 });
+      sfx.bonk();
+      this.ui.toast(t('toast.banana', { name: t(`tower.${h.tower.kind}.name`), sec: BANANA_STUN }));
+    }
+  }
+
+  // ------------------------------------------------------------------ Sophie
+  // The entrance: she drops out of the night sky trailing fire, and lands.
+  _dragonEntrance(e, dt) {
+    e.intro += dt;
+    const k = Math.min(1, e.intro / e.introDur);
+    const ease = k * k * (3 - 2 * k);
+    const land = e.route[0];
+    e.group.position.set(
+      land.x + (1 - ease) * 24,
+      this._flyY(e) + (1 - ease) * 44,
+      land.z - (1 - ease) * 42
+    );
+    e.group.rotation.y = (1 - ease) * -0.9;
+    e.group.rotation.x = (1 - ease) * 0.4;
+    for (const wing of e.model.legs) {
+      if (wing.userData.side == null) continue;
+      wing.rotation.z = wing.userData.side * (0.4 + Math.sin(this.time * 16) * 0.65);
+    }
+    if (Math.random() < dt * 40) {
+      this.effects.trail(e.group.position.clone().setY(e.group.position.y - 1.4), 0xff8a3d, 0.9);
+    }
+    this.effects.shake = Math.max(this.effects.shake, 0.2 + ease * 0.35);
+    if (k < 1) return;
+
+    e.intro = null;
+    e.group.rotation.x = 0;
+    this.effects.ring(e.group.position.clone().setY(0), { color: 0xff5b3d, from: 1, to: 28, life: 1.1 });
+    this.effects.burst(e.group.position.clone(), { count: 44, color: 0xff8a3d, speed: 11, size: 0.9 });
+    this.effects.kick(1.4);
+    sfx.dragonFire();
+    this.ui.toast(t('toast.dragonLanded'));
+  }
+
+  _dragonBrain(e, dt) {
+    e.smashT += dt;
+    e.swarmT += dt;
+    if (e.smashT >= DRAGON.smashEvery) { e.smashT = 0; this._dragonSmash(e); }
+    if (e.swarmT >= DRAGON.swarmEvery) { e.swarmT = 0; this._dragonSwarm(e); }
+    const ratio = e.hp / e.maxHp;
+    while (e.summonIdx < DRAGON.summons.length && ratio <= DRAGON.summons[e.summonIdx].at) {
+      this._dragonSummon(e, DRAGON.summons[e.summonIdx].kind);
+      e.summonIdx++;
+    }
+  }
+
+  // Every 10 s she picks a cat and breathes fire on it. Mimi-chan is royalty:
+  // even a dragon knows better than to aim at the queen.
+  _dragonSmash(e) {
+    const targets = this.towers.filter((tw) => tw.kind !== 'queen');
+    if (!targets.length) { e.smashT = DRAGON.smashEvery - 2; return; }
+    const tw = targets[Math.floor(Math.random() * targets.length)];
+    this.effects.bolt(e.group.position.clone(), tw.pos.clone().setY(1), 0xff8a3d);
+    this.effects.burst(tw.pos.clone().setY(0.8), { count: 26, color: 0xff8a3d, speed: 7, size: 0.7 });
+    this.effects.ring(tw.group.position, { color: 0xff5b3d, from: 0.4, to: 6, life: 0.6 });
+    this.effects.kick(0.7);
+    sfx.dragonFire();
+    this.ui.toast(t('toast.dragonSmash', { name: t(`tower.${tw.kind}.name`) }));
+    this._destroyTower(tw);
+  }
+
+  _destroyTower(tw) {
+    const idx = this.towers.indexOf(tw);
+    if (idx < 0) return;
+    this.towers.splice(idx, 1);
+    this.occupied.delete(tw.tile);
+    this.scene.remove(tw.group);
+    if (this.selected === tw) this.selectTower(null);
+  }
+
+  _dragonSwarm(e) {
+    for (const kind of DRAGON.swarm) {
+      const minion = this._spawn(kind, e.lane);
+      this._placeOnRoute(minion, e.group.position);
+    }
+    this.effects.ring(e.group.position.clone().setY(0), { color: 0xc07bff, from: 0.5, to: 12, life: 0.7 });
+    sfx.squeak();
+    this.ui.toast(t('toast.dragonSwarm'));
+  }
+
+  _dragonSummon(e, kind) {
+    const minion = this._spawn(kind, e.lane, { summoned: true, hpMult: DRAGON.summonHp });
+    this._placeOnRoute(minion, e.group.position);
+    this.effects.ring(minion.group.position, { color: 0xff5b7f, from: 0.5, to: 10, life: 0.7 });
+    this.effects.kick(0.6);
+    sfx.boss();
+    this.ui.banner(t('banner.dragonSummon'), enemyName(kind));
+    this.ui.toast(t('toast.dragonSummon', { name: enemyName(kind) }));
+  }
+
+  // Drop a freshly summoned pest onto the closest point of its own lane, so it
+  // appears next to Sophie instead of trekking in from the door. Sophie flies
+  // straight over the maze, so the drop is clamped to `maxFraction` of the lane
+  // — she can't cheat her friends into the last corner next to the bowl.
+  _placeOnRoute(minion, worldPos, maxFraction = 0.55) {
+    if (minion.flying) return;
+    const route = minion.route;
+    const flat = new THREE.Vector3(worldPos.x, 0, worldPos.z);
+    const lens = [];
+    let total = 0;
+    for (let i = 1; i < route.length; i++) {
+      const len = route[i].distanceTo(route[i - 1]) || 1;
+      lens.push(len);
+      total += len;
+    }
+    let best = null;
+    let travelled = 0;
+    for (let i = 1; i < route.length; i++) {
+      const a = route[i - 1];
+      const ab = route[i].clone().sub(a);
+      const len = lens[i - 1];
+      const k = Math.max(0, Math.min(1, flat.clone().sub(a).dot(ab) / (len * len)));
+      const d = a.clone().addScaledVector(ab, k).distanceTo(flat);
+      if (!best || d < best.d) best = { progress: travelled + len * k, d };
+      travelled += len;
+    }
+    if (!best) return;
+
+    // Walk the clamped distance back out to a segment + world position.
+    let want = Math.min(best.progress, total * maxFraction);
+    let seg = 1;
+    let along = 0;
+    while (seg < route.length && want > lens[seg - 1]) { want -= lens[seg - 1]; seg++; }
+    along = Math.min(want, lens[seg - 1]);
+    const a = route[seg - 1];
+    const dir = route[seg].clone().sub(a).normalize();
+    minion.seg = seg;
+    minion.progress = Math.min(best.progress, total * maxFraction);
+    minion.pos.copy(a).addScaledVector(dir, along).setY(0);
+    minion.group.position.copy(minion.pos);
+  }
+
   _updateDrops(dt) {
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const d = this.drops[i];
@@ -1130,10 +1423,17 @@ export class Game {
   }
 
   _animateScenery(dt) {
-    for (const a of this.arrows.userData.arrows) {
-      a.position.y = 0.24 + Math.sin(this.time * 3 - a.userData.phase) * 0.07;
+    for (const lane of this.lanes) {
+      if (!lane.arrows.visible) continue;
+      for (const a of lane.arrows.userData.arrows) {
+        a.position.y = 0.24 + Math.sin(this.time * 3 - a.userData.phase) * 0.07;
+      }
+      lane.arrows.userData.material.opacity = 0.3 + Math.sin(this.time * 3) * 0.12;
     }
-    this.arrows.userData.material.opacity = 0.3 + Math.sin(this.time * 3) * 0.12;
+    if (this.portal && this.lanes[1].open) {
+      this.portal.userData.glow.material.opacity = 0.6 + Math.sin(this.time * 4) * 0.25;
+      this.portal.rotation.y += dt * 0.4;
+    }
     const milk = this.bowl.userData.milk;
     if (milk) milk.position.y = 0.52 + Math.sin(this.time * 2) * 0.015;
     this.bowl.rotation.y += dt * 0.2;

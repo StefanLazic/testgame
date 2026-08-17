@@ -234,3 +234,62 @@ run a wave, no console errors. Camera framing verified numerically at 390×844,
   title, help, shop, HUD, tower panel, wave banner and toasts all render in
   Serbian, switching to English updates the shop live, and the console stayed
   clean.
+
+## 2026-08-17 — Mimi-chan Defense: a second door, a barnyard and a dragon 🐉
+
+The game is now **Mimi-chan Defense** — the framing is that every cat on the
+board is defending the milk of their queen. Ten more waves were added on top of
+the original ten; **waves 1–10 are untouched**, so the early game plays exactly
+as before.
+
+- **A second lane.** `config.js` gained `PATH2` (and a `PATHS` array). It starts
+  in the **top-right** corner of the board — the camera looks down −z, so
+  screen-right is `col = COLS-1` and screen-top is `row = 0`. Both lanes'
+  tiles are reserved in `pathTiles` from the very first wave, so a maze built in
+  waves 1–10 can never be invalidated later; lane 2's arrows and portal glow
+  stay hidden until `SECOND_LANE_WAVE = 11`, when `setLaneOpen(1, true, true)`
+  cracks the door open with a shockwave and a toast. Wave groups are now
+  `[kind, count, gap, delay, lane]` and fall back to lane 0 if the lane is shut.
+- **The barnyard.** Five new pests, all procedurally modelled in `models.js`:
+  🐖 **flying pigs** (a lot of health, slower than birds, still air-only),
+  🐢 **turtles** (very slow, huge health, heavy armour), 🐎 **horses** (fast
+  with decent health *and* armour), 🐔 **chickens** (fast, and every 7 s they
+  drop an egg that hatches into a chick 4.5 s later — capped at 12 live eggs so
+  the board can't melt), and 🐒 **monkeys**, who lob bananas at nearby cats.
+- **Cats can be hurt now.** A banana knocks a cat out for `BANANA_STUN = 3`
+  seconds: it wobbles, stops shooting and stops charging its ability. It is the
+  first mechanic in the game that attacks the player's side of the board, and it
+  makes tower placement near the lane a real decision.
+- **Wave 15 mini-boss: 🍌 Baron Bananas**, a monkey king who throws three
+  bananas at a time on a shorter cooldown.
+- **Wave 20: Sophie.** The dragon flies in from off-camera on a 5.2 s eased
+  entrance (untargetable while `intro` is set), the screen dims for a full-screen
+  cinematic — *"SOPHIE HAS DESCENDED"* — and she lands with a ring, a burst and a
+  camera kick. Her three abilities: every **10 s** she burns one random cat to
+  ash (no refund; 👑 Mimi-chan is immune, so the queen is the one cat guaranteed
+  to survive), every **20 s** she summons a swarm of critters, and at **75 % /
+  50 % / 25 %** health she summons the wave 5, 10 and 15 bosses at 45 % HP.
+- **Summon placement** was the one real bug: minions were projected onto the
+  nearest point of the route, and because Sophie flies diagonally that could be
+  a few tiles from the bowl. `_placeOnRoute()` now clamps summons to the first
+  55 % of the lane and re-derives the segment from the clamped progress.
+- **UI**: the wave chip counts to `/ 20`, the cinematic overlay lives in
+  `index.html` + `styles.css` (with a `prefers-reduced-motion` fallback that
+  keeps the text and drops the swoop), and `ui.cinematic()` restarts the child
+  animations so it can be replayed. New WebAudio effects: `portal`, `banana`,
+  `bonk`, `egg`, `dragonRoar`, `dragonFire`.
+- **Localisation**: every new enemy, wave name, banner, toast and help line is in
+  `js/i18n.js` in both English and Serbian — *SOFI JE SLETELA*.
+- **Headless playtest** (Chromium + swiftshader, 390×844 with touch): waves 11+
+  open the second portal and queue both lanes, eggs hatch, bananas knock cats
+  out, Sophie's entrance plays, her fire destroys a tower, all three HP-threshold
+  summons fire in order, the boss bar stays on her, and the run reaches the
+  victory screen with a clean console.
+- **Balance pass from headless simulation.** A scripted run of waves 11→20 (a
+  fully built, twice-upgraded board at 3× speed) lost the milk on wave 13, so:
+  flying pigs went 240 → 170 HP and cost 1 life instead of 2 (only four cats can
+  shoot air, so a pig wave was effectively unanswerable), horses went 280 → 150
+  HP / 7 → 5 armour / 1 life, and `hpScale()` now keeps the original
+  `1 + 0.17 × (wave − 1)` ramp for waves 1–10 and switches to a gentler
+  `+0.09` per wave afterwards — the barnyard already brings its own bulk, and
+  waves 1–10 stay bit-for-bit identical.
