@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import {
   TILE, COLS, ROWS, PATH, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
-  TOWERS, MAX_LEVEL, upgradeCost, towerStats, ENEMIES, hpScale, WAVES, waveBonus,
+  TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME,
+  ENEMIES, hpScale, WAVES, waveBonus,
 } from './config.js';
 import {
   makeCatTower, makeEnemy, makeMap, makeMouseHole, makeMilkBowl, makeRangeRing,
   makeGhostTile, makeBullet, makeCatnipDrop, makeStars, tileToWorld, makePathArrows,
+  makeStoneShell,
 } from './models.js';
 import { Effects } from './fx.js';
 import { sfx } from './audio.js';
@@ -237,14 +239,15 @@ export class Game {
 
   _updateGhost() {
     const tile = this._tileAt(this._groundPoint());
-    const ok = this._buildable(tile) && this.gold >= TOWERS[this.placing].cost;
+    const def = TOWERS[this.placing];
+    const ok = this._buildable(tile) && this.gold >= def.cost;
     this.ghost.visible = !!tile;
-    this.ghostRing.visible = !!tile;
+    this.ghostRing.visible = !!tile && !def.global;
     if (!tile) return;
     const p = tileToWorld(tile.col, tile.row);
     this.ghost.position.set(p.x, 0.08, p.z);
     this.ghostRing.position.set(p.x, 0.09, p.z);
-    this.ghostRing.scale.setScalar(TOWERS[this.placing].range);
+    this.ghostRing.scale.setScalar(def.range || 1);
     const color = ok ? 0x9dffd8 : 0xff6b6b;
     this.ghost.material.color.setHex(color);
     this.ghostRing.material.color.setHex(color);
@@ -296,7 +299,7 @@ export class Game {
         if (adj) spots.push({ col: c, row: r, key });
       }
     }
-    const kinds = ['archer', 'wizard', 'frost', 'ninja', 'chef'];
+    const kinds = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'witch', 'queen'];
     for (const kind of kinds) {
       const spot = spots.splice(Math.floor(Math.random() * spots.length), 1)[0];
       if (!spot) break;
@@ -358,7 +361,7 @@ export class Game {
       return;
     }
     const st = towerStats(tower.kind, tower.level);
-    this.selRing.visible = true;
+    this.selRing.visible = !TOWERS[tower.kind].global;
     this.selRing.position.set(tower.group.position.x, 0.1, tower.group.position.z);
     this.selRing.scale.setScalar(st.range);
     this.ui.showTower(this._towerInfo(tower));
@@ -367,14 +370,22 @@ export class Game {
   _towerInfo(tower) {
     const base = TOWERS[tower.kind];
     const st = towerStats(tower.kind, tower.level);
-    const maxed = tower.level >= MAX_LEVEL;
+    const maxed = tower.level >= maxLevel(tower.kind);
+    let ability = null;
+    if (base.ability === 'curse') {
+      const c = CURSES[tower.level];
+      ability = `${c.icon} Curse: ${c.text} · every ${base.cooldown}s · ${Math.max(0, tower.abilityCool || 0).toFixed(0)}s left`;
+    } else if (base.ability === 'bow') {
+      ability = `🙇 Bow: every pest stops for ${base.stun}s · every ${base.cooldown}s`;
+    }
     return {
-      kind: tower.kind, icon: base.icon, name: base.name, level: tower.level, maxed,
+      kind: tower.kind, icon: base.icon, name: base.name, level: tower.level, maxed, ability,
       damage: Math.round(st.damage), range: st.range.toFixed(1), rate: st.rate.toFixed(2),
       blurb: base.blurb,
       upCost: maxed ? 0 : upgradeCost(tower.kind, tower.level),
       sellValue: Math.floor(tower.spent * 0.7),
       canAfford: !maxed && this.gold >= upgradeCost(tower.kind, tower.level),
+      global: !!base.global,
     };
   }
 
@@ -394,6 +405,7 @@ export class Game {
       kind, level: 1, spent: cost, tile: tile.key,
       group: model.group, head: model.head, arm: model.arm, body: model.body,
       cool: 0, recoil: 0, pos: new THREE.Vector3(p.x, 0.9, p.z), pop: 0,
+      abilityCool: TOWERS[kind].ability ? TOWERS[kind].cooldown : 0,
     };
     this.towers.push(tower);
     this.occupied.set(tile.key, tower);
@@ -409,7 +421,7 @@ export class Game {
 
   upgradeSelected() {
     const t = this.selected;
-    if (!t || t.level >= MAX_LEVEL) return;
+    if (!t || t.level >= maxLevel(t.kind)) return;
     const cost = upgradeCost(t.kind, t.level);
     if (this.gold < cost) { sfx.deny(); this.ui.toast('Not enough fish'); return; }
     this.gold -= cost;
@@ -523,6 +535,7 @@ export class Game {
       seg: 1, progress: 0, alive: true,
       slowT: 0, slowF: 0, hurt: 0, wobble: Math.random() * 6,
       spawnT: 0, spawnTimer: 3.5, enraged: false,
+      stunT: 0, bowT: 0, stone: null,
     };
     e.pos = start;
     if (e.flying) {
@@ -563,6 +576,8 @@ export class Game {
 
   _despawn(e, index) {
     e.alive = false;
+    if (e.stone) { e.group.remove(e.stone); e.stone = null; }
+    e.group.rotation.x = 0;
     this.scene.remove(e.group);
     e.group.remove(e.bar.group);
     (this.enemyPool[e.kind] ||= []).push(e.model);
@@ -639,7 +654,8 @@ export class Game {
       mesh, from, target, speed: st.speed, lob: !!st.lob,
       damage: st.damage * (crit ? 3 : 1), crit,
       splash: st.splash || 0, slow: st.slow || 0, slowTime: st.slowTime || 0,
-      color: st.bullet === 'shard' ? 0xbdeaff : st.bullet === 'orb' ? 0xc9a7ff : 0xffd166,
+      color: st.bullet === 'shard' ? 0xbdeaff : st.bullet === 'orb' ? 0xc9a7ff
+        : st.bullet === 'pillow' ? 0xdfe6ff : 0xffd166,
       t: 0, life: 3, type: st.bullet,
       to: target.group.position.clone().setY(target.flying ? FLY_Y : 0.5),
     };
@@ -656,7 +672,7 @@ export class Game {
     });
     if (b.splash) {
       this.effects.ring(at, { color: b.color, from: 0.3, to: b.splash * 2, life: 0.35, y: at.y });
-      if (b.type === 'pan') { this.effects.kick(0.2); sfx.boom(); }
+      if (b.type === 'pillow') { this.effects.kick(0.15); sfx.boom(); }
       for (const e of this.enemies) {
         if (!e.alive) continue;
         if (e.group.position.distanceTo(at) > b.splash) continue;
@@ -739,6 +755,26 @@ export class Game {
 
       if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slowF = 0; }
       let speed = e.speed * (1 - e.slowF);
+      if (e.stunT > 0) {
+        e.stunT -= dt;
+        speed = 0;
+        if (e.stone) {
+          if (e.stunT <= 0) {
+            e.group.remove(e.stone);
+            e.stone = null;
+            this.effects.burst(e.group.position.clone().setY(0.7), { count: 14, color: 0xb0b0c0, speed: 4, size: 0.4 });
+            sfx.pop();
+          } else if (e.stunT < 1.4) {
+            e.stone.rotation.z = Math.sin(this.time * 40) * 0.05;
+          }
+        }
+      }
+      // The royal bow: a quick, deep, involuntary nod.
+      if (e.bowT > 0) {
+        e.bowT -= dt;
+        e.group.rotation.x = Math.sin(Math.max(0, e.bowT) * Math.PI) * 0.9;
+        if (e.bowT <= 0) e.group.rotation.x = 0;
+      }
 
       // Boss behaviours
       if (e.def.enrage && !e.enraged && e.hp < e.maxHp * 0.45) {
@@ -818,6 +854,10 @@ export class Game {
       const legs = e.model.legs;
       if (e.kind === 'bird') {
         for (const wing of legs) wing.rotation.z = wing.userData.side * (0.5 + Math.sin(this.time * 14 + e.wobble) * 0.6);
+      } else if (e.kind === 'frog') {
+        const hop = Math.abs(Math.sin(this.time * 5 + e.wobble));
+        e.group.position.y += hop * 0.35;
+        legs.forEach((leg, k) => { leg.position.y = 0.16 - hop * 0.08 + k * 0.001; });
       } else if (e.kind === 'snake') {
         legs.forEach((seg, k) => { seg.position.x = Math.sin(this.time * 8 + k * 0.9) * 0.16; });
       } else if (legs.length) {
@@ -868,6 +908,7 @@ export class Game {
     const frenzy = this.frenzy > 0 ? 2 : 1;
     for (const t of this.towers) {
       const st = towerStats(t.kind, t.level);
+      if (st.ability) { this._updateAbility(t, st, dt, frenzy); continue; }
       t.cool -= dt * st.rate * frenzy;
       const target = this._pickTarget(t, st);
 
@@ -896,6 +937,123 @@ export class Game {
       const glow = t.group.userData.glow;
       if (glow) glow.scale.setScalar(0.2 + Math.sin(this.time * 4 + t.pos.z) * 0.03 + (this.frenzy > 0 ? 0.06 : 0));
     }
+  }
+
+
+  // Ability cats (witch, queen) don't shoot — they charge a timer and then do
+  // something dramatic to the whole board.
+  _updateAbility(t, st, dt, frenzy) {
+    t.abilityCool -= dt * frenzy;
+    if (t.abilityCool <= 0) {
+      if (st.ability === 'curse') {
+        const victim = this._pickCurseTarget(t, st);
+        if (victim) { this._castCurse(t, victim); t.abilityCool = st.cooldown; }
+        else t.abilityCool = 0.5;      // nothing to hex — try again shortly
+      } else if (st.ability === 'bow') {
+        this._royalBow(t, st);
+        t.abilityCool = st.cooldown;
+      }
+    }
+    // Charging glow + a slow regal spin.
+    t.group.rotation.y += dt * (st.ability === 'bow' ? 0.5 : 0.35);
+    if (t.pop > 0) t.pop = Math.max(0, t.pop - dt);
+    const charge = st.cooldown ? 1 - Math.max(0, t.abilityCool) / st.cooldown : 1;
+    const breathe = 1 + Math.sin(this.time * 2.4 + t.pos.x) * 0.02;
+    const s = (TOWER_SCALE + (t.level - 1) * 0.1) * breathe * (1 + t.pop * 0.5);
+    t.group.scale.setScalar(s);
+    const glow = t.group.userData.glow;
+    if (glow) {
+      glow.scale.setScalar(0.12 + charge * 0.22 + Math.sin(this.time * 6) * 0.02);
+      glow.material.opacity = 1;
+    }
+    if (charge > 0.85 && Math.random() < dt * 8) {
+      this.effects.trail(
+        t.pos.clone().setY(1.5 + Math.random() * 0.5),
+        st.ability === 'bow' ? 0xffd166 : 0xc07bff, 0.3
+      );
+    }
+  }
+
+  _cursable(e) {
+    return e.alive && !e.def.boss && !e.def.cursed && !e.stone;
+  }
+
+  _pickCurseTarget(t, st) {
+    let best = null;
+    let bestHp = -1;
+    for (const e of this.enemies) {
+      if (!this._cursable(e)) continue;
+      const dx = e.group.position.x - t.pos.x;
+      const dz = e.group.position.z - t.pos.z;
+      if (dx * dx + dz * dz > st.range * st.range) continue;
+      // Hex the scariest thing in reach.
+      if (e.hp > bestHp) { bestHp = e.hp; best = e; }
+    }
+    return best;
+  }
+
+  _castCurse(tower, e) {
+    const curse = CURSES[tower.level] || CURSES[1];
+    const from = tower.pos.clone().setY(1.5);
+    const to = e.group.position.clone().setY(e.flying ? FLY_Y : 0.6);
+    this.effects.bolt(from, to, 0xc07bff);
+    this.effects.ring(to, { color: 0xc07bff, from: 0.3, to: 3.4, life: 0.5, y: 0.1 });
+    this.effects.burst(to, { count: 16, color: 0xc07bff, speed: 4, size: 0.4 });
+    tower.pop = 0.4;
+    sfx.curse();
+
+    if (curse.id === 'frog') {
+      this._transform(e, 'frog');
+      this.ui.toast('🐸 Cursed! It is a frog now.');
+      sfx.frog();
+    } else if (curse.id === 'stone') {
+      this._petrify(e);
+      this.ui.toast(`🗿 Petrified for ${STONE_TIME}s!`);
+      sfx.stone();
+    } else {
+      this.ui.toast('💀 The witch says no.');
+      this.effects.kick(0.3);
+      sfx.doom();
+      this._kill(e);
+    }
+  }
+
+  // Swap an enemy for another kind, keeping its place in the queue.
+  _transform(e, kind) {
+    const fresh = this._spawn(kind);
+    fresh.seg = e.seg;
+    fresh.progress = e.progress;
+    fresh.pos.copy(e.pos);
+    fresh.flying = false;
+    fresh.route = this.waypoints;
+    fresh.group.position.copy(e.pos);
+    e.alive = false;     // removed silently by the update sweep — no bounty
+    return fresh;
+  }
+
+  _petrify(e) {
+    e.stunT = Math.max(e.stunT, STONE_TIME);
+    if (!e.stone) {
+      e.stone = makeStoneShell();
+      e.stone.scale.setScalar(1 / (e.def.scale || 1));
+      e.group.add(e.stone);
+    }
+  }
+
+  // Mimi-chan demands respect: every pest on the board stops to bow.
+  _royalBow(tower, st) {
+    tower.pop = 0.5;
+    this.effects.ring(tower.pos, { color: 0xffd166, from: 0.5, to: 26, life: 0.7, y: 0.12 });
+    this.effects.burst(tower.pos.clone().setY(1.6), { count: 18, color: 0xffe9b0, speed: 5, size: 0.45 });
+    let bowed = 0;
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      e.stunT = Math.max(e.stunT, st.stun);
+      e.bowT = st.stun;
+      bowed++;
+      this.effects.trail(e.group.position.clone().setY(e.group.position.y + 0.8), 0xffd166, 0.3);
+    }
+    if (bowed) { sfx.bow(); this.ui.toast('👑 Mimi-chan demands a bow!'); }
   }
 
   _pickTarget(t, st) {

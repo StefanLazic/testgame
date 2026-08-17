@@ -58,7 +58,19 @@ export const sfx = {
     else if (kind === 'wizard') { tone({ freq: 520, type: 'sine', dur: 0.18, vol: 0.16, slide: 380 }); }
     else if (kind === 'frost') { tone({ freq: 1500, type: 'triangle', dur: 0.13, vol: 0.12, slide: 700 }); }
     else if (kind === 'ninja') { noise({ dur: 0.06, vol: 0.1, freq: 3600, q: 2 }); }
+    else if (kind === 'sleepy') { tone({ freq: 320, type: 'sine', dur: 0.42, vol: 0.14, slide: -150 }); noise({ dur: 0.3, vol: 0.1, freq: 420, q: 0.7 }); }
     else { tone({ freq: 160, type: 'sawtooth', dur: 0.16, vol: 0.16, slide: 90 }); }
+  },
+  curse() {
+    [392, 466, 554].forEach((f, i) => tone({ freq: f, type: 'sawtooth', dur: 0.26, vol: 0.16, slide: -60, delay: i * 0.05 }));
+    noise({ dur: 0.4, vol: 0.14, freq: 700, q: 0.8 });
+  },
+  frog() { [180, 150].forEach((f, i) => tone({ freq: f, type: 'square', dur: 0.14, vol: 0.2, slide: -60, delay: i * 0.13 })); },
+  stone() { tone({ freq: 90, type: 'square', dur: 0.5, vol: 0.26, slide: -30 }); noise({ dur: 0.5, vol: 0.24, freq: 300, q: 0.5 }); },
+  doom() { [740, 554, 392, 262].forEach((f, i) => tone({ freq: f, type: 'sawtooth', dur: 0.26, vol: 0.22, delay: i * 0.08 })); },
+  bow() {
+    [1046, 1318, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.3, vol: 0.18, delay: i * 0.05 }));
+    tone({ freq: 196, type: 'sine', dur: 0.5, vol: 0.16, slide: -40, delay: 0.1 });
   },
   boom() { noise({ dur: 0.4, vol: 0.42, freq: 260, q: 0.6 }); tone({ freq: 110, type: 'sine', dur: 0.32, vol: 0.3, slide: -60 }); },
   pop() { tone({ freq: 700 + Math.random() * 400, type: 'square', dur: 0.07, vol: 0.11, slide: -300 }); },

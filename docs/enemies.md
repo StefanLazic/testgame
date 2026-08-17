@@ -12,6 +12,7 @@ balance data lives in [`js/config.js`](../js/config.js) (`ENEMIES`, `WAVES`,
 | Enemy | HP | Speed | Bounty 🐟 | Armour | Lives lost on leak | Flying |
 | --- | --- | --- | --- | --- | --- | --- |
 | 🐭 Mouse | 34 | 3.0 | 8 | — | 1 | no |
+| 🐸 Frog | 34 | 3.0 | 8 | — | 1 | no |
 | 🐍 Snake | 30 | 4.8 | 11 | — | 1 | no |
 | 🐶 Dog | 120 | 2.1 | 20 | 4 | 2 | no |
 | 🐦 Bird | 46 | 4.2 | 14 | — | 1 | **yes** |
@@ -22,6 +23,14 @@ balance data lives in [`js/config.js`](../js/config.js) (`ENEMIES`, `WAVES`,
 ### 🐭 Mouse
 The basic pest. Cheap, plentiful and slow enough that almost anything kills it.
 Shows up in every wave and in ever-larger swarms.
+
+### 🐸 Frog
+Never spawned by a wave: a frog only exists because the 🧙 Witch cursed
+something into one (see [`docs/cats.md`](cats.md)). It has exactly the same
+stats as a Mouse — 34 HP, speed 3.0, 8 🐟, 1 life on leak — which makes it a
+brutal downgrade for a dog or a snake. Frogs are flagged `cursed: true` so the
+Witch will not waste a second hex on them, and a cursed flyer lands and walks
+the path like everyone else.
 
 ### 🐍 Snake
 Fragile but fast (speed 4.8). Slips past low-DPS setups; Frost slows help a lot.
@@ -59,8 +68,14 @@ Always drops catnip when killed.
 - **Bounty scaling** — the payout is `bounty × (1 + 0.02 × wave)`.
 - **Armour** — armour is subtracted from every hit, with a floor of 25% of the
   raw damage.
-- **Slows** — Frost applies a temporary speed reduction; Sir Barksalot's howl
-  clears it from nearby pests.
+- **Slows** — Frost applies a temporary speed reduction to a single target; Sir
+  Barksalot's howl clears it from nearby pests.
+- **Curses** — the Witch turns a pest into a 🐸 Frog (level 1), petrifies it for
+  10 seconds (level 2, `STONE_TIME`) or destroys it outright (level 3). **Bosses
+  and mini-bosses are immune.** A transformed pest keeps its place on the path.
+- **Stuns** — petrified pests and pests bowing to 👑 Mimi-chan have their speed
+  set to zero for the duration; they can still be damaged, and howls do not
+  clear a stun.
 - **Catnip drops** — bosses always drop catnip; other enemies drop it with a
   3.5% chance.
 

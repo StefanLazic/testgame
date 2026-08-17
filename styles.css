@@ -100,10 +100,19 @@ canvas#scene { position: absolute; inset: 0; width: 100%; height: 100%; display:
   display: flex; flex-direction: column; gap: 6px; align-items: center;
 }
 #shop-row {
-  display: flex; gap: 5px; width: 100%; justify-content: center;
+  display: flex; gap: 5px; width: 100%; justify-content: flex-start;
+  overflow-x: auto; overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  padding-bottom: 2px;
+}
+#shop-row::-webkit-scrollbar { display: none; }
+/* Fade the right edge so it reads as "there is more shop over here". */
+#shop-row.more {
+  -webkit-mask-image: linear-gradient(90deg, #000 82%, rgba(0,0,0,0.25) 100%);
+  mask-image: linear-gradient(90deg, #000 82%, rgba(0,0,0,0.25) 100%);
 }
 .tower-btn {
-  flex: 1 1 0; min-width: 0; max-width: 92px;
+  flex: 1 0 auto; min-width: 54px; max-width: 92px;
   background: var(--panel);
   border: 1.5px solid rgba(255,255,255,0.16);
   border-radius: 13px;
@@ -215,7 +224,7 @@ body.hit::after {
 /* Landscape / short screens: compact the shop */
 @media (max-height: 480px) {
   #shop { flex-direction: row; align-items: flex-end; }
-  #shop-row { width: auto; }
+  #shop-row { width: auto; max-width: 62vw; }
   .next { width: auto; }
   #tower-panel { bottom: calc(70px + var(--safe-b)); }
   .panel { padding: 12px 14px; }
