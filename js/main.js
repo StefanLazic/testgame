@@ -3,6 +3,9 @@ import { initAudio } from './audio.js';
 import { TOWERS, TOWER_ORDER } from './config.js';
 
 const $ = (id) => document.getElementById(id);
+const escapeHtml = (t) => String(t).replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
 
 // --------------------------------------------------------------- shop row --
 const shopRow = $('shop-row');
@@ -63,10 +66,11 @@ const ui = {
     panel.classList.toggle('hidden', !info);
     if (!info) return;
     $('tp-icon').textContent = info.icon;
-    $('tp-name').textContent = `${info.name} Cat`;
+    $('tp-name').textContent = info.global ? info.name : `${info.name} Cat`;
     $('tp-level').textContent = info.maxed ? 'MAX' : `Lv ${info.level}`;
-    $('tp-stats').innerHTML =
-      `⚔️ ${info.damage} dmg · 🎯 ${info.range} range · ⏱ ${info.rate}/s<br><i>${info.blurb}</i>`;
+    $('tp-stats').innerHTML = info.ability
+      ? `${escapeHtml(info.ability)}<br><i>${escapeHtml(info.blurb)}</i>`
+      : `⚔️ ${info.damage} dmg · 🎯 ${info.range} range · ⏱ ${info.rate}/s<br><i>${escapeHtml(info.blurb)}</i>`;
     const up = $('btn-upgrade');
     up.classList.toggle('maxed', info.maxed);
     up.classList.toggle('poor', !info.canAfford);
@@ -82,7 +86,7 @@ const ui = {
   },
   banner(big, sub) {
     const el = $('wave-banner');
-    el.innerHTML = `${big}<div style="font-size:0.45em;opacity:0.85;letter-spacing:1px">${sub || ''}</div>`;
+    el.innerHTML = `${escapeHtml(big)}<div style="font-size:0.45em;opacity:0.85;letter-spacing:1px">${escapeHtml(sub || '')}</div>`;
     el.classList.remove('hidden');
     void el.offsetWidth;
     el.style.animation = 'none';

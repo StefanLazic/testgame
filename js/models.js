@@ -116,23 +116,76 @@ export function makeCatTower(kind, palette) {
     const star = part(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 4), mat(0xd8dcf0, { emissive: 0x333844 }), { pos: [0.26, 0.16, 0.14], rot: [Math.PI / 2, 0, 0] });
     arm.add(star);
     g.userData.spin = star;
-  } else if (kind === 'chef') {
+  } else if (kind === 'sleepy') {
+    // Nightcap, closed eyes and a pillow permanently under one paw.
+    const cap = new THREE.Group();
+    cap.position.set(0, 0.34, -0.04);
+    cap.add(part(CONE, accM, { pos: [0, 0.34, -0.1], scale: [0.6, 0.9, 0.6], rot: [-0.5, 0, 0] }));
+    cap.add(part(new THREE.TorusGeometry(0.32, 0.08, 6, 14), mat(0xfff2dd), { pos: [0, 0.04, 0], rot: [Math.PI / 2, 0, 0] }));
+    cap.add(part(SPHERE, mat(0xfff2dd), { pos: [0, 0.5, -0.62], scale: [0.24, 0.24, 0.24] }));
+    head.add(cap);
+    // sleepy eyelids
+    for (const s of [-1, 1]) head.add(part(BOX, furM, { pos: [0.17 * s, 0.08, 0.28], scale: [0.2, 0.13, 0.06] }));
+    const pillow = makePillow(0.5);
+    pillow.position.set(0.3, 0.18, 0.16);
+    pillow.rotation.set(0.2, 0.3, -0.25);
+    arm.add(pillow);
+    const zzz = part(BOX, new THREE.MeshBasicMaterial({ color: 0xdff0ff, transparent: true, opacity: 0.85 }), {
+      pos: [0.34, 1.7, 0], scale: [0.16, 0.16, 0.03], rot: [0, 0, 0.4],
+    });
+    g.add(zzz);
+    g.userData.glow = zzz;
+  } else if (kind === 'witch') {
     const hat = new THREE.Group();
     hat.position.set(0, 0.4, -0.02);
-    hat.add(part(new THREE.CylinderGeometry(0.34, 0.3, 0.42, 12), mat(0xfffdf5)));
-    hat.add(part(SPHERE, mat(0xfffdf5), { pos: [0, 0.34, 0], scale: [0.5, 0.36, 0.5] }));
-    hat.add(part(new THREE.CylinderGeometry(0.36, 0.36, 0.1, 12), accM, { pos: [0, -0.2, 0] }));
+    hat.add(part(CONE, mat(0x241038), { pos: [0, 0.42, 0], scale: [0.56, 1.15, 0.56], rot: [0, 0, 0.14] }));
+    hat.add(part(new THREE.CylinderGeometry(0.52, 0.52, 0.05, 14), mat(0x1a0b2a)));
+    hat.add(part(new THREE.TorusGeometry(0.26, 0.05, 6, 12), mat(0x8dff5a, { emissive: 0x2a6b10 }), { pos: [0, 0.1, 0], rot: [Math.PI / 2, 0, 0] }));
     head.add(hat);
-    const pan = new THREE.Group();
-    pan.position.set(0.34, 0.2, 0.1);
-    pan.add(part(new THREE.CylinderGeometry(0.3, 0.28, 0.09, 12), mat(0x33333f)));
-    pan.add(part(BOX, mat(0x5a3b22), { pos: [-0.36, 0.02, 0], scale: [0.42, 0.07, 0.09] }));
-    pan.rotation.z = -0.3;
-    arm.add(pan);
+    const broom = part(new THREE.CylinderGeometry(0.04, 0.04, 1.2, 6), mat(0x6b4a2a), { pos: [-0.34, 0.2, 0.02], rot: [0.1, 0, 0.18] });
+    arm.add(broom);
+    arm.add(part(CONE, mat(0xc79a4a), { pos: [-0.46, -0.34, 0.02], scale: [0.26, 0.36, 0.26], rot: [Math.PI, 0, 0.18] }));
+    const wisp = part(SPHERE, new THREE.MeshBasicMaterial({ color: 0xc07bff }), { pos: [0.36, 0.4, 0.16], scale: [0.22, 0.22, 0.22] });
+    arm.add(wisp);
+    g.userData.glow = wisp;
+  } else if (kind === 'queen') {
+    // Mimi-chan: crown, cape, pearls, and an expression of total authority.
+    const crown = new THREE.Group();
+    crown.position.set(0, 0.46, 0);
+    crown.add(part(new THREE.CylinderGeometry(0.3, 0.34, 0.16, 10), mat(0xffd166, { emissive: 0x6b5200 })));
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      crown.add(part(CONE, mat(0xffd166, { emissive: 0x6b5200 }), { pos: [Math.cos(a) * 0.28, 0.16, Math.sin(a) * 0.28], scale: [0.12, 0.24, 0.12] }));
+      crown.add(part(SPHERE, mat(0xff5b9f, { emissive: 0x7a0033 }), { pos: [Math.cos(a) * 0.28, 0.3, Math.sin(a) * 0.28], scale: [0.09, 0.09, 0.09] }));
+    }
+    head.add(crown);
+    const cape = part(CONE, mat(0xd41f6b), { pos: [0, 0.5, -0.34], scale: [1.15, 1.25, 0.7], rot: [Math.PI + 0.16, 0, 0] });
+    g.add(cape);
+    g.add(part(new THREE.TorusGeometry(0.34, 0.06, 6, 16), mat(0xfff6fb, { emissive: 0x776070 }), { pos: [0, 0.68, 0.06], rot: [1.35, 0, 0] }));
+    const fan = part(new THREE.CircleGeometry(0.36, 12, 0, Math.PI), mat(0xfff0f8, { side: THREE.DoubleSide }), { pos: [0.32, 0.3, 0.12], rot: [0, 0.5, -0.4] });
+    fan.material.side = THREE.DoubleSide;
+    arm.add(fan);
+    const sparkle = part(SPHERE, new THREE.MeshBasicMaterial({ color: 0xffe9b0 }), { pos: [0, 1.85, 0], scale: [0.2, 0.2, 0.2] });
+    g.add(sparkle);
+    g.userData.glow = sparkle;
   }
 
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   return { group: g, head, arm, body, tail };
+}
+
+// A little rounded pillow with a tassel in each corner.
+function makePillow(size = 0.6) {
+  const g = new THREE.Group();
+  const cloth = mat(0xdfe6ff);
+  g.add(part(SPHERE, cloth, { scale: [size, size * 0.42, size * 0.78] }));
+  g.add(part(SPHERE, mat(0xb9c6ff), { pos: [0, 0, -size * 0.36], scale: [size * 0.9, size * 0.34, size * 0.24] }));
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      g.add(part(SPHERE, mat(0xfff2dd), { pos: [sx * size * 0.44, 0, sz * size * 0.34], scale: [size * 0.16, size * 0.16, size * 0.16] }));
+    }
+  }
+  return g;
 }
 
 // ---------------------------------------------------------------- enemies --
@@ -189,6 +242,22 @@ export function makeEnemy(kind) {
       const tail = part(BOX, furM, { pos: [0, 0.78, -0.62], scale: [0.14, 0.14, 0.5], rot: [-0.6, 0, 0] });
       g.add(tail);
       g.userData.tail = tail;
+    },
+    frog: () => {
+      const skinM = mat(0x6bd85a);
+      g.add(part(SPHERE, skinM, { pos: [0, 0.32, 0], scale: [0.62, 0.5, 0.66] }));
+      g.add(part(SPHERE, mat(0xdcf7c0), { pos: [0, 0.22, 0.2], scale: [0.42, 0.3, 0.42] }));
+      head = part(SPHERE, skinM, { pos: [0, 0.46, 0.2], scale: [0.5, 0.4, 0.44] });
+      g.add(head);
+      for (const s of [-1, 1]) {
+        head.add(part(SPHERE, mat(0xfff3c4), { pos: [0.24 * s, 0.42, 0.06], scale: [0.28, 0.3, 0.28] }));
+        head.add(part(SPHERE, mat(0x120c18), { pos: [0.24 * s, 0.46, 0.2], scale: [0.14, 0.16, 0.1] }));
+        const leg = part(SPHERE, mat(0x54c247), { pos: [0.36 * s, 0.16, -0.16], scale: [0.2, 0.2, 0.4], rot: [0, 0.4 * s, 0] });
+        g.add(leg); legs.push(leg);
+        const front = part(SPHERE, mat(0x54c247), { pos: [0.26 * s, 0.12, 0.34], scale: [0.16, 0.14, 0.26] });
+        g.add(front); legs.push(front);
+      }
+      g.add(part(BOX, mat(0x2e7a26), { pos: [0, 0.34, 0.42], scale: [0.34, 0.03, 0.06] }));
     },
     bird: () => {
       const featherM = mat(0x6bb8ff);
@@ -378,6 +447,11 @@ export function makeBullet(type) {
   if (type === 'shard') {
     return new THREE.Mesh(new THREE.OctahedronGeometry(0.26), new THREE.MeshBasicMaterial({ color: 0xbdeaff }));
   }
+  if (type === 'pillow') {
+    const g = makePillow(0.62);
+    g.rotation.z = 0.3;
+    return g;
+  }
   if (type === 'star') {
     return new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.04, 4), mat(0xe8ecff, { emissive: 0x555c74 }));
   }
@@ -385,6 +459,20 @@ export function makeBullet(type) {
   const g = new THREE.Group();
   g.add(part(new THREE.CylinderGeometry(0.34, 0.32, 0.1, 12), mat(0x33333f)));
   g.add(part(BOX, mat(0x5a3b22), { pos: [0.4, 0.02, 0], scale: [0.46, 0.08, 0.1] }));
+  return g;
+}
+
+// A rough grey shell dropped over a petrified pest.
+export function makeStoneShell() {
+  const g = new THREE.Group();
+  const stoneM = mat(0x9a9aa8, { transparent: true, opacity: 0.95 });
+  g.add(part(new THREE.DodecahedronGeometry(0.85, 0), stoneM, { pos: [0, 0.55, 0] }));
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    g.add(part(new THREE.DodecahedronGeometry(0.34, 0), mat(0x7d7d8c), {
+      pos: [Math.cos(a) * 0.6, 0.25 + (i % 2) * 0.5, Math.sin(a) * 0.6], rot: [a, a, 0],
+    }));
+  }
   return g;
 }
 

@@ -32,24 +32,40 @@ export const TOWERS = {
   },
   frost: {
     name: 'Frost', icon: '❄️', cost: 95, color: 0x8fd8ff, accent: 0x2e7fb8,
-    damage: 7, range: 5.4, rate: 1.0, air: true, bullet: 'shard', speed: 20,
-    splash: 1.8, slow: 0.45, slowTime: 2.0,
-    blurb: 'Chills a small area, slowing pests. Hits air.',
+    damage: 9, range: 5.4, rate: 1.0, air: true, bullet: 'shard', speed: 20,
+    slow: 0.45, slowTime: 2.0,
+    blurb: 'Single-target chill that slows one pest. Hits air.',
   },
   ninja: {
     name: 'Ninja', icon: '🥷', cost: 150, color: 0x4a4a63, accent: 0xff5b7f,
     damage: 10, range: 4.4, rate: 3.6, air: false, bullet: 'star', speed: 34, crit: 0.22,
     blurb: 'Blinding fast shuriken, ground only. Crits hurt.',
   },
-  chef: {
-    name: 'Chef', icon: '🍳', cost: 210, color: 0xffc36b, accent: 0xd8532e,
-    damage: 52, range: 7.2, rate: 0.42, air: false, bullet: 'pan', speed: 12, splash: 3.2, lob: true,
-    blurb: 'Lobs a hot frying pan. Huge splash, ground only.',
+  sleepy: {
+    name: 'Sleepy', icon: '😴', cost: 210, color: 0xb9c6ff, accent: 0x5b53b8,
+    damage: 58, range: 7.2, rate: 0.34, air: false, bullet: 'pillow', speed: 11, splash: 3.4, lob: true,
+    blurb: 'Yawns, then lobs a pillow. Huge splash, very slow, ground only.',
+  },
+  witch: {
+    name: 'Witch', icon: '🧙', cost: 300, color: 0x8a5bd6, accent: 0x2b1750,
+    damage: 0, range: 7.0, rate: 0, air: true, ability: 'curse', cooldown: 60,
+    blurb: 'Curses one pest every 60 s. Bosses are immune.',
+  },
+  queen: {
+    name: 'Mimi-chan', icon: '👑', cost: 0, color: 0xffd9ef, accent: 0xd41f6b,
+    damage: 0, range: 0, rate: 0, air: true, ability: 'bow', cooldown: 10, stun: 1,
+    global: true, maxLevel: 1,
+    blurb: 'Her Majesty. Every 10 s every pest on the board stops to bow.',
   },
 };
-export const TOWER_ORDER = ['archer', 'wizard', 'frost', 'ninja', 'chef'];
+// The queen costs ten times the priciest ordinary cat.
+TOWERS.queen.cost = 10 * Math.max(...Object.entries(TOWERS)
+  .filter(([k]) => k !== 'queen').map(([, t]) => t.cost));
+
+export const TOWER_ORDER = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'witch', 'queen'];
 
 export const MAX_LEVEL = 3;
+export function maxLevel(kind) { return TOWERS[kind].maxLevel || MAX_LEVEL; }
 export function upgradeCost(kind, level) {
   return Math.round(TOWERS[kind].cost * (0.75 + 0.45 * level));
 }
@@ -67,8 +83,17 @@ export function towerStats(kind, level) {
   };
 }
 
+// The witch's curse gets nastier with every collar she earns.
+export const CURSES = {
+  1: { id: 'frog', label: 'Frog', icon: '🐸', text: 'turns a pest into a harmless frog' },
+  2: { id: 'stone', label: 'Stone', icon: '🗿', text: 'petrifies a pest for 10 s' },
+  3: { id: 'doom', label: 'Doom', icon: '💀', text: 'destroys a pest instantly' },
+};
+export const STONE_TIME = 10;
+
 // -------------------------------------------------------------- enemies ---
 export const ENEMIES = {
+  frog: { name: 'Frog', hp: 34, speed: 3.0, bounty: 8, scale: 1.25, flying: false, leak: 1, cursed: true },
   mouse: { name: 'Mouse', hp: 34, speed: 3.0, bounty: 8, scale: 1.25, flying: false, leak: 1 },
   snake: { name: 'Snake', hp: 30, speed: 4.8, bounty: 11, scale: 1.25, flying: false, leak: 1 },
   dog: { name: 'Dog', hp: 120, speed: 2.1, bounty: 20, scale: 1.3, flying: false, armor: 4, leak: 2 },
