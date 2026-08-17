@@ -95,3 +95,20 @@ Always drops catnip when killed.
 | 10 | FINAL BOSS: The Rat King | The Rat King, dogs, birds, snakes |
 
 You start with 9 lives (`START_LIVES`) and 260 🐟 (`START_GOLD`).
+
+## Serbian names
+
+Display names come from [`js/i18n.js`](../js/i18n.js) (`enemy.<kind>.name` and
+`wave.<n>.name`); the names in `config.js` are only English fallbacks. Add both
+languages when an enemy or wave is added or renamed.
+
+| Key | English | Srpski |
+| --- | --- | --- |
+| `mouse` | Mouse | Miš |
+| `frog` | Frog | Žaba |
+| `snake` | Snake | Zmija |
+| `dog` | Dog | Pas |
+| `bird` | Bird | Ptica |
+| `golden` | Golden Mouse | Zlatni miš |
+| `baron` | Sir Barksalot | Ser Lajavko |
+| `ratking` | The Rat King | Pacovski kralj |
