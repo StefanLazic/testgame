@@ -1,7 +1,9 @@
-# 🐱 Claw Defense
+# 🐱 Mimi-chan Defense
 
 A 3D mobile **tower defense** game: place cat towers around the kitchen and stop
-ten waves of mice, snakes, dogs and birds before they reach the milk bowl.
+twenty waves of mice, snakes, dogs, birds and barnyard invaders before they
+reach the milk bowl. Every cat here defends the milk of their queen,
+👑 **Mimi-chan** — and on the last wave a dragon comes for it.
 
 Built with [three.js](https://threejs.org/) as **plain static files** — no build
 step, no bundler, no CDN. Open `index.html` (or serve the folder) and play.
@@ -27,7 +29,8 @@ there when you add UI text, a cat, an enemy or a wave.
 | Fast forward | tap the ▶▶ chip to cycle 1× / 2× / 3× |
 
 Every pest that reaches the milk costs lives (dogs cost 2, bosses far more).
-Nine lives, ten waves.
+Nine lives, twenty waves. From **wave 11** a second door tears open in the
+top-right corner of the kitchen and pests pour in down *two* lanes at once.
 
 ## The seven cats
 
@@ -49,6 +52,12 @@ upgrades change *which* curse she casts, and Mimi-chan needs no upgrades.
 Birds ignore your beautiful maze. Golden mice are worth a fortune if you can
 catch them. A dog that becomes a frog is still a dog's worth of embarrassment. Catnip sometimes drops — tap it. Wave 5 brings a mini-boss who
 howls, and wave 10 brings a king who does not come alone.
+
+Later on the farm shows up: pigs that *fly*, turtles you cannot dent, horses
+that are gone before you aim, chickens that lay eggs which hatch into more
+chickens, and monkeys that throw bananas — a cat hit by one is knocked out for
+three seconds. Wave 15 has a mini-boss with a very good throwing arm. And on
+wave 20, **Sophie has descended**.
 
 ## Layout
 

@@ -121,13 +121,13 @@ export const ENEMIES = {
 
   // ------------------------------------------------- the barnyard (wave 11+)
   pig: {
-    name: 'Flying Pig', hp: 240, speed: 2.4, bounty: 26, scale: 1.4, flying: true, leak: 2,
+    name: 'Flying Pig', hp: 170, speed: 2.4, bounty: 26, scale: 1.4, flying: true, leak: 1,
   },
   turtle: {
     name: 'Turtle', hp: 460, speed: 1.15, bounty: 34, scale: 1.3, flying: false, armor: 16, leak: 2,
   },
   horse: {
-    name: 'Horse', hp: 280, speed: 5.6, bounty: 30, scale: 1.45, flying: false, armor: 7, leak: 2,
+    name: 'Horse', hp: 150, speed: 5.6, bounty: 30, scale: 1.45, flying: false, armor: 5, leak: 1,
   },
   chicken: {
     name: 'Chicken', hp: 80, speed: 5.2, bounty: 12, scale: 1.15, flying: false, leak: 1, lays: true,
@@ -168,7 +168,12 @@ export const DRAGON = {
 };
 
 // HP grows with the wave so late basic pests stay relevant.
-export function hpScale(wave) { return 1 + 0.17 * (wave - 1); }
+export function hpScale(wave) {
+  // Waves 1-10 keep the original ramp; the barnyard waves bring their own bulk,
+  // so the multiplier grows more gently after the second door opens.
+  if (wave <= 10) return 1 + 0.17 * (wave - 1);
+  return 1 + 0.17 * 9 + 0.09 * (wave - 10);
+}
 
 // ---------------------------------------------------------------- waves ---
 // groups: [kind, count, gap seconds, delay before group starts, lane]

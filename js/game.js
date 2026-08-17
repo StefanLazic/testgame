@@ -1368,27 +1368,44 @@ export class Game {
   }
 
   // Drop a freshly summoned pest onto the closest point of its own lane, so it
-  // appears next to Sophie instead of trekking in from the door.
-  _placeOnRoute(minion, worldPos) {
+  // appears next to Sophie instead of trekking in from the door. Sophie flies
+  // straight over the maze, so the drop is clamped to `maxFraction` of the lane
+  // — she can't cheat her friends into the last corner next to the bowl.
+  _placeOnRoute(minion, worldPos, maxFraction = 0.55) {
     if (minion.flying) return;
     const route = minion.route;
     const flat = new THREE.Vector3(worldPos.x, 0, worldPos.z);
+    const lens = [];
+    let total = 0;
+    for (let i = 1; i < route.length; i++) {
+      const len = route[i].distanceTo(route[i - 1]) || 1;
+      lens.push(len);
+      total += len;
+    }
     let best = null;
     let travelled = 0;
     for (let i = 1; i < route.length; i++) {
       const a = route[i - 1];
       const ab = route[i].clone().sub(a);
-      const len = ab.length() || 1;
+      const len = lens[i - 1];
       const k = Math.max(0, Math.min(1, flat.clone().sub(a).dot(ab) / (len * len)));
-      const proj = a.clone().addScaledVector(ab, k);
-      const d = proj.distanceTo(flat);
-      if (!best || d < best.d) best = { seg: i, proj, progress: travelled + len * k, d };
+      const d = a.clone().addScaledVector(ab, k).distanceTo(flat);
+      if (!best || d < best.d) best = { progress: travelled + len * k, d };
       travelled += len;
     }
     if (!best) return;
-    minion.seg = best.seg;
-    minion.progress = best.progress;
-    minion.pos.copy(best.proj).setY(0);
+
+    // Walk the clamped distance back out to a segment + world position.
+    let want = Math.min(best.progress, total * maxFraction);
+    let seg = 1;
+    let along = 0;
+    while (seg < route.length && want > lens[seg - 1]) { want -= lens[seg - 1]; seg++; }
+    along = Math.min(want, lens[seg - 1]);
+    const a = route[seg - 1];
+    const dir = route[seg].clone().sub(a).normalize();
+    minion.seg = seg;
+    minion.progress = Math.min(best.progress, total * maxFraction);
+    minion.pos.copy(a).addScaledVector(dir, along).setY(0);
     minion.group.position.copy(minion.pos);
   }
 

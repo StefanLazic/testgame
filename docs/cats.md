@@ -91,7 +91,8 @@ Tap a placed cat to inspect, upgrade or sell it.
 ## Shared mechanics
 
 - **Air targeting** — only cats with `air: true` (Archer, Wizard, Frost, Witch,
-  Mimi-chan) reach flying enemies. Ninja and Sleepy ignore birds completely.
+  Mimi-chan) reach flying enemies. Ninja and Sleepy ignore 🐦 birds, 🐖 flying
+  pigs and 🐉 Sophie completely.
 - **Ability cats** — cats with an `ability` (Witch, Mimi-chan) never fire a
   projectile. They charge a cooldown (visible in the tower panel) and then do
   something to the board. Catnip frenzy halves those cooldowns too.
@@ -101,8 +102,17 @@ Tap a placed cat to inspect, upgrade or sell it.
   deals at least 25% of its raw damage.
 - **Catnip frenzy** — picking up a catnip drop makes every cat fire at double
   speed for 9 seconds.
-- **Placement** — cats can only be placed on free floor tiles, never on the
-  pest path.
+- **Placement** — cats can only be placed on free floor tiles, never on either
+  pest lane (both lanes are reserved from the start, even though the second door
+  only opens at wave 11).
+- **Cats can be hurt** — from wave 11 the pests fight back:
+  - 🐒 **Monkeys and 🍌 Baron Bananas** knock a cat out with a banana for 3
+    seconds (`BANANA_STUN`). A knocked-out cat stops shooting, stops charging
+    its ability and wobbles in place; nothing else changes.
+  - 🐉 **Sophie** burns one random cat to ash every 10 seconds on wave 20. The
+    cat is destroyed with no refund. **👑 Mimi-chan is immune** — Sophie will
+    not aim at the queen — which makes the most expensive cat the only one
+    guaranteed to survive the final wave.
 
 ## Serbian names
 
