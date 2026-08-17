@@ -2,14 +2,14 @@
 <html lang="sr-Latn">
 <head>
 <meta charset="utf-8" />
-<title>Claw Defense — Mačja odbrana kule</title>
+<title>Mimi-čan odbrana — Mačja odbrana kule</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#160c26" />
-<meta name="description" content="3D mobilna igra odbrane kule: postavljaj mačke — strelca, čarobnjaka, ledenu, nindžu, pospanu, vešticu i kraljicu Mimi-čan — da zaustaviš talase miševa, pasa, zmija i ptica." />
+<meta name="description" content="3D mobilna igra odbrane kule: sve mačke brane mleko svoje kraljice Mimi-čan. Postavljaj strelca, čarobnjaka, ledenu, nindžu, pospanu i vešticu da zaustaviš dvadeset talasa miševa, pasa, ptica, svinja, kornjača, konja, kokošaka, majmuna — i zmajicu Sofi." />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🐱</text></svg>" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>👑</text></svg>" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -21,7 +21,7 @@
     <div class="hud-top">
       <div class="chip lives">🥛 <span id="lives-text">9</span></div>
       <div class="chip gold">🐟 <span id="gold-text">0</span></div>
-      <div class="chip wave">🌊 <span id="wave-text">1 / 10</span></div>
+      <div class="chip wave">🌊 <span id="wave-text">1 / 20</span></div>
       <button id="btn-speed" class="chip btn" type="button" data-i18n-aria="hud.speed" aria-label="Brzina igre">▶▶ <span id="speed-text">1×</span></button>
     </div>
 
@@ -32,6 +32,14 @@
 
     <div id="toast"></div>
     <div id="wave-banner" class="hidden"></div>
+
+    <!-- Full-screen cinematic (Sophie's entrance) -->
+    <div id="cinematic" class="hidden">
+      <div class="cine-glow"></div>
+      <div class="cine-dragon">🐉</div>
+      <div class="cine-title" id="cine-title"></div>
+      <div class="cine-sub" id="cine-sub"></div>
+    </div>
 
     <!-- Selected-tower panel -->
     <div id="tower-panel" class="hidden">
@@ -54,7 +62,7 @@
   <!-- Screens -->
   <div id="title" class="screen">
     <div class="panel">
-      <h1><span class="cat">🐱</span> Claw <span class="w">Defense</span></h1>
+      <h1><span class="cat">👑</span> Mimi-chan <span class="w">Defense</span></h1>
       <p class="tag" data-i18n="title.tagline">Sedam mačaka. Deset talasa. Jedna činija mleka koju treba odbraniti.</p>
       <button id="btn-play" class="big" type="button" data-i18n="title.play">Igraj</button>
       <button id="btn-help" class="ghost" type="button" data-i18n="title.help">Kako se igra</button>
@@ -74,7 +82,9 @@
         <li data-i18n-html="help.sky"><b>Pazi na nebo:</b> 🐦 ptice lete pravo preko lavirinta — samo neke mačke mogu da ih pogode.</li>
         <li data-i18n-html="help.curses"><b>Kletve:</b> 🧙 veštica ureče jednu štetočinu u minutu — prvo žaba, pa kamen, pa prah. Bosovi su imuni.</li>
         <li data-i18n-html="help.queen"><b>Njeno visočanstvo:</b> 👑 Mimi-čan košta bogatstvo, ali na svakih 10 s cela tabla staje da se pokloni.</li>
-        <li data-i18n-html="help.bosses"><b>Talas 5 i 10:</b> mini-bos, a zatim nešto mnogo, mnogo gore.</li>
+        <li data-i18n-html="help.portal"><b>Talas 11:</b> u gornjem desnom uglu se otvara druga vrata i štetočine naviru iz dve staze.</li>
+        <li data-i18n-html="help.barnyard"><b>Seoski svet:</b> 🐖 leteće svinje su žilave ali spore, 🐢 kornjače su oklopni zid, 🐎 konji jure, 🐔 kokoške nose jaja iz kojih se legu pilići, 🐒 majmuni bananom onesposobe mačku na 3 s.</li>
+        <li data-i18n-html="help.bosses"><b>Talasi 5, 10, 15 i 20:</b> dva mini-bosa, kralj — a onda nešto sa krilima.</li>
       </ul>
       <button id="btn-help-back" class="big" type="button" data-i18n="help.back">Jasno mi je</button>
     </div>

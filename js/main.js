@@ -110,6 +110,20 @@ const ui = {
     void el.offsetWidth;
     el.style.animation = '';
   },
+  cinematic(title, sub) {
+    const el = $('cinematic');
+    $('cine-title').textContent = title;
+    $('cine-sub').textContent = sub || '';
+    el.classList.remove('hidden');
+    // Restart the CSS animations even if a cinematic just played.
+    for (const node of [el, ...el.children]) {
+      node.style.animation = 'none';
+      void node.offsetWidth;
+      node.style.animation = '';
+    }
+    clearTimeout(this._cineTimer);
+    this._cineTimer = setTimeout(() => el.classList.add('hidden'), 5200);
+  },
   boss(ratio, name) {
     $('boss-bar').classList.toggle('hidden', ratio == null);
     if (ratio == null) return;
@@ -143,6 +157,7 @@ const pickTaunt = (wave) => (wave >= 8
 const screens = ['title', 'help', 'gameover', 'loading'];
 function show(name) {
   for (const s of screens) $(s).classList.toggle('hidden', s !== name);
+  $('cinematic').classList.add('hidden');
   const playing = name === null;
   $('hud').classList.toggle('hidden', !playing);
 }

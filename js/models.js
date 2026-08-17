@@ -189,6 +189,11 @@ function makePillow(size = 0.6) {
 }
 
 // ---------------------------------------------------------------- enemies --
+// Some enemies reuse another enemy's body and just add regalia on top.
+const ENEMY_BASE = {
+  golden: 'mouse', baron: 'dog', ratking: 'mouse', chick: 'chicken', monkeyking: 'monkey',
+};
+
 export function makeEnemy(kind) {
   const g = new THREE.Group();
   const legs = [];
@@ -274,9 +279,158 @@ export function makeEnemy(kind) {
       }
       g.add(part(CONE, mat(0x3f8ad8), { pos: [0, 0.5, -0.5], scale: [0.36, 0.5, 0.2], rot: [-1.9, 0, 0] }));
     },
+    pig: () => {
+      const skinM = mat(0xffb0c8);
+      g.add(part(SPHERE, skinM, { pos: [0, 0.6, 0], scale: [0.8, 0.7, 1.0] }));
+      head = part(SPHERE, skinM, { pos: [0, 0.72, 0.5], scale: [0.5, 0.46, 0.44] });
+      g.add(head);
+      head.add(part(new THREE.CylinderGeometry(0.3, 0.3, 0.22, 10), mat(0xff8fb0), { pos: [0, -0.1, 0.5], rot: [Math.PI / 2, 0, 0] }));
+      for (const s of [-1, 1]) {
+        head.add(part(SPHERE, mat(0x120c18), { pos: [0.2 * s, 0.16, 0.36], scale: [0.11, 0.12, 0.08] }));
+        head.add(part(CONE, mat(0xff8fb0), { pos: [0.3 * s, 0.42, 0], scale: [0.3, 0.36, 0.16], rot: [0.4, 0, -0.5 * s] }));
+        // Little feathered wings — physics is not this pig's problem.
+        const wing = part(BOX, mat(0xfff2f7), { pos: [0.62 * s, 0.72, -0.05], scale: [0.7, 0.09, 0.5] });
+        g.add(wing); legs.push(wing);
+        wing.userData.side = s;
+      }
+      for (const [x, z] of [[-0.3, 0.36], [0.3, 0.36], [-0.3, -0.36], [0.3, -0.36]]) {
+        g.add(part(BOX, mat(0xe895b0), { pos: [x, 0.2, z], scale: [0.2, 0.34, 0.2] }));
+      }
+      g.add(part(new THREE.TorusGeometry(0.14, 0.05, 5, 10), mat(0xff8fb0), { pos: [0, 0.62, -0.6], rot: [0, 1.2, 0] }));
+    },
+    turtle: () => {
+      const shellM = mat(0x3f8f5a);
+      const skinM = mat(0xa8d86b);
+      const shell = part(SPHERE, shellM, { pos: [0, 0.5, 0], scale: [1.0, 0.62, 1.15] });
+      g.add(shell);
+      // Hexagonal armour plates.
+      for (let i = 0; i < 7; i++) {
+        const a = (i / 7) * Math.PI * 2;
+        const rr = i === 6 ? 0 : 0.45;
+        g.add(part(new THREE.CylinderGeometry(0.2, 0.24, 0.1, 6), mat(0x2c6b42), {
+          pos: [Math.cos(a) * rr, 0.82 - (rr ? 0.08 : 0), Math.sin(a) * rr * 1.1],
+        }));
+      }
+      g.add(part(SPHERE, mat(0xf0e0a8), { pos: [0, 0.3, 0], scale: [0.86, 0.4, 1.0] }));
+      head = part(SPHERE, skinM, { pos: [0, 0.5, 0.9], scale: [0.34, 0.32, 0.42] });
+      g.add(head);
+      for (const s of [-1, 1]) head.add(part(SPHERE, mat(0x120c18), { pos: [0.16 * s, 0.1, 0.3], scale: [0.1, 0.12, 0.08] }));
+      for (const [x, z] of [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]]) {
+        const leg = part(SPHERE, skinM, { pos: [x, 0.22, z], scale: [0.26, 0.2, 0.34] });
+        g.add(leg); legs.push(leg);
+      }
+      g.add(part(CONE, skinM, { pos: [0, 0.42, -0.95], scale: [0.2, 0.4, 0.2], rot: [-1.6, 0, 0] }));
+    },
+    horse: () => {
+      const coatM = mat(0x8a5a34);
+      const maneM = mat(0x2e1c18);
+      g.add(part(SPHERE, coatM, { pos: [0, 0.86, 0], scale: [0.6, 0.62, 1.24] }));
+      g.add(part(new THREE.CylinderGeometry(0.2, 0.26, 0.7, 8), coatM, { pos: [0, 1.16, 0.5], rot: [0.5, 0, 0] }));
+      head = part(BOX, coatM, { pos: [0, 1.5, 0.78], scale: [0.28, 0.32, 0.62] });
+      g.add(head);
+      head.add(part(BOX, mat(0x6b4326), { pos: [0, -0.15, 0.5], scale: [0.9, 0.6, 0.5] }));
+      for (const s of [-1, 1]) {
+        head.add(part(CONE, coatM, { pos: [0.3 * s, 0.7, -0.2], scale: [0.4, 0.6, 0.4] }));
+        head.add(part(SPHERE, mat(0x120c18), { pos: [0.5 * s, 0.1, 0.16], scale: [0.28, 0.3, 0.2] }));
+      }
+      for (let i = 0; i < 5; i++) {
+        g.add(part(SPHERE, maneM, { pos: [0, 1.2 + i * 0.09, 0.34 + i * 0.1], scale: [0.16, 0.2, 0.2] }));
+      }
+      for (const [x, z] of [[-0.28, 0.5], [0.28, 0.5], [-0.28, -0.5], [0.28, -0.5]]) {
+        const leg = part(BOX, coatM, { pos: [x, 0.34, z], scale: [0.18, 0.72, 0.2] });
+        g.add(leg); legs.push(leg);
+        g.add(part(BOX, mat(0x241730), { pos: [x, 0.05, z], scale: [0.2, 0.12, 0.22] }));
+      }
+      const tail = part(CONE, maneM, { pos: [0, 1.0, -0.72], scale: [0.24, 0.8, 0.24], rot: [-2.5, 0, 0] });
+      g.add(tail);
+      g.userData.tail = tail;
+    },
+    chicken: () => {
+      const featherM = mat(0xfff6e8);
+      g.add(part(SPHERE, featherM, { pos: [0, 0.44, 0], scale: [0.44, 0.46, 0.52] }));
+      head = part(SPHERE, featherM, { pos: [0, 0.8, 0.16], scale: [0.3, 0.3, 0.3] });
+      g.add(head);
+      head.add(part(CONE, mat(0xffb347), { pos: [0, -0.05, 0.28], scale: [0.26, 0.36, 0.26], rot: [Math.PI / 2, 0, 0] }));
+      head.add(part(SPHERE, mat(0xff3b6b), { pos: [0, -0.3, 0.16], scale: [0.16, 0.3, 0.14] }));
+      for (let i = 0; i < 3; i++) {
+        head.add(part(SPHERE, mat(0xff3b6b), { pos: [0, 0.42 + i * 0.03, 0.14 - i * 0.16], scale: [0.12, 0.3, 0.2] }));
+      }
+      for (const s of [-1, 1]) {
+        head.add(part(SPHERE, mat(0x120c18), { pos: [0.18 * s, 0.06, 0.2], scale: [0.1, 0.11, 0.08] }));
+        g.add(part(SPHERE, featherM, { pos: [0.4 * s, 0.44, 0], scale: [0.12, 0.3, 0.4] }));
+        const leg = part(BOX, mat(0xffb347), { pos: [0.15 * s, 0.12, 0.02], scale: [0.08, 0.3, 0.08] });
+        g.add(leg); legs.push(leg);
+      }
+      for (let i = 0; i < 3; i++) {
+        g.add(part(SPHERE, mat(0xf0e2cc), { pos: [(i - 1) * 0.12, 0.62, -0.5], scale: [0.14, 0.3, 0.3], rot: [0.5, 0, (i - 1) * 0.3] }));
+      }
+    },
+    monkey: () => {
+      const furM = mat(0x8a6244);
+      const faceM = mat(0xf2c9a0);
+      g.add(part(SPHERE, furM, { pos: [0, 0.52, 0], scale: [0.52, 0.6, 0.46] }));
+      g.add(part(SPHERE, faceM, { pos: [0, 0.46, 0.2], scale: [0.32, 0.4, 0.24] }));
+      head = part(SPHERE, furM, { pos: [0, 1.0, 0.06], scale: [0.44, 0.42, 0.42] });
+      g.add(head);
+      head.add(part(SPHERE, faceM, { pos: [0, -0.1, 0.28], scale: [0.6, 0.6, 0.4] }));
+      for (const s of [-1, 1]) {
+        head.add(part(SPHERE, faceM, { pos: [0.5 * s, 0.06, 0], scale: [0.24, 0.3, 0.16] }));
+        head.add(part(SPHERE, mat(0x120c18), { pos: [0.2 * s, 0.04, 0.4], scale: [0.14, 0.16, 0.1] }));
+        const arm = part(SPHERE, furM, { pos: [0.42 * s, 0.56, 0.06], scale: [0.16, 0.4, 0.18], rot: [0, 0, 0.3 * s] });
+        g.add(arm); legs.push(arm);
+        const leg = part(SPHERE, furM, { pos: [0.22 * s, 0.16, 0], scale: [0.18, 0.24, 0.2] });
+        g.add(leg); legs.push(leg);
+      }
+      const banana = part(new THREE.TorusGeometry(0.16, 0.06, 5, 8, Math.PI), mat(0xffe066, { emissive: 0x6b5200 }), {
+        pos: [0.44, 0.86, 0.2], rot: [0.4, 0, 1.6],
+      });
+      g.add(banana);
+      g.userData.banana = banana;
+      const tail = part(new THREE.TorusGeometry(0.3, 0.05, 5, 10, Math.PI * 1.2), furM, { pos: [0, 0.6, -0.4], rot: [0, 1.6, 0.6] });
+      g.add(tail);
+      g.userData.tail = tail;
+    },
+    dragon: () => {
+      const scaleM = mat(0xd8324f);
+      const bellyM = mat(0xffd9a0);
+      const hornM = mat(0xfff0d8);
+      g.add(part(SPHERE, scaleM, { pos: [0, 0.9, 0], scale: [0.9, 0.86, 1.5] }));
+      g.add(part(SPHERE, bellyM, { pos: [0, 0.72, 0.2], scale: [0.6, 0.5, 1.1] }));
+      // long neck
+      for (let i = 0; i < 4; i++) {
+        g.add(part(SPHERE, scaleM, { pos: [0, 1.2 + i * 0.28, 0.9 + i * 0.22], scale: [0.4 - i * 0.03, 0.4 - i * 0.03, 0.44] }));
+      }
+      head = part(SPHERE, scaleM, { pos: [0, 2.3, 1.9], scale: [0.44, 0.4, 0.62] });
+      g.add(head);
+      head.add(part(SPHERE, scaleM, { pos: [0, -0.24, 0.7], scale: [0.7, 0.5, 0.7] }));
+      head.add(part(SPHERE, mat(0x2a0a12), { pos: [0, -0.4, 0.8], scale: [0.5, 0.3, 0.5] }));
+      for (const s of [-1, 1]) {
+        head.add(part(SPHERE, mat(0xffe066, { emissive: 0x8a5a00 }), { pos: [0.5 * s, 0.3, 0.2], scale: [0.3, 0.34, 0.26] }));
+        head.add(part(SPHERE, mat(0x120c18), { pos: [0.6 * s, 0.3, 0.36], scale: [0.14, 0.24, 0.14] }));
+        head.add(part(CONE, hornM, { pos: [0.4 * s, 0.8, -0.4], scale: [0.22, 0.9, 0.22], rot: [-0.6, 0, 0.3 * s] }));
+        // Huge bat wings.
+        const wing = new THREE.Group();
+        wing.position.set(0.55 * s, 1.5, -0.1);
+        const membrane = part(CONE, mat(0x8a1330, { side: THREE.DoubleSide }), {
+          pos: [1.7 * s, 0.1, -0.2], scale: [2.6, 1.0, 2.2], rot: [Math.PI / 2, 0, Math.PI / 2 * s],
+        });
+        wing.add(membrane);
+        wing.add(part(BOX, scaleM, { pos: [1.4 * s, 0.35, -0.1], scale: [2.8, 0.14, 0.16], rot: [0, 0, -0.16 * s] }));
+        g.add(wing); legs.push(wing);
+        wing.userData.side = s;
+        const leg = part(SPHERE, scaleM, { pos: [0.6 * s, 0.36, 0.3], scale: [0.26, 0.4, 0.3] });
+        g.add(leg);
+      }
+      // spiked tail
+      for (let i = 0; i < 6; i++) {
+        g.add(part(SPHERE, scaleM, { pos: [0, 0.9 - i * 0.05, -1.4 - i * 0.42], scale: [0.32 - i * 0.04, 0.32 - i * 0.04, 0.36] }));
+        g.add(part(CONE, hornM, { pos: [0, 1.2 - i * 0.06, -1.4 - i * 0.42], scale: [0.12, 0.3, 0.12] }));
+      }
+      g.add(part(CONE, hornM, { pos: [0, 0.6, -4.0], scale: [0.4, 0.8, 0.4], rot: [-Math.PI / 2, 0, 0] }));
+    },
   };
 
-  const kindDef = { golden: 'mouse', baron: 'dog', ratking: 'mouse' }[kind] || kind;
+  const kindDef = ENEMY_BASE[kind] || kind;
   build[kindDef]();
 
   if (kind === 'golden') {
@@ -310,8 +464,49 @@ export function makeEnemy(kind) {
     g.traverse((o) => { if (o.isMesh && o.material.color && o.material.color.getHex() === 0x9aa4b2) o.material = mat(0x63527f); });
   }
 
+  if (kind === 'chick') {
+    // Fluffy yellow baby version of the chicken.
+    g.traverse((o) => {
+      if (o.isMesh && o.material.color && o.material.color.getHex() === 0xfff6e8) {
+        o.material = mat(0xffe066);
+      }
+    });
+  }
+  if (kind === 'monkeyking') {
+    // A crown of bananas and a very smug posture.
+    const crown = new THREE.Group();
+    crown.position.set(0, 1.32, 0.06);
+    crown.add(part(new THREE.CylinderGeometry(0.3, 0.34, 0.14, 10), mat(0xffd166, { emissive: 0x6b5200 })));
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      crown.add(part(new THREE.TorusGeometry(0.16, 0.06, 5, 8, Math.PI), mat(0xffe066, { emissive: 0x6b5200 }), {
+        pos: [Math.cos(a) * 0.28, 0.18, Math.sin(a) * 0.28], rot: [0, -a, 1.6],
+      }));
+    }
+    g.add(crown);
+    const cape = part(CONE, mat(0x2f7a3f), { pos: [0, 0.6, -0.42], scale: [0.9, 1.0, 0.6], rot: [Math.PI, 0, 0] });
+    g.add(cape);
+    g.traverse((o) => { if (o.isMesh && o.material.color && o.material.color.getHex() === 0x8a6244) o.material = mat(0x5f3f2a); });
+  }
+
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   return { group: g, head, legs };
+}
+
+// A banana thrown by a monkey — the same shape as the one they carry.
+export function makeBanana() {
+  const g = new THREE.Group();
+  g.add(part(new THREE.TorusGeometry(0.22, 0.08, 6, 10, Math.PI), mat(0xffe066, { emissive: 0x6b5200 }), { rot: [0, 0, 1.6] }));
+  g.add(part(SPHERE, mat(0x6b5200), { pos: [0, 0.24, 0], scale: [0.09, 0.12, 0.09] }));
+  return g;
+}
+
+// A chicken egg, warm and about to become a problem.
+export function makeEgg() {
+  const g = new THREE.Group();
+  g.add(part(SPHERE, mat(0xfff6e8, { emissive: 0x554d44 }), { pos: [0, 0.28, 0], scale: [0.34, 0.46, 0.34] }));
+  g.add(part(new THREE.CircleGeometry(0.4, 12), mat(0x2a1a46, { transparent: true, opacity: 0.4 }), { pos: [0, 0.02, 0], rot: [-Math.PI / 2, 0, 0] }));
+  return g;
 }
 
 // ------------------------------------------------------------------- map --
@@ -398,6 +593,29 @@ export function makeMouseHole() {
   arch.rotation.x = -Math.PI / 2;
   g.add(arch);
   g.add(part(new THREE.TorusGeometry(0.72, 0.09, 6, 16, Math.PI), mat(0x2a1a46), { pos: [0, 0.05, 0], rot: [-Math.PI / 2, 0, 0] }));
+  return g;
+}
+
+// The second door: a jagged purple rift in the skirting board. It stays boarded
+// up until wave 11, then the planks blow off and it glows.
+export function makePortal() {
+  const g = new THREE.Group();
+  const glow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.95, 18),
+    new THREE.MeshBasicMaterial({ color: 0xc07bff, transparent: true, opacity: 0.9, side: THREE.DoubleSide })
+  );
+  glow.position.set(0, 0.02, 0);
+  glow.rotation.x = -Math.PI / 2;
+  g.add(glow);
+  g.add(part(new THREE.TorusGeometry(0.98, 0.12, 6, 18), mat(0x4a26b8, { emissive: 0x2a1070 }), { pos: [0, 0.06, 0], rot: [-Math.PI / 2, 0, 0] }));
+
+  const boards = new THREE.Group();
+  for (let i = 0; i < 3; i++) {
+    boards.add(part(BOX, mat(0x8a5a2b), { pos: [0, 0.16, (i - 1) * 0.5], scale: [2.2, 0.16, 0.34], rot: [0, 0.12 * (i - 1), 0] }));
+  }
+  g.add(boards);
+  g.userData.glow = glow;
+  g.userData.boards = boards;
   return g;
 }
 
