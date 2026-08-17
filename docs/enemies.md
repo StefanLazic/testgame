@@ -19,7 +19,7 @@ balance data lives in [`js/config.js`](../js/config.js) (`ENEMIES`, `WAVES`,
 | 🐶 Dog | 120 | 2.1 | 20 | 4 | 2 | no |
 | 🐦 Bird | 46 | 4.2 | 14 | — | 1 | **yes** |
 | 🌟 Golden Mouse | 40 | 6.4 | 90 | — | 0 | no |
-| 🐖 Flying Pig | 170 | 2.4 | 26 | — | 1 | **yes** |
+| 🐖 Flying Pig | 110 | 2.4 | 26 | — | 1 | **yes** |
 | 🐢 Turtle | 460 | 1.15 | 34 | 16 | 2 | no |
 | 🐎 Horse | 150 | 5.6 | 30 | 5 | 1 | no |
 | 🐔 Chicken | 80 | 5.2 | 12 | — | 1 | no |
@@ -73,7 +73,7 @@ Always drops catnip when killed.
 
 ### 🐖 Flying Pig
 Physics is not this pig's problem. It flies straight over the maze like a bird,
-but it is far slower (2.4) and far tougher (170 HP), so air-capable cats have to
+but it is far slower (2.4) and far tougher (110 HP), so air-capable cats have to
 grind it down while everything else watches.
 
 ### 🐢 Turtle

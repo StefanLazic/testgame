@@ -121,7 +121,7 @@ export const ENEMIES = {
 
   // ------------------------------------------------- the barnyard (wave 11+)
   pig: {
-    name: 'Flying Pig', hp: 170, speed: 2.4, bounty: 26, scale: 1.4, flying: true, leak: 1,
+    name: 'Flying Pig', hp: 110, speed: 2.4, bounty: 26, scale: 1.4, flying: true, leak: 1,
   },
   turtle: {
     name: 'Turtle', hp: 460, speed: 1.15, bounty: 34, scale: 1.3, flying: false, armor: 16, leak: 2,
@@ -234,7 +234,7 @@ export const WAVES = [
     name: 'Barnyard Riot',
     groups: [
       ['chicken', 16, 0.4, 0, 1], ['horse', 8, 1.0, 3],
-      ['pig', 10, 0.8, 6, 1], ['monkey', 8, 1.1, 10],
+      ['pig', 6, 1.0, 6, 1], ['monkey', 8, 1.1, 10],
     ],
   },
   {
@@ -247,7 +247,7 @@ export const WAVES = [
   {
     name: 'Sky Bacon',
     groups: [
-      ['pig', 16, 0.7, 0, 1], ['bird', 18, 0.45, 2],
+      ['pig', 10, 0.9, 0, 1], ['bird', 18, 0.45, 2],
       ['monkey', 8, 1.0, 8, 1], ['chicken', 14, 0.4, 11],
     ],
   },
@@ -255,7 +255,7 @@ export const WAVES = [
     name: 'Everything, Twice',
     groups: [
       ['horse', 12, 0.8, 0, 1], ['turtle', 8, 1.2, 2],
-      ['pig', 12, 0.7, 5, 1], ['monkey', 10, 0.9, 8],
+      ['pig', 8, 0.9, 5, 1], ['monkey', 10, 0.9, 8],
       ['chicken', 16, 0.35, 11, 1], ['dog', 12, 0.7, 13],
     ],
   },
@@ -263,7 +263,7 @@ export const WAVES = [
     name: 'FINAL BOSS: Sophie the Dragon',
     groups: [
       ['dragon', 1, 1, 0], ['chicken', 14, 0.5, 14, 1], ['horse', 10, 0.9, 20],
-      ['pig', 12, 0.8, 26, 1], ['turtle', 8, 1.2, 32], ['monkey', 10, 1.0, 38, 1],
+      ['pig', 8, 1.0, 26, 1], ['turtle', 8, 1.2, 32], ['monkey', 10, 1.0, 38, 1],
     ],
   },
 ];
