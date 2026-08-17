@@ -1,6 +1,9 @@
 import { Game } from './game.js';
 import { initAudio } from './audio.js';
-import { TOWERS, TOWER_ORDER } from './config.js';
+import { TOWERS, TOWER_ORDER, WAVES } from './config.js';
+import { t, toggleLang, onLangChange, applyStatic } from './i18n.js';
+
+applyStatic();
 
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (t) => String(t).replace(/[&<>"']/g, (c) => (
@@ -11,12 +14,16 @@ const escapeHtml = (t) => String(t).replace(/[&<>"']/g, (c) => (
 const shopRow = $('shop-row');
 const shopButtons = {};
 for (const kind of TOWER_ORDER) {
-  const t = TOWERS[kind];
+  const tw = TOWERS[kind];
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'tower-btn';
   btn.dataset.kind = kind;
-  btn.innerHTML = `<span class="ic">${t.icon}</span><span class="nm">${t.name}</span><span class="pr">🐟 ${t.cost}</span>`;
+  const label = () => {
+    btn.innerHTML = `<span class="ic">${tw.icon}</span><span class="nm">${escapeHtml(t(`tower.${kind}.name`))}</span><span class="pr">🐟 ${tw.cost}</span>`;
+  };
+  label();
+  onLangChange(label);
   btn.addEventListener('click', () => {
     game.setPlacing(game.placing === kind ? null : kind);
   });
@@ -48,17 +55,17 @@ const ui = {
     this.refreshShop();
   },
   setLives(v) { $('lives-text').textContent = String(v); },
-  setWave(n) { $('wave-text').textContent = `${n} / 10`; },
+  setWave(n) { $('wave-text').textContent = t('hud.wave', { n, total: WAVES.length }); },
   setSpeed(mult) { $('speed-text').textContent = `${mult}×`; },
   setPhase(phase, timeLeft) {
     const btn = $('btn-next');
     if (phase === 'prep') {
       btn.classList.remove('running');
-      btn.firstChild.nodeValue = `Start wave ${Math.max(0, Math.ceil(timeLeft))}s `;
+      btn.firstChild.nodeValue = `${t('hud.startWaveIn', { sec: Math.max(0, Math.ceil(timeLeft)) })} `;
       $('next-bonus').textContent = `+🐟 ${Math.floor(Math.max(0, timeLeft) * 3)}`;
     } else {
       btn.classList.add('running');
-      btn.firstChild.nodeValue = 'Wave in progress ';
+      btn.firstChild.nodeValue = `${t('hud.waveRunning')} `;
       $('next-bonus').textContent = '';
     }
   },
@@ -75,11 +82,12 @@ const ui = {
     panel.classList.toggle('hidden', !info);
     if (!info) return;
     $('tp-icon').textContent = info.icon;
-    $('tp-name').textContent = info.global ? info.name : `${info.name} Cat`;
-    $('tp-level').textContent = info.maxed ? 'MAX' : `Lv ${info.level}`;
-    $('tp-stats').innerHTML = info.ability
-      ? `${escapeHtml(info.ability)}<br><i>${escapeHtml(info.blurb)}</i>`
-      : `⚔️ ${info.damage} dmg · 🎯 ${info.range} range · ⏱ ${info.rate}/s<br><i>${escapeHtml(info.blurb)}</i>`;
+    $('tp-name').textContent = info.global ? info.name : t('hud.catSuffix', { name: info.name });
+    $('tp-level').textContent = info.maxed ? t('hud.max') : t('hud.level', { n: info.level });
+    const stats = info.ability
+      ? info.ability
+      : t('hud.stats', { damage: info.damage, range: info.range, rate: info.rate });
+    $('tp-stats').innerHTML = `${escapeHtml(stats)}<br><i>${escapeHtml(info.blurb)}</i>`;
     const up = $('btn-upgrade');
     up.classList.toggle('maxed', info.maxed);
     up.classList.toggle('poor', !info.canAfford);
@@ -120,22 +128,16 @@ const ui = {
     $('go-wave').textContent = String(wave);
     $('go-kills').textContent = String(kills);
     $('go-best').textContent = String(best);
-    $('go-title').textContent = won ? '👑 Kitchen defended!' : 'The milk is gone';
-    $('go-sub').textContent = won
-      ? 'The Rat King has abdicated. The cats nap in triumph.'
-      : pickTaunt(wave);
+    $('go-title').textContent = won ? t('over.wonTitle') : t('over.lostTitle');
+    $('go-sub').textContent = won ? t('over.wonSub') : pickTaunt(wave);
     setTimeout(() => show('gameover'), won ? 1400 : 900);
   },
 };
 
-const TAUNTS = [
-  'The pests have taken the kitchen.',
-  'Somewhere, a dog is drinking your milk.',
-  'The mice left a thank-you note.',
-  'Your cats are pretending this never happened.',
-  'A snake is now living in the cutlery drawer.',
-];
-const pickTaunt = (wave) => (wave >= 8 ? 'So close. The Rat King smiles.' : TAUNTS[Math.floor(Math.random() * TAUNTS.length)]);
+const TAUNT_COUNT = 5;
+const pickTaunt = (wave) => (wave >= 8
+  ? t('over.taunt.close')
+  : t(`over.taunt.${Math.floor(Math.random() * TAUNT_COUNT)}`));
 
 // ---------------------------------------------------------------- screens --
 const screens = ['title', 'help', 'gameover', 'loading'];
@@ -149,7 +151,7 @@ let game;
 try {
   game = new Game($('scene'), ui);
 } catch (err) {
-  $('loading').innerHTML = '<div class="panel"><h2>WebGL unavailable</h2><p class="tag">This game needs WebGL. Try another browser.</p></div>';
+  $('loading').innerHTML = `<div class="panel"><h2>${escapeHtml(t('error.webgl.title'))}</h2><p class="tag">${escapeHtml(t('error.webgl.text'))}</p></div>`;
   throw err;
 }
 
@@ -162,6 +164,7 @@ function startGame() {
   game.start();
 }
 
+$('btn-lang').addEventListener('click', toggleLang);
 $('btn-play').addEventListener('click', startGame);
 $('btn-again').addEventListener('click', startGame);
 $('btn-help').addEventListener('click', () => show('help'));

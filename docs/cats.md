@@ -103,3 +103,19 @@ Tap a placed cat to inspect, upgrade or sell it.
   speed for 9 seconds.
 - **Placement** — cats can only be placed on free floor tiles, never on the
   pest path.
+
+## Serbian names
+
+Display names come from [`js/i18n.js`](../js/i18n.js) (`tower.<kind>.name`);
+`TOWERS[kind].name` in `config.js` is only an English fallback. Add both
+languages when a cat is added or renamed.
+
+| Key | English | Srpski |
+| --- | --- | --- |
+| `archer` | Archer | Strelac |
+| `wizard` | Wizard | Čarobnjak |
+| `frost` | Frost | Ledena |
+| `ninja` | Ninja | Nindža |
+| `sleepy` | Sleepy | Pospana |
+| `witch` | Witch | Veštica |
+| `queen` | Mimi-chan | Mimi-čan |

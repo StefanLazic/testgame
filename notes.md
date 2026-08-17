@@ -201,3 +201,36 @@ run a wave, no console errors. Camera framing verified numerically at 390×844,
   petrification (enemy progress frozen), instant kill, board-wide bow (16/17
   pests bowing — the 17th had just died), and boss curse immunity all confirmed
   with no console errors.
+
+## 2026-08-17 — Serbian localisation 🇷🇸
+
+- **New `js/i18n.js`** holds every player-visible string in two languages,
+  English and Serbian (Latin script), behind a tiny `t('key', { params })`
+  helper. Placeholders are `{named}`, missing keys fall back to English and then
+  to the key itself, so a forgotten translation can never render as `undefined`.
+- **Serbian is the default.** The choice is stored in `localStorage` under
+  `cd-lang`; the 🌐 button on the title screen flips between *Srpski* and
+  *English* and re-renders everything live (static markup, shop buttons, HUD).
+- **Static markup is annotated, not duplicated.** `index.html` ships the Serbian
+  text inline (so the very first paint is already localised, even before the
+  modules load) and marks each node with `data-i18n`, `data-i18n-html` (for the
+  bolded help rules) or `data-i18n-aria`. `applyStatic()` rewrites them —
+  including `<title>`, the meta description and `<html lang>` (`sr-Latn`/`en`).
+- **Dynamic strings** — toasts, banners, the boss bar, the wave counter, the
+  tower panel, the game-over taunts — all go through `t()` now. Cat, enemy,
+  wave and curse names moved to i18n keys (`tower.frost.name`,
+  `enemy.ratking.name`, `wave.5.name`, `curse.2.text`); `config.js` keeps its
+  English names as a fallback and stays the single source of balance truth.
+- **Gotcha found while refactoring**: `game.js` used `const t = this.selected`
+  in `upgradeSelected()`/`sellSelected()`, which shadowed the new `t()`
+  translator. Those locals are now `tw`.
+- Translation choices worth remembering: *štetočine* for pests, *Pacovski kralj*
+  for the Rat King, *Ser Lajavko* for Sir Barksalot, *Mimi-čan* for the queen,
+  *mačja trava* for catnip. The panel says `Ledena 🐱` rather than
+  `Mačka Ledena` — Serbian gender agreement makes a literal "X Cat" read badly.
+- **Mobile**: the language pill keeps a 44 px touch target and sits under the
+  title buttons, so nothing else on the small-screen layout moved.
+- **Headless playtest** (Chromium + swiftshader, 390×844 with touch events):
+  title, help, shop, HUD, tower panel, wave banner and toasts all render in
+  Serbian, switching to English updates the shop live, and the console stayed
+  clean.

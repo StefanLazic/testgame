@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sr-Latn">
 <head>
 <meta charset="utf-8" />
-<title>Claw Defense — Cat Tower Defense</title>
+<title>Claw Defense — Mačja odbrana kule</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#160c26" />
-<meta name="description" content="A 3D mobile tower defense game: place cat towers — archer, wizard, frost, ninja, sleepy, witch and Queen Mimi-chan — to stop waves of mice, dogs, snakes and birds." />
+<meta name="description" content="3D mobilna igra odbrane kule: postavljaj mačke — strelca, čarobnjaka, ledenu, nindžu, pospanu, vešticu i kraljicu Mimi-čan — da zaustaviš talase miševa, pasa, zmija i ptica." />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -22,11 +22,11 @@
       <div class="chip lives">🥛 <span id="lives-text">9</span></div>
       <div class="chip gold">🐟 <span id="gold-text">0</span></div>
       <div class="chip wave">🌊 <span id="wave-text">1 / 10</span></div>
-      <button id="btn-speed" class="chip btn" type="button" aria-label="Game speed">▶▶ <span id="speed-text">1×</span></button>
+      <button id="btn-speed" class="chip btn" type="button" data-i18n-aria="hud.speed" aria-label="Brzina igre">▶▶ <span id="speed-text">1×</span></button>
     </div>
 
     <div id="boss-bar" class="hidden">
-      <div class="boss-name" id="boss-name">BOSS</div>
+      <div class="boss-name" id="boss-name" data-i18n="hud.boss">BOS</div>
       <div class="bar"><div id="boss-fill" class="fill boss"></div></div>
     </div>
 
@@ -35,19 +35,19 @@
 
     <!-- Selected-tower panel -->
     <div id="tower-panel" class="hidden">
-      <div class="tp-head"><span id="tp-icon">🐱</span><b id="tp-name">Cat</b><span id="tp-level" class="lvl">Lv 1</span></div>
+      <div class="tp-head"><span id="tp-icon">🐱</span><b id="tp-name">Mačka</b><span id="tp-level" class="lvl">Niv 1</span></div>
       <div class="tp-stats" id="tp-stats"></div>
       <div class="tp-actions">
-        <button id="btn-upgrade" class="pill up" type="button">Upgrade <span id="tp-upcost">🐟 0</span></button>
-        <button id="btn-sell" class="pill sell" type="button">Sell <span id="tp-sell">🐟 0</span></button>
-        <button id="btn-close-panel" class="pill ghost" type="button">✕</button>
+        <button id="btn-upgrade" class="pill up" type="button"><span data-i18n="hud.upgrade">Unapredi</span> <span id="tp-upcost">🐟 0</span></button>
+        <button id="btn-sell" class="pill sell" type="button"><span data-i18n="hud.sell">Prodaj</span> <span id="tp-sell">🐟 0</span></button>
+        <button id="btn-close-panel" class="pill ghost" type="button" data-i18n-aria="hud.close" aria-label="Zatvori panel">✕</button>
       </div>
     </div>
 
     <!-- Shop -->
     <div id="shop">
       <div id="shop-row"></div>
-      <button id="btn-next" class="next" type="button">Start wave <small id="next-bonus"></small></button>
+      <button id="btn-next" class="next" type="button">Pokreni talas <small id="next-bonus"></small></button>
     </div>
   </div>
 
@@ -55,45 +55,46 @@
   <div id="title" class="screen">
     <div class="panel">
       <h1><span class="cat">🐱</span> Claw <span class="w">Defense</span></h1>
-      <p class="tag">Seven cats. Ten waves. One bowl of milk to protect.</p>
-      <button id="btn-play" class="big" type="button">Play</button>
-      <button id="btn-help" class="ghost" type="button">How to play</button>
-      <p class="hint">Built for phones — tap a cat, tap the floor, watch the mice regret everything.</p>
+      <p class="tag" data-i18n="title.tagline">Sedam mačaka. Deset talasa. Jedna činija mleka koju treba odbraniti.</p>
+      <button id="btn-play" class="big" type="button" data-i18n="title.play">Igraj</button>
+      <button id="btn-help" class="ghost" type="button" data-i18n="title.help">Kako se igra</button>
+      <button id="btn-lang" class="lang" type="button" data-i18n="lang.switch">English</button>
+      <p class="hint" data-i18n="title.hint">Pravljeno za telefone — dodirni mačku, dodirni pod i gledaj kako se miševi kaju.</p>
     </div>
   </div>
 
   <div id="help" class="screen hidden">
     <div class="panel">
-      <h2>How to play</h2>
+      <h2 data-i18n="help.heading">Kako se igra</h2>
       <ul class="rules">
-        <li><b>Place cats:</b> tap a cat in the shop, then tap any free floor tile.</li>
-        <li><b>Earn fish 🐟:</b> from every pest you stop and a bonus after each wave. Start a wave early for extra fish.</li>
-        <li><b>Upgrade:</b> tap a placed cat to upgrade or sell it (sell refunds 70%).</li>
-        <li><b>Protect the milk 🥛:</b> every pest that reaches it costs a life. Nine lives, no more.</li>
-        <li><b>Watch the sky:</b> 🐦 birds fly straight over your maze — only some cats can hit them.</li>
-        <li><b>Curses:</b> 🧙 the Witch hexes one pest a minute — frog, then stone, then dust. Bosses shrug it off.</li>
-        <li><b>Her Majesty:</b> 👑 Mimi-chan costs a fortune, but every 10 s the whole board stops to bow.</li>
-        <li><b>Wave 5 &amp; 10:</b> a mini-boss and then something much, much worse.</li>
+        <li data-i18n-html="help.place"><b>Postavi mačke:</b> dodirni mačku u prodavnici, pa dodirni slobodno polje na podu.</li>
+        <li data-i18n-html="help.fish"><b>Zaradi ribe 🐟:</b> od svake zaustavljene štetočine i kao bonus posle svakog talasa. Pokreni talas ranije za dodatne ribe.</li>
+        <li data-i18n-html="help.upgrade"><b>Unapredi:</b> dodirni postavljenu mačku da je unaprediš ili prodaš (prodaja vraća 70%).</li>
+        <li data-i18n-html="help.milk"><b>Čuvaj mleko 🥛:</b> svaka štetočina koja stigne do njega uzima jedan život. Devet života, ni jedan više.</li>
+        <li data-i18n-html="help.sky"><b>Pazi na nebo:</b> 🐦 ptice lete pravo preko lavirinta — samo neke mačke mogu da ih pogode.</li>
+        <li data-i18n-html="help.curses"><b>Kletve:</b> 🧙 veštica ureče jednu štetočinu u minutu — prvo žaba, pa kamen, pa prah. Bosovi su imuni.</li>
+        <li data-i18n-html="help.queen"><b>Njeno visočanstvo:</b> 👑 Mimi-čan košta bogatstvo, ali na svakih 10 s cela tabla staje da se pokloni.</li>
+        <li data-i18n-html="help.bosses"><b>Talas 5 i 10:</b> mini-bos, a zatim nešto mnogo, mnogo gore.</li>
       </ul>
-      <button id="btn-help-back" class="big" type="button">Got it</button>
+      <button id="btn-help-back" class="big" type="button" data-i18n="help.back">Jasno mi je</button>
     </div>
   </div>
 
   <div id="gameover" class="screen hidden">
     <div class="panel">
-      <h2 id="go-title">The milk is gone</h2>
-      <p id="go-sub">The pests have taken the kitchen.</p>
+      <h2 id="go-title">Mleka više nema</h2>
+      <p id="go-sub">Štetočine su zauzele kuhinju.</p>
       <div class="score-box">
-        <div><span id="go-wave">1</span><small>waves held</small></div>
-        <div><span id="go-kills">0</span><small>pests stopped</small></div>
-        <div><span id="go-best">0</span><small>best wave</small></div>
+        <div><span id="go-wave">1</span><small data-i18n="over.wavesHeld">odbranjenih talasa</small></div>
+        <div><span id="go-kills">0</span><small data-i18n="over.pestsStopped">zaustavljenih štetočina</small></div>
+        <div><span id="go-best">0</span><small data-i18n="over.bestWave">najbolji talas</small></div>
       </div>
-      <button id="btn-again" class="big" type="button">Again!</button>
+      <button id="btn-again" class="big" type="button" data-i18n="over.again">Ponovo!</button>
     </div>
   </div>
 
   <div id="loading" class="screen">
-    <div class="panel"><p class="tag">Waking the cats…</p></div>
+    <div class="panel"><p class="tag" data-i18n="loading.text">Budimo mačke…</p></div>
   </div>
 </div>
 
@@ -101,6 +102,6 @@
 { "imports": { "three": "./vendor/three.module.min.js" } }
 </script>
 <script type="module" src="./js/main.js"></script>
-<noscript><p style="color:#fff;text-align:center">This game needs JavaScript and WebGL.</p></noscript>
+<noscript><p style="color:#fff;text-align:center">Ovoj igri trebaju JavaScript i WebGL. / This game needs JavaScript and WebGL.</p></noscript>
 </body>
 </html>

@@ -10,6 +10,13 @@ step, no bundler, no CDN. Open `index.html` (or serve the folder) and play.
 python3 -m http.server 8000   # then visit http://localhost:8000
 ```
 
+## Languages
+
+The game ships in **Serbian (default)** and **English**. Tap the 🌐 button on the
+title screen to switch; the choice is remembered in `localStorage`. Every
+player-visible string lives in [`js/i18n.js`](js/i18n.js) — add both languages
+there when you add UI text, a cat, an enemy or a wave.
+
 ## How to play
 
 | Action | How |
@@ -49,6 +56,7 @@ howls, and wave 10 brings a king who does not come alone.
 index.html      title / help / game-over screens, HUD, shop and tower panel
 styles.css      mobile-first UI (safe-area aware, portrait + landscape)
 js/config.js    all balance data: board, path, towers, enemies, waves
+js/i18n.js      every player-visible string in Serbian and English
 js/main.js      boot, screen management, HUD + shop bindings
 js/game.js      simulation: placement, targeting, waves, bosses, economy
 js/models.js    procedural low-poly cats, pests, map, bowl, projectiles

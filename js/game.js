@@ -10,6 +10,10 @@ import {
   makeStoneShell,
 } from './models.js';
 import { Effects } from './fx.js';
+import { t } from './i18n.js';
+
+// Enemy display names live in i18n; ENEMIES keeps the English fallback name.
+const enemyName = (kind) => t(`enemy.${kind}.name`);
 import { sfx } from './audio.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -263,7 +267,7 @@ export class Game {
       const existing = tile && this.occupied.get(tile.key);
       if (existing) { this.setPlacing(null); this.selectTower(existing); return; }
       sfx.deny();
-      this.ui.toast(this.gold < TOWERS[this.placing].cost ? 'Not enough fish' : 'Can’t build on the path');
+      this.ui.toast(this.gold < TOWERS[this.placing].cost ? t('toast.poor') : t('toast.blocked'));
       return;
     }
 
@@ -337,7 +341,7 @@ export class Game {
     this.ui.setSpeed(1);
     this.ui.boss(null);
     this.ui.setPhase('prep', this.waveTimer);
-    this.ui.toast('Build your defense!');
+    this.ui.toast(t('toast.build'));
   }
 
   setSpeed(mult) {
@@ -374,14 +378,17 @@ export class Game {
     let ability = null;
     if (base.ability === 'curse') {
       const c = CURSES[tower.level];
-      ability = `${c.icon} Curse: ${c.text} · every ${base.cooldown}s · ${Math.max(0, tower.abilityCool || 0).toFixed(0)}s left`;
+      ability = t('ability.curse', {
+        icon: c.icon, text: t(`curse.${tower.level}.text`), cooldown: base.cooldown,
+        left: Math.max(0, tower.abilityCool || 0).toFixed(0),
+      });
     } else if (base.ability === 'bow') {
-      ability = `🙇 Bow: every pest stops for ${base.stun}s · every ${base.cooldown}s`;
+      ability = t('ability.bow', { stun: base.stun, cooldown: base.cooldown });
     }
     return {
-      kind: tower.kind, icon: base.icon, name: base.name, level: tower.level, maxed, ability,
+      kind: tower.kind, icon: base.icon, name: t(`tower.${tower.kind}.name`), level: tower.level, maxed, ability,
       damage: Math.round(st.damage), range: st.range.toFixed(1), rate: st.rate.toFixed(2),
-      blurb: base.blurb,
+      blurb: t(`tower.${tower.kind}.blurb`),
       upCost: maxed ? 0 : upgradeCost(tower.kind, tower.level),
       sellValue: Math.floor(tower.spent * 0.7),
       canAfford: !maxed && this.gold >= upgradeCost(tower.kind, tower.level),
@@ -391,7 +398,7 @@ export class Game {
 
   placeTower(kind, tile) {
     const cost = TOWERS[kind].cost;
-    if (this.gold < cost) { sfx.deny(); this.ui.toast('Not enough fish'); return; }
+    if (this.gold < cost) { sfx.deny(); this.ui.toast(t('toast.poor')); return; }
     this.gold -= cost;
     this.ui.setGold(this.gold);
 
@@ -420,42 +427,42 @@ export class Game {
   }
 
   upgradeSelected() {
-    const t = this.selected;
-    if (!t || t.level >= maxLevel(t.kind)) return;
-    const cost = upgradeCost(t.kind, t.level);
-    if (this.gold < cost) { sfx.deny(); this.ui.toast('Not enough fish'); return; }
+    const tw = this.selected;
+    if (!tw || tw.level >= maxLevel(tw.kind)) return;
+    const cost = upgradeCost(tw.kind, tw.level);
+    if (this.gold < cost) { sfx.deny(); this.ui.toast(t('toast.poor')); return; }
     this.gold -= cost;
-    t.spent += cost;
-    t.level++;
-    t.pop = 0.4;
-    t.group.scale.setScalar(TOWER_SCALE + (t.level - 1) * 0.1);
+    tw.spent += cost;
+    tw.level++;
+    tw.pop = 0.4;
+    tw.group.scale.setScalar(TOWER_SCALE + (tw.level - 1) * 0.1);
     // Visible upgrade: a golden collar per level.
     const collar = new THREE.Mesh(
       new THREE.TorusGeometry(0.3, 0.055, 6, 14),
       new THREE.MeshLambertMaterial({ color: 0xffd166, emissive: 0x6b5200 })
     );
-    collar.position.set(0, 0.7 + (t.level - 2) * 0.08, 0.06);
+    collar.position.set(0, 0.7 + (tw.level - 2) * 0.08, 0.06);
     collar.rotation.x = Math.PI / 2.1;
-    t.group.add(collar);
-    this.effects.ring(t.group.position, { color: 0xffd166, from: 0.3, to: 2.6, life: 0.45 });
-    this.effects.burst(t.pos, { count: 14, color: 0xffd166, speed: 4, size: 0.4 });
+    tw.group.add(collar);
+    this.effects.ring(tw.group.position, { color: 0xffd166, from: 0.3, to: 2.6, life: 0.45 });
+    this.effects.burst(tw.pos, { count: 14, color: 0xffd166, speed: 4, size: 0.4 });
     sfx.upgrade();
     this.ui.setGold(this.gold);
-    this.selectTower(t);
+    this.selectTower(tw);
   }
 
   sellSelected() {
-    const t = this.selected;
-    if (!t) return;
-    const refund = Math.floor(t.spent * 0.7);
+    const tw = this.selected;
+    if (!tw) return;
+    const refund = Math.floor(tw.spent * 0.7);
     this.gold += refund;
-    this.occupied.delete(t.tile);
-    this.towers.splice(this.towers.indexOf(t), 1);
-    this.scene.remove(t.group);
-    this.effects.burst(t.pos, { count: 12, color: 0xff9ec4, speed: 3.4, size: 0.4 });
+    this.occupied.delete(tw.tile);
+    this.towers.splice(this.towers.indexOf(tw), 1);
+    this.scene.remove(tw.group);
+    this.effects.burst(tw.pos, { count: 12, color: 0xff9ec4, speed: 3.4, size: 0.4 });
     sfx.sell();
     this.ui.setGold(this.gold);
-    this.ui.toast(`Sold for 🐟 ${refund}`);
+    this.ui.toast(t('toast.sold', { gold: refund }));
     this.selectTower(null);
   }
 
@@ -465,7 +472,7 @@ export class Game {
     if (bonus > 0) {
       this.gold += bonus;
       this.ui.setGold(this.gold);
-      this.ui.toast(`Early bird: +🐟 ${bonus}`);
+      this.ui.toast(t('toast.early', { gold: bonus }));
     }
     this._beginWave();
   }
@@ -487,7 +494,7 @@ export class Game {
     this.waveClock = 0;
     this.ui.setWave(this.wave);
     this.ui.setPhase('running');
-    this.ui.banner(`Wave ${this.wave}`, def.name);
+    this.ui.banner(t('banner.wave', { n: this.wave }), t(`wave.${this.wave}.name`));
     sfx.wave();
   }
 
@@ -495,7 +502,7 @@ export class Game {
     const bonus = waveBonus(this.wave);
     this.gold += bonus;
     this.ui.setGold(this.gold);
-    this.ui.toast(`Wave cleared! +🐟 ${bonus}`);
+    this.ui.toast(t('toast.waveClear', { gold: bonus }));
     sfx.waveClear();
     this.boss = null;
     this.ui.boss(null);
@@ -510,8 +517,8 @@ export class Game {
     this.waveTimer = PREP_TIME;
     this.ui.setPhase('prep', this.waveTimer);
     const next = this.wave + 1;
-    if (next === 5) setTimeout(() => this.ui.toast('⚠️ Wave 5: a mini-boss is coming'), 1800);
-    if (next === 10) setTimeout(() => this.ui.toast('⚠️ Wave 10: THE RAT KING approaches'), 1800);
+    if (next === 5) setTimeout(() => this.ui.toast(t('toast.warnMini')), 1800);
+    if (next === 10) setTimeout(() => this.ui.toast(t('toast.warnFinal')), 1800);
   }
 
   // --------------------------------------------------------------- spawning
@@ -552,8 +559,8 @@ export class Game {
 
     if (def.boss) {
       this.boss = e;
-      this.ui.boss(1, def.name.toUpperCase());
-      this.ui.banner(def.boss === 'main' ? '👑 THE RAT KING' : '🐶 MINI BOSS', def.name);
+      this.ui.boss(1, enemyName(e.kind).toUpperCase());
+      this.ui.banner(def.boss === 'main' ? t('banner.finalBoss') : t('banner.miniBoss'), enemyName(e.kind));
       this.effects.kick(0.9);
       sfx.boss();
     }
@@ -617,11 +624,11 @@ export class Game {
       this.effects.ring(p, { color: 0xffd166, from: 0.5, to: 14, life: 0.9 });
       this.effects.kick(1.2);
       sfx.bossDown();
-      this.ui.toast(`${e.def.name} defeated! +🐟 ${bounty}`);
+      this.ui.toast(t('toast.bossDown', { name: enemyName(e.kind), gold: bounty }));
     } else {
       sfx.pop();
     }
-    if (e.def.golden) { this.ui.toast(`Golden mouse! +🐟 ${bounty}`); sfx.coin(); }
+    if (e.def.golden) { this.ui.toast(t('toast.golden', { gold: bounty })); sfx.coin(); }
     // Catnip drops: guaranteed from bosses, rare otherwise.
     if (e.def.boss || Math.random() < 0.035) this._dropCatnip(p);
   }
@@ -631,14 +638,14 @@ export class Game {
     group.position.copy(pos).setY(0);
     this.scene.add(group);
     this.drops.push({ group, life: 14, t: 0 });
-    this.ui.toast('🌿 Catnip! Tap it!');
+    this.ui.toast(t('toast.catnipDrop'));
   }
 
   _takeCatnip(drop) {
     this.scene.remove(drop.group);
     this.drops.splice(this.drops.indexOf(drop), 1);
     this.frenzy = 9;
-    this.ui.toast('🌿 CATNIP FRENZY — double speed claws!');
+    this.ui.toast(t('toast.catnipFrenzy'));
     this.effects.ring(drop.group.position, { color: 0x8dff5a, from: 0.4, to: 18, life: 0.8 });
     sfx.catnip();
   }
@@ -780,7 +787,7 @@ export class Game {
       if (e.def.enrage && !e.enraged && e.hp < e.maxHp * 0.45) {
         e.enraged = true;
         e.speed *= 1.5;
-        this.ui.toast('👑 The Rat King is ENRAGED!');
+        this.ui.toast(t('toast.enraged'));
         this.effects.kick(1);
         sfx.boss();
       }
@@ -791,7 +798,7 @@ export class Game {
           this.effects.ring(e.group.position, { color: 0xffb347, from: 0.5, to: 9, life: 0.6 });
           this.effects.kick(0.35);
           sfx.howl();
-          this.ui.toast('🐶 Sir Barksalot howls — the pack speeds up!');
+          this.ui.toast(t('toast.howl'));
           for (const other of this.enemies) {
             if (other === e || !other.alive) continue;
             if (other.group.position.distanceTo(e.group.position) > 9) continue;
@@ -881,7 +888,7 @@ export class Game {
       if (e.slowF && Math.random() < dt * 6) {
         this.effects.trail(e.group.position.clone().setY(e.group.position.y + 0.4), 0xbdeaff, 0.28);
       }
-      if (this.boss === e) this.ui.boss(ratio, e.def.name.toUpperCase());
+      if (this.boss === e) this.ui.boss(ratio, enemyName(e.kind).toUpperCase());
     }
   }
 
@@ -889,7 +896,7 @@ export class Game {
     const cost = e.def.leak;
     this._despawn(e, i);
     if (this.phase === 'demo') return;
-    if (cost <= 0) { this.ui.toast('The golden mouse got away!'); return; }
+    if (cost <= 0) { this.ui.toast(t('toast.goldenGone')); return; }
     this.lives = Math.max(0, this.lives - cost);
     this.ui.setLives(this.lives);
     this.ui.hitFlash();
@@ -1004,14 +1011,14 @@ export class Game {
 
     if (curse.id === 'frog') {
       this._transform(e, 'frog');
-      this.ui.toast('🐸 Cursed! It is a frog now.');
+      this.ui.toast(t('toast.curseFrog'));
       sfx.frog();
     } else if (curse.id === 'stone') {
       this._petrify(e);
-      this.ui.toast(`🗿 Petrified for ${STONE_TIME}s!`);
+      this.ui.toast(t('toast.curseStone', { sec: STONE_TIME }));
       sfx.stone();
     } else {
-      this.ui.toast('💀 The witch says no.');
+      this.ui.toast(t('toast.curseDoom'));
       this.effects.kick(0.3);
       sfx.doom();
       this._kill(e);
@@ -1053,7 +1060,7 @@ export class Game {
       bowed++;
       this.effects.trail(e.group.position.clone().setY(e.group.position.y + 0.8), 0xffd166, 0.3);
     }
-    if (bowed) { sfx.bow(); this.ui.toast('👑 Mimi-chan demands a bow!'); }
+    if (bowed) { sfx.bow(); this.ui.toast(t('toast.bow')); }
   }
 
   _pickTarget(t, st) {
