@@ -166,14 +166,26 @@ async function newPage(conn, url, { width, height }) {
       await new Promise((r) => setTimeout(r, 60));
     },
     async tapSelector(selector) {
+      // The shop row scrolls horizontally on a phone, so bring the target into
+      // view before measuring it — otherwise the tap lands on the board.
+      await page.eval(`(() => {
+        const el = document.querySelector(${JSON.stringify(selector)});
+        if (el) el.scrollIntoView({ block: 'nearest', inline: 'center' });
+        return true;
+      })()`);
+      await new Promise((r) => setTimeout(r, 120));
       const box = await page.eval(`(() => {
         const el = document.querySelector(${JSON.stringify(selector)});
         if (!el) return null;
         const r = el.getBoundingClientRect();
-        return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const hit = document.elementFromPoint(cx, cy);
+        return { x: cx, y: cy, w: r.width, h: r.height, covered: !(hit === el || el.contains(hit)) };
       })()`);
       if (!box) throw new Error(`No element for selector ${selector}`);
       if (box.w < 1 || box.h < 1) throw new Error(`Element ${selector} has no size`);
+      if (box.covered) throw new Error(`Element ${selector} is covered by something else at (${box.x}, ${box.y})`);
       await page.touchTap(box.x, box.y);
       return box;
     },

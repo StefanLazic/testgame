@@ -49,6 +49,10 @@ export const STRINGS = {
     'hud.max': 'MAX',
     'hud.catSuffix': '{name} Cat',
     'hud.stats': '⚔️ {damage} dmg · 🎯 {range} range · ⏱ {rate}/s',
+    'hud.previewHint': 'Tap a free floor tile — the ring shows the reach.',
+    'hud.previewGlobal': 'Works on the whole board — no range ring.',
+    'hud.previewAir': '☁️ hits air',
+    'hud.previewGround': '🚫☁️ ground only',
 
     'pause.title': '⏸ Paused',
     'pause.sub': 'The milk is safe while you think.',
@@ -218,6 +222,10 @@ export const STRINGS = {
     'hud.max': 'MAKS',
     'hud.catSuffix': '{name} 🐱',
     'hud.stats': '⚔️ {damage} štete · 🎯 {range} domet · ⏱ {rate}/s',
+    'hud.previewHint': 'Dodirni slobodno polje — prsten pokazuje domet.',
+    'hud.previewGlobal': 'Radi na celoj tabli — nema prstena dometa.',
+    'hud.previewAir': '☁️ gađa nebo',
+    'hud.previewGround': '🚫☁️ samo zemlja',
 
     'pause.title': '⏸ Pauza',
     'pause.sub': 'Mleko je bezbedno dok razmišljaš.',

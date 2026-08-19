@@ -346,3 +346,27 @@ sound off — awkward on a phone, where a run could be lost to an incoming call.
   kicks unpleasant.
 - **Auto-pause** on `visibilitychange` and `blur`, plus Escape/P on a desktop
   keyboard. The ⏸ chip is a 44 px touch target next to the speed chip.
+
+## 2026-08-19 — see the reach before you spend 🎯
+
+Buying a cat used to be an act of faith: the range ring only appeared once your
+finger was already on the floor, and the shop button showed a price and nothing
+else.
+
+- **`js/rules.js` (new)** is where pure gameplay maths now lives — no three.js,
+  no DOM, so it can be unit tested. It starts with `previewStats(kind)` (the
+  level 1 numbers the shop shows) and `previewTile(...)`, which parks the
+  preview on the free tile next to the lane closest to the middle of the board.
+- **Selecting a cat in the shop** immediately shows the ghost tile *and* its
+  range ring on that tile, sized to the cat's real range, tinted mint when you
+  can afford it and red when you can't. Dragging moves it as before; a drag that
+  ends nowhere snaps the preview back instead of hiding it.
+- **A preview card** sits above the shop with the icon, name, price, damage /
+  range / fire rate and whether the cat can hit air. Ability cats (Witch,
+  Mimi-chan) show their blurb instead of pretend damage numbers, and the queen —
+  who has no range at all — says so and draws no ring.
+- Tests: `tests/unit/rules.test.js` for the pure part, `tests/browser/preview.test.js`
+  for the real UI, including that the card stays inside a 390 px phone screen.
+- The CDP helper learned to `scrollIntoView` before tapping and to fail loudly
+  if something covers the target — the seven-cat shop row scrolls horizontally,
+  so a naive tap on the queen used to land on the kitchen floor instead.

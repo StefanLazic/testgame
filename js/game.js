@@ -11,6 +11,7 @@ import {
 } from './models.js';
 import { Effects } from './fx.js';
 import { settings } from './settings.js';
+import { previewStats, previewTile } from './rules.js';
 import { t } from './i18n.js';
 
 // Enemy display names live in i18n; ENEMIES keeps the English fallback name.
@@ -256,7 +257,7 @@ export class Game {
     c.addEventListener('pointerup', (e) => {
       const moved = downXY ? Math.hypot(e.clientX - downXY.x, e.clientY - downXY.y) : 0;
       downXY = null;
-      if (moved > 24) { this.ghost.visible = false; this.ghostRing.visible = false; return; }
+      if (moved > 24) { if (this.placing) this._previewGhost(this.placing); return; }
       toNDC(e);
       this._tap();
     });
@@ -416,6 +417,33 @@ export class Game {
     this.ghostRing.visible = false;
     if (kind) this.selectTower(null);
     this.ui.setPlacing(kind);
+    // Show the reach of the cat you are shopping for *before* you spend on it:
+    // the ghost tile and its range ring park themselves on a sensible tile and
+    // then follow your finger.
+    if (kind) {
+      const info = previewStats(kind);
+      this.ui.showPreview({ ...info, name: t(`tower.${kind}.name`), blurb: t(`tower.${kind}.blurb`), afford: this.gold >= info.cost });
+      this._previewGhost(kind);
+    } else {
+      this.ui.showPreview(null);
+    }
+  }
+
+  _previewGhost(kind) {
+    const tile = previewTile({
+      cols: COLS, rows: ROWS, pathTiles: this.pathTiles, occupied: this.occupied,
+    });
+    if (!tile) return;
+    const def = TOWERS[kind];
+    const p = tileToWorld(tile.col, tile.row);
+    this.ghost.position.set(p.x, 0.08, p.z);
+    this.ghostRing.position.set(p.x, 0.09, p.z);
+    this.ghostRing.scale.setScalar(def.range || 1);
+    const color = this.gold >= def.cost ? 0x9dffd8 : 0xff6b6b;
+    this.ghost.material.color.setHex(color);
+    this.ghostRing.material.color.setHex(color);
+    this.ghost.visible = true;
+    this.ghostRing.visible = !def.global;
   }
 
   selectTower(tower) {
@@ -484,6 +512,7 @@ export class Game {
     this.ghost.visible = false;
     this.ghostRing.visible = false;
     if (this.gold < cost) this.setPlacing(null);
+    else this._previewGhost(kind);
     this.ui.setGold(this.gold);
   }
 

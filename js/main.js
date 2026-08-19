@@ -76,6 +76,25 @@ const ui = {
   refreshShop() {
     for (const k of TOWER_ORDER) shopButtons[k].classList.toggle('poor', this.gold < TOWERS[k].cost);
     if (this.towerInfo && game && game.selected) this.showTower(game._towerInfo(game.selected));
+    if (this.preview) $('preview-card').classList.toggle('poor', this.gold < this.preview.cost);
+  },
+  // The shop preview: what this cat costs, what it does and how far it reaches.
+  showPreview(info) {
+    this.preview = info;
+    const card = $('preview-card');
+    card.classList.toggle('hidden', !info);
+    if (!info) return;
+    $('pv-icon').textContent = info.icon;
+    $('pv-name').textContent = info.global ? info.name : t('hud.catSuffix', { name: info.name });
+    $('pv-cost').textContent = `🐟 ${info.cost}`;
+    const line = info.ability || info.global
+      ? escapeHtml(info.blurb)
+      : `${escapeHtml(t('hud.stats', {
+        damage: info.damage, range: info.range.toFixed(1), rate: info.rate.toFixed(2),
+      }))} · ${escapeHtml(t(info.air ? 'hud.previewAir' : 'hud.previewGround'))}`;
+    $('pv-stats').innerHTML = line;
+    $('pv-hint').textContent = t(info.global ? 'hud.previewGlobal' : 'hud.previewHint');
+    card.classList.toggle('poor', !info.afford);
   },
   showTower(info) {
     this.towerInfo = info;
