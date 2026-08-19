@@ -11,15 +11,15 @@ lives in [`js/config.js`](../js/config.js) (`TOWERS`, `TOWER_ORDER`,
 
 | Cat | Cost 🐟 | Damage | Range | Rate (shots/s) | Targets | Special |
 | --- | --- | --- | --- | --- | --- | --- |
-| 🏹 Archer | 70 | 13 | 6.4 | 1.15 | ground + air | — |
-| 🔮 Wizard | 120 | 24 | 6.0 | 0.62 | ground + air | splash 2.3 |
-| ❄️ Frost | 95 | 9 | 5.4 | 1.0 | ground + air | single target, slows 45% for 2.0 s |
-| 🥷 Ninja | 150 | 10 | 4.4 | 3.6 | ground only | 22% chance of a 3× crit |
-| 😴 Sleepy | 210 | 58 | 7.2 | 0.34 | ground only | lobbed pillow, splash 3.4 |
-| 🎀 Ema | 190 | — | 5.6 | — | support | ribbon aura: +18/27/38% damage, +12/19/28% fire rate |
-| 💰 Sofija | 200 | — | 5.2 | — | support | purse: 🐟 12/19/28 every 8/6.5/5 s, +25/40/60% bounty nearby |
-| 🗡️ Simba-kun | 260 | 34 | 4.6 | 1.05 | ground only | cleaving katana (splash 1.9, 18% × 2.4 crit) + *bushido* every 14 s |
-| 🧙 Witch | 300 | — | 7.0 | — | ground + air | curse, once every 60 s |
+| 🏹 Archer | 70 | 14 | 5.6 | 1.15 | ground + air | — |
+| 🔮 Wizard | 115 | 27 | 5.2 | 0.62 | ground + air | splash 2.3 |
+| ❄️ Frost | 85 | 13 | 4.8 | 1.0 | ground + air | single target, slows 45% for 2.0 s |
+| 🥷 Ninja | 160 | 10 | 4.2 | 3.3 | ground only | 16% chance of a 3× crit |
+| 😴 Sleepy | 195 | 62 | 6.4 | 0.34 | ground only | lobbed pillow, splash 3.4 |
+| 🎀 Ema | 190 | — | 5.0 | — | support | ribbon aura: +18/27/38% damage, +12/19/28% fire rate |
+| 💰 Sofija | 200 | — | 4.6 | — | support | purse: 🐟 12/19/28 every 8/6.5/5 s, +25/40/60% bounty nearby |
+| 🗡️ Simba-kun | 250 | 33 | 4.2 | 1.05 | ground only | cleaving katana (splash 1.9, 18% × 2.4 crit) + *bushido* every 14 s |
+| 🧙 Witch | 300 | — | 6.2 | — | ground + air | curse, once every 60 s |
 | 👑 Mimi-chan | 3000 | — | whole board | — | ground + air | royal bow, once every 10 s |
 
 ### 🏹 Archer
@@ -31,23 +31,25 @@ Slow-moving arcane orbs (speed 14) that explode on impact for 2.3 splash
 radius. Hits air. Good against clumped groups.
 
 ### ❄️ Frost
-Low damage, but every shard chills the pest it hits and slows it by 45% for 2
-seconds. Hits air. **No splash** — the chill lands on a single target, so Frost
-is a support cat you pair with Sleepy or Ninja rather than a crowd answer.
+Modest damage, but every shard chills the pest it hits and slows it by 45% for
+2 seconds. Hits air. **No splash** — the chill lands on a single target, so
+Frost is a support cat you pair with Sleepy or Ninja rather than a crowd answer.
+Her 🌨️ Hailstorm path is the one way she ever splashes.
 
 ### 🥷 Ninja
-3.6 shuriken per second at short range (4.4). Ground only. Each shot has a 22%
-chance to crit for triple damage. The highest sustained single-target DPS in
-the game once upgraded.
+3.3 shuriken per second at the shortest range in the game (4.2). Ground only,
+unless he walks the 🌫️ Shadow path — that is the only way a ground cat ever
+learns to hit the sky. Each shot has a 16% chance to crit for triple damage,
+and he still has the highest sustained single-target DPS in the game.
 
 ### 😴 Sleepy
-Lobs a fluffy pillow in a lazy arc for 58 damage with a 3.4 splash radius.
+Lobs a fluffy pillow in a lazy arc for 62 damage with a 3.4 splash radius.
 Ground only, and by far the slowest fire rate in the game (0.34 shots/s — about
 one pillow every three seconds). Expensive, but devastating against crowds; the
 pests never see it coming because neither does she.
 
 ### 🎀 Ema
-A support cat. She never attacks; instead every cat inside her 5.6 radius fires
+A support cat. She never attacks; instead every cat inside her 5.0 radius fires
 harder and faster (+18% damage / +12% rate at level 1, up to +38% / +28% at
 level 3). **Ribbons do not stack** — only the strongest Ema in reach counts —
 and she does not cheer for herself, so two Emas side by side are a waste. The
@@ -55,7 +57,7 @@ tower panel of a cheered cat says so.
 
 ### 💰 Sofija
 The other support cat. She digs up 🐟 12 every 8 seconds all on her own
-(🐟 28 every 5 s at level 3) and every pest that dies inside her 5.2 radius is
+(🐟 28 every 5 s at level 3) and every pest that dies inside her 4.6 radius is
 worth 25% more (60% at level 3). Purses do not stack either. During the queen's
 frenzy she counts down at double speed.
 
@@ -185,9 +187,9 @@ is shown with a ✧ and a floating gem above the cat.
 | --- | --- | --- |
 | 🏹 Archer | 🎯 Sniper / 🏹 Ranger | ×1.75 damage, ×1.5 range, ×0.6 rate / ×1.8 rate, ×0.85 damage |
 | 🔮 Wizard | 🔥 Inferno / 💫 Nova | ×1.55 damage / ×1.85 splash, ×1.15 rate |
-| ❄️ Frost | 🧊 Glacier / 🌨️ Hailstorm | deeper, longer chill / ×1.5 damage plus 2.2 splash |
-| 🥷 Ninja | 🗡️ Assassin / 🌫️ Shadow | ×2.2 crit chance, ×1.35 damage / ×1.45 rate, ×1.35 range |
-| 😴 Sleepy | 🌙 Dreamer / 🪨 Boulder | ×1.6 splash plus a slow / ×1.85 damage, ×0.75 rate |
+| ❄️ Frost | 🧊 Glacier / 🌨️ Hailstorm | deeper, longer chill / ×1.5 damage plus a granted 2.2 splash, shorter chill |
+| 🥷 Ninja | 🗡️ Assassin / 🌫️ Shadow | ×2.2 crit chance, ×1.35 damage / ×1.45 rate, ×1.35 range **and hits air** |
+| 😴 Sleepy | 🌙 Dreamer / 🪨 Boulder | ×1.6 splash plus a granted 45% slow for 2.4 s / ×1.85 damage, ×0.75 rate |
 | 🎀 Ema | 📣 Anthem / 🎶 Duet | ×1.75 aura radius / ×1.55 aura strength |
 | 💰 Sofija | 🏦 Banker / 🏴‍☠️ Pirate | ×1.7 coins, faster / ×1.9 bounty, ×1.2 radius |
 | 🗡️ Simba-kun | 🌪️ Ronin / 🎋 Sensei | ×1.55 damage, ×1.25 range, ×0.85 rate and a ×1.3 bushido / ×1.35 rate, ×1.5 splash and bushido every 8.4 s |

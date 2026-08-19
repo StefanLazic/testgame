@@ -18,7 +18,7 @@ import {
   healTargets, shieldAbsorb, shieldRegen, burrowedAt,
   shufflePlan, sleepPicks, nextTrick,
   canPlaceTower, towerLimit, cloneStats, guardedDamage, starLeap, destroyPicks,
-  reviveFraction, nextTeleportSpot,
+  reviveFraction, nextTeleportSpot, slowFrom,
 } from './rules.js';
 import { t } from './i18n.js';
 
@@ -1050,9 +1050,11 @@ export class Game {
   }
 
   _applySlow(e, b) {
-    if (!b.slow || !e.alive) return;
-    e.slowF = Math.max(e.slowF, b.slow);
-    e.slowT = Math.max(e.slowT, b.slowTime);
+    if (!e.alive) return;
+    const chill = slowFrom(b);
+    if (!chill) return;
+    e.slowF = Math.max(e.slowF, chill.factor);
+    e.slowT = Math.max(e.slowT, chill.time);
   }
 
   // ----------------------------------------------------------------- frame

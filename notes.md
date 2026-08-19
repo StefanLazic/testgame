@@ -602,3 +602,110 @@ were rescaled after a screenshot review — Father at 4.6× dwarfed the kitchen,
 the family now sits between the Rat King and Sophie in size. Stefo's basketball
 was shrunk to a 0.3 radius and its arc lowered so it reads as a shot, not an
 eclipse.
+
+## 2026-08-19 — balance pass: two broken paths, four fair prices
+
+A numeric audit of `js/config.js` (DPS per gold, HP per second per wave, armour
+retention, board coverage) turned up two outright bugs and four tuning problems.
+This entry tracks the fixes.
+
+### 1. Two hybrid paths did not do what they said
+
+`towerStats()` applied every branch modifier as a *multiplier*, and `0 × 2.2` is
+still `0`:
+
+* **❄️ Frost → 🌨️ Hailstorm** advertised `splash: 2.2` — but Frost has no base
+  splash, so the shards never shattered over a group. The path was silently just
+  "×1.5 damage, shorter chill".
+* **😴 Sleepy → 🌙 Dreamer** granted `slow: 0.45` through a special case, but its
+  `slowTime` multiplied Sleepy's non-existent duration down to `0`. The engine
+  only ever clears a slow when its timer expires (`if (e.slowT > 0)`), so Dreamer
+  applied a **permanent 45% slow to everything it touched** — accidentally the
+  strongest effect in the game.
+
+Both are fixed by giving branches an explicit `grants` block for stats a cat
+never had, keeping multipliers for stats it already has. `slowFrom()` in
+`js/rules.js` is the new single gate: a chill with no duration is not a chill,
+so the "forever slow" class of bug cannot come back. `tests/unit/branches.test.js`
+covers both bugs plus a sweep that fails any future path which multiplies a stat
+its cat does not own.
+
+### 2. Fair prices (and range that finally means something)
+
+Every damage cat was scored with the same yardstick — *value per fish* — where
+value is `DPS × splash × air × utility × uptime`, and `uptime` comes from how
+much lane a cat at a good tile actually covers at its range (measured against
+the real waypoints in `config.js`). The spread between the best and worst deal
+was **2.04×**: Ninja was the bargain of the game, Frost was nearly twice the
+price of anything else per point of value.
+
+| Cat | before | after |
+| --- | --- | --- |
+| 🏹 Archer | 🐟 70, 13 dmg, range 6.4 | 🐟 70, **14** dmg, range **5.6** |
+| 🔮 Wizard | 🐟 120, 24 dmg, range 6.0 | 🐟 **115**, **27** dmg, range **5.2** |
+| ❄️ Frost | 🐟 95, 9 dmg, range 5.4 | 🐟 **85**, **13** dmg, range **4.8** |
+| 🥷 Ninja | 🐟 150, 3.6/s, 22% crit, range 4.4 | 🐟 **160**, **3.3**/s, **16%** crit, range **4.2** |
+| 😴 Sleepy | 🐟 210, 58 dmg, range 7.2 | 🐟 **195**, **62** dmg, range **6.4** |
+| 🗡️ Simba-kun | 🐟 260, 34 dmg, range 4.6 | 🐟 **250**, **33** dmg, range **4.2** |
+
+Spread is now **1.26×** — every cat is a real choice instead of a trap or an
+auto-buy — at about 95% of the old total power, which the wave curve had plenty
+of slack for.
+
+### 4. Range as a trade-off
+
+Every range was cut 10–15% (support cats and the Witch too). Before, 97 of the
+100 buildable tiles already touched a lane at Archer range, so "where" barely
+mattered and the ×1.5-range paths bought almost nothing. Now the good tiles are
+genuinely good: a well-placed Archer covers ~2× the lane of a lazy one, corner
+tiles are real mistakes, and 🎯 Sniper, 🌫️ Shadow, 📣 Anthem and 💀 Doomsayer
+have something to sell. The range ladder also spreads the cats out: Ninja and
+Simba are 4.2 brawlers, Sleepy is the 6.4 artillery piece.
+
+### 6. Anti-air is now a standing tax, not a spike
+
+Anti-air used to be all-or-nothing. Fourteen waves had **no flyers at all**, so
+an Archer or Frost bought for the birds sat idle for whole stretches; then wave
+27 arrived 60% air and punished anyone who had cashed out of it. Two changes:
+
+**The air roster is now a ladder.** Birds (46 HP) were the only mid-game flyer
+worth spawning, and carrying a serious share of wave-40 health with birds would
+have meant *hundreds* of them. So the 🐖 Flying Pig was promoted from a leftover
+novelty into the middle rung:
+
+| | before | after |
+| --- | --- | --- |
+| 🐖 Flying Pig | 110 HP, speed 2.4, 🐟 26, no armour | **320** HP, speed **2.2**, 🐟 **48**, **3 armour** |
+
+The ladder now reads 🐦 bird (waves 4+) → 🐖 pig (11+) → 🦋 flutterling (27+),
+so every era has a flyer that is actually worth shooting.
+
+**Every wave from 4 on carries 15–40% of its health in the air.** About 35 wave
+groups were re-tuned to land inside that band: flyers were added to the fourteen
+waves that had none, and the sky-themed waves (11, 18, 24, 27, 29) were pulled
+back from being walls. Waves 1–3 stay deliberately ground-only so that the first
+bird on wave 4 is still a surprise. `tests/unit/waves.test.js` now enforces the
+band, so a future wave edit cannot quietly re-open the gap.
+
+The 🥷 Ninja's **Shadow Step** path also grants air targeting (see §1), which
+gives a second, cheaper answer to the sky than "buy an Archer".
+
+### Keeping the tests honest
+
+Two browser tests were pinned to numbers rather than to behaviour, and the
+rebalance flushed them out. `preview.test.js` asserted the Archer's ring was
+literally `6.4`; it now reads `TOWERS.archer.range`, so it tests *"the ring
+matches the cat"* instead of *"the cat has last month's stats"*. The Emilija
+wake-up test was quietly flaky — she picks her next trick at random and can
+re-nap the cats on the same beat — so it now pins `lastTrick` first.
+
+Full suite after all four proposals: **104 unit tests, 81 browser tests, green.**
+
+### Mobile check
+
+Re-checked at 390×844 with touch emulation (the same viewport the browser suite
+runs in): the HUD chips, the horizontally scrolling shop row, the preview card
+and the start-wave button all fit with nothing clipped or overlapping, and the
+new range rings still read clearly on a phone-sized board. The HUD's pre-boot
+placeholder still said `1 / 30` from back when the game ended at wave 30 — it
+now says `1 / 50`, so the very first frame no longer lies.

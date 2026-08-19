@@ -102,6 +102,9 @@ test('Emilija the butterfly boss', { concurrency: 1 }, async (t) => {
   await t.test('the next trick wakes everybody up again', async () => {
     const awake = await page.eval(`(() => {
       const g = window.game;
+      // She never repeats a trick, so pinning the last one to 'sleep' keeps her
+      // from randomly napping the cats again on the very next beat.
+      window.__emilija.lastTrick = 'sleep';
       window.__emilija.trickT = 999;
       g._emilijaBrain(window.__emilija, 0.016);
       return g.towers.filter((tw) => tw.asleep).length;
