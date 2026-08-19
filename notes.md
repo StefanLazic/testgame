@@ -425,3 +425,33 @@ Tests: `tests/unit/support.test.js` (aura/purse maths, no stacking, no
 self-buff, clamping) and `tests/browser/support.test.js` (shop entries, a
 neighbour really gets buffed, the panel badge, selling removes the buff, gold
 ticks up on its own, kills near Sofija pay more).
+
+## 2026-08-19 — Squads and hybrid paths
+
+Two systems that reward thinking about *where* cats stand and *what* they
+become.
+
+**Squads (synergies).** Two different cats within 4.6 units of each other buff
+one another: Shatter (Frost + Ninja), Blizzard (Frost + Wizard), Lullaby
+(Sleepy + Wizard), The Hunt (Archer + Ninja), Coven (Witch + Wizard), Charm
+(Ema + Sofija) and Royal Court (Mimi-chan + Ema). A pairing counts once, but
+different pairings stack — so a mixed squad beats a row of clones. Active
+squads show as ✦ badges in the tower panel.
+
+**Hybrid paths.** At the last collar a cat can specialise once, permanently,
+for 1.9× its base cost. The panel offers two cards (Sniper vs Ranger, Inferno
+vs Nova, Glacier vs Hailstorm, Assassin vs Shadow, Dreamer vs Boulder, Anthem
+vs Duet, Banker vs Pirate, Hexer vs Doomsayer) and the cat gets a floating gem
+plus a ✧ line in its panel. Every path is a multiplier table in
+`BRANCHES` (config), applied inside `towerStats(kind, level, branch)`, so the
+support maths, the previews and the engine all pick it up for free.
+
+The engine now resolves multipliers in three passes when the board changes
+(synergies → support ranges → auras) and caches the result per tower, so the
+per-frame cost is one small object.
+
+Tests: `tests/unit/synergy.test.js` (pairing rules, no self-synergy, no double
+counting, branch tables well formed, unknown branches ignored),
+`tests/unit/i18n.test.js` grew a check that every path and squad is translated,
+and `tests/browser/synergy.test.js` builds a squad, sells the partner, upgrades
+to the last collar, buys a path and fights a wave with it.

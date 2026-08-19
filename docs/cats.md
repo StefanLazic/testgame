@@ -129,6 +129,42 @@ Tap a placed cat to inspect, upgrade or sell it.
     not aim at the queen — which makes the most expensive cat the only one
     guaranteed to survive the final wave.
 
+## Squads (synergies)
+
+Two **different** cats standing within 4.6 world units (about two tiles) of each
+other egg each other on. A pairing counts once no matter how many partners are
+in reach, but different pairings stack, so a small mixed squad beats a long row
+of the same cat. Active squads are listed in the tower panel with a ✦.
+
+| Squad | Pair | Bonus to both |
+| --- | --- | --- |
+| 🧊 Shatter | Frost + Ninja | +25% damage |
+| 🌩️ Blizzard | Frost + Wizard | +15% damage, +15% fire rate |
+| 💤 Lullaby | Sleepy + Wizard | +20% damage |
+| 🎯 The Hunt | Archer + Ninja | +25% fire rate |
+| 🔮 Coven | Witch + Wizard | +20% range, +10% damage |
+| 💞 Charm | Ema + Sofija | +25% range (bigger ribbon and purse) |
+| 👑 Royal Court | Mimi-chan + Ema | +20% fire rate, +10% damage |
+
+## Hybrid upgrades (paths)
+
+Once a cat wears every collar it may specialise **once, permanently**, for
+`1.9 ×` its base price. The tower panel then offers two cards; the chosen path
+is shown with a ✧ and a floating gem above the cat.
+
+| Cat | Path | What changes |
+| --- | --- | --- |
+| 🏹 Archer | 🎯 Sniper / 🏹 Ranger | ×1.75 damage, ×1.5 range, ×0.6 rate / ×1.8 rate, ×0.85 damage |
+| 🔮 Wizard | 🔥 Inferno / 💫 Nova | ×1.55 damage / ×1.85 splash, ×1.15 rate |
+| ❄️ Frost | 🧊 Glacier / 🌨️ Hailstorm | deeper, longer chill / ×1.5 damage plus 2.2 splash |
+| 🥷 Ninja | 🗡️ Assassin / 🌫️ Shadow | ×2.2 crit chance, ×1.35 damage / ×1.45 rate, ×1.35 range |
+| 😴 Sleepy | 🌙 Dreamer / 🪨 Boulder | ×1.6 splash plus a slow / ×1.85 damage, ×0.75 rate |
+| 🎀 Ema | 📣 Anthem / 🎶 Duet | ×1.75 aura radius / ×1.55 aura strength |
+| 💰 Sofija | 🏦 Banker / 🏴‍☠️ Pirate | ×1.7 coins, faster / ×1.9 bounty, ×1.2 radius |
+| 🧙 Witch | 🪄 Hexer / 💀 Doomsayer | ×0.55 cooldown / ×1.6 range |
+
+👑 Mimi-chan has no path — she is already at the top.
+
 ## Serbian names
 
 Display names come from [`js/i18n.js`](../js/i18n.js) (`tower.<kind>.name`);

@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LANGS, t, setLang, getLang, STRINGS } from '../../js/i18n.js';
-import { TOWER_ORDER, ENEMIES, WAVES } from '../../js/config.js';
+import { TOWER_ORDER, ENEMIES, WAVES, BRANCHES, SYNERGIES } from '../../js/config.js';
 
 test('both languages are declared', () => {
   assert.deepEqual([...LANGS].sort(), ['en', 'sr']);
@@ -36,6 +36,20 @@ test('every cat, enemy and wave has a name and a blurb where needed', () => {
     }
     for (let w = 1; w <= WAVES.length; w++) {
       assert.ok(STRINGS[lang][`wave.${w}.name`], `${lang}: wave.${w}.name`);
+    }
+  }
+});
+
+test('every hybrid path, synergy and map is translated', () => {
+  for (const lang of LANGS) {
+    for (const [kind, branches] of Object.entries(BRANCHES)) {
+      for (const id of Object.keys(branches)) {
+        assert.ok(STRINGS[lang][`branch.${kind}.${id}.name`], `${lang}: branch.${kind}.${id}.name`);
+        assert.ok(STRINGS[lang][`branch.${kind}.${id}.blurb`], `${lang}: branch.${kind}.${id}.blurb`);
+      }
+    }
+    for (const syn of SYNERGIES) {
+      assert.ok(STRINGS[lang][`synergy.${syn.id}.name`], `${lang}: synergy.${syn.id}.name`);
     }
   }
 });

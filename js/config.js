@@ -119,23 +119,92 @@ export const SUPPORT = {
   },
 };
 
+// ------------------------------------------------------------- synergies ---
+// Two different cats standing close together egg each other on. Bonuses are
+// small on their own but they stack across different pairings, which rewards
+// building little squads instead of one long row of archers.
+export const SYNERGY_RANGE = 4.6;   // world units — about two tiles
+export const SYNERGIES = [
+  { id: 'shatter', a: 'frost', b: 'ninja', icon: '🧊', damage: 0.25 },
+  { id: 'blizzard', a: 'frost', b: 'wizard', icon: '🌩️', damage: 0.15, rate: 0.15 },
+  { id: 'lullaby', a: 'sleepy', b: 'wizard', icon: '💤', damage: 0.2 },
+  { id: 'hunt', a: 'archer', b: 'ninja', icon: '🎯', rate: 0.25 },
+  { id: 'coven', a: 'witch', b: 'wizard', icon: '🔮', range: 0.2, damage: 0.1 },
+  { id: 'charm', a: 'ema', b: 'sofija', icon: '💞', range: 0.25 },
+  { id: 'court', a: 'queen', b: 'ema', icon: '👑', rate: 0.2, damage: 0.1 },
+];
+
+// ------------------------------------------------ hybrid (branch) upgrades --
+// At the last collar a cat can specialise once, permanently, down one of two
+// paths. Every value is a multiplier on the level-3 stats.
+export const BRANCHES = {
+  archer: {
+    sniper: { icon: '🎯', damage: 1.75, range: 1.5, rate: 0.6 },
+    ranger: { icon: '🏹', damage: 0.85, rate: 1.8, range: 0.92 },
+  },
+  wizard: {
+    inferno: { icon: '🔥', damage: 1.55, rate: 0.9, splash: 1.15 },
+    nova: { icon: '💫', damage: 0.85, splash: 1.85, rate: 1.15 },
+  },
+  frost: {
+    glacier: { icon: '🧊', slow: 1.45, slowTime: 1.6, damage: 1.1, rate: 0.85 },
+    hail: { icon: '🌨️', damage: 1.5, splash: 2.2, slowTime: 0.7 },
+  },
+  ninja: {
+    assassin: { icon: '🗡️', crit: 2.2, damage: 1.35, rate: 0.85 },
+    shadow: { icon: '🌫️', rate: 1.45, range: 1.35 },
+  },
+  sleepy: {
+    dreamer: { icon: '🌙', splash: 1.6, slow: 0.45, slowTime: 2.4, damage: 0.9 },
+    boulder: { icon: '🪨', damage: 1.85, rate: 0.75, range: 1.12 },
+  },
+  ema: {
+    anthem: { icon: '📣', range: 1.75 },
+    duet: { icon: '🎶', buff: 1.55 },
+  },
+  sofija: {
+    banker: { icon: '🏦', coin: 1.7, interval: 0.85 },
+    pirate: { icon: '🏴‍☠️', bounty: 1.9, range: 1.2 },
+  },
+  witch: {
+    hex: { icon: '🪄', cooldown: 0.55 },
+    doom: { icon: '💀', range: 1.6, cooldown: 0.85 },
+  },
+};
+
+// Specialising costs a little more than a normal collar — it is the last thing
+// you will ever buy for that cat.
+export function branchCost(kind) {
+  return Math.round(TOWERS[kind].cost * 1.9);
+}
+
 export const MAX_LEVEL = 3;
 export function maxLevel(kind) { return TOWERS[kind].maxLevel || MAX_LEVEL; }
 export function upgradeCost(kind, level) {
   return Math.round(TOWERS[kind].cost * (0.75 + 0.45 * level));
 }
-// Multipliers applied at level 1 / 2 / 3.
-export function towerStats(kind, level) {
+// Multipliers applied at level 1 / 2 / 3, then the chosen hybrid path on top.
+export function towerStats(kind, level, branch = null) {
   const b = TOWERS[kind];
   const l = level - 1;
-  return {
+  const st = {
     ...b,
     damage: b.damage * (1 + 0.62 * l),
     range: b.range * (1 + 0.13 * l),
     rate: b.rate * (1 + 0.18 * l),
     splash: b.splash ? b.splash * (1 + 0.12 * l) : 0,
     slowTime: b.slowTime ? b.slowTime * (1 + 0.2 * l) : 0,
+    branch: null,
   };
+  const mods = branch && BRANCHES[kind] && BRANCHES[kind][branch];
+  if (!mods) return st;
+  st.branch = branch;
+  for (const key of ['damage', 'range', 'rate', 'splash', 'slowTime', 'crit', 'cooldown']) {
+    if (mods[key] != null) st[key] = (st[key] || 0) * mods[key];
+  }
+  // Sleepy's dream path adds a slow it never had; Frost's glacier deepens one.
+  if (mods.slow != null) st.slow = st.slow ? Math.min(0.8, st.slow * mods.slow) : mods.slow;
+  return st;
 }
 
 // The witch's curse gets nastier with every collar she earns.

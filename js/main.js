@@ -109,12 +109,37 @@ const ui = {
       ? info.ability
       : t('hud.stats', { damage: info.damage, range: info.range, rate: info.rate });
     const cheer = info.buffed ? `<br><b class="buffed">${escapeHtml(t('hud.buffed'))}</b>` : '';
-    $('tp-stats').innerHTML = `${escapeHtml(stats)}${cheer}<br><i>${escapeHtml(info.blurb)}</i>`;
+    const squad = info.synergies && info.synergies.length
+      ? `<br>${info.synergies.map((s) => `<b class="syn">✦ ${escapeHtml(s.name)}</b>`).join(' ')}`
+      : '';
+    const path = info.branchName ? `<br><b class="path">✧ ${escapeHtml(info.branchName)}</b>` : '';
+    $('tp-stats').innerHTML = `${escapeHtml(stats)}${path}${cheer}${squad}<br><i>${escapeHtml(info.blurb)}</i>`;
+    this.showBranches(info);
     const up = $('btn-upgrade');
     up.classList.toggle('maxed', info.maxed);
     up.classList.toggle('poor', !info.canAfford);
     $('tp-upcost').textContent = info.maxed ? '' : `🐟 ${info.upCost}`;
     $('tp-sell').textContent = `🐟 ${info.sellValue}`;
+  },
+  // At the last collar a cat is offered two permanent paths.
+  showBranches(info) {
+    const box = $('tp-branches');
+    const row = $('tp-branch-row');
+    const list = info.branches || [];
+    box.classList.toggle('hidden', list.length === 0);
+    row.innerHTML = '';
+    for (const b of list) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `branch-btn${b.afford ? '' : ' poor'}`;
+      btn.dataset.branch = b.id;
+      btn.innerHTML = `<span class="br-ic">${escapeHtml(b.icon)}</span>`
+        + `<span class="br-name">${escapeHtml(b.name)}</span>`
+        + `<span class="br-blurb">${escapeHtml(b.blurb)}</span>`
+        + `<span class="br-cost">🐟 ${b.cost}</span>`;
+      btn.addEventListener('click', () => game.chooseBranch(b.id));
+      row.appendChild(btn);
+    }
   },
   setPaused(on) {
     $('pause').classList.toggle('hidden', !on);

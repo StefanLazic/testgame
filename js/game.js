@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   TILE, COLS, ROWS, PATHS, SECOND_LANE_WAVE, THEME, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
-  TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME,
+  TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME, branchCost, BRANCHES,
   ENEMIES, hpScale, WAVES, waveBonus, BANANA_STUN, DRAGON,
 } from './config.js';
 import {
@@ -12,7 +12,10 @@ import {
 import { Effects } from './fx.js';
 import { settings } from './settings.js';
 import { useMap, currentMap } from './maps.js';
-import { previewStats, previewTile, auraMultipliers, bountyMultiplier, goldIncome, auraBonus } from './rules.js';
+import {
+  previewStats, previewTile, auraMultipliers, bountyMultiplier, goldIncome, auraBonus,
+  synergyMultipliers, branchesFor, branchStats,
+} from './rules.js';
 import { t } from './i18n.js';
 
 // Enemy display names live in i18n; ENEMIES keeps the English fallback name.
@@ -370,21 +373,50 @@ export class Game {
   // Ema's ribbon and Sofija's purse only change when a cat is built, upgraded
   // or sold, so the maths is done then and cached on every tower.
   _refreshSupports() {
+    // Pass 1: who is standing next to whom. Synergies depend only on kinds and
+    // positions, so they can be resolved before any aura maths.
+    const nodes = this.towers.map((tw) => ({ kind: tw.kind, x: tw.pos.x, z: tw.pos.z, tower: tw }));
+    for (const node of nodes) {
+      node.tower.syn = synergyMultipliers(node, nodes);
+    }
+
+    // Pass 2: the support cats, with their reach already widened by synergy.
     this.supports = this.towers
       .filter((tw) => TOWERS[tw.kind].support)
       .map((tw) => ({
-        kind: tw.kind, level: tw.level, tower: tw,
-        x: tw.pos.x, z: tw.pos.z, range: towerStats(tw.kind, tw.level).range,
+        kind: tw.kind, level: tw.level, branch: tw.branch, tower: tw,
+        x: tw.pos.x, z: tw.pos.z,
+        range: towerStats(tw.kind, tw.level, tw.branch).range * tw.syn.range,
       }));
+
+    // Pass 3: everyone's final multipliers.
     for (const tw of this.towers) {
       const self = this.supports.find((s) => s.tower === tw);
       const buff = auraMultipliers(self || { x: tw.pos.x, z: tw.pos.z }, this.supports);
       const was = tw.buff && tw.buff.buffed;
       tw.buff = buff;
+      tw.mult = {
+        damage: buff.damage * tw.syn.damage,
+        rate: buff.rate * tw.syn.rate,
+        range: tw.syn.range,
+      };
       if (buff.buffed && !was && this.phase !== 'demo') {
         this.effects.ring(tw.pos.clone().setY(0.1), { color: 0xff6fae, from: 0.3, to: 2.2, life: 0.45 });
       }
     }
+  }
+
+  // The stats a cat actually fights with: its collar, its chosen path, Ema's
+  // ribbon and whatever squad it stands in.
+  _stats(tw) {
+    const st = towerStats(tw.kind, tw.level, tw.branch);
+    const m = tw.mult || { damage: 1, rate: 1, range: 1 };
+    return {
+      ...st,
+      damage: st.damage * m.damage,
+      rate: st.rate * m.rate,
+      range: st.range * m.range,
+    };
   }
 
   // Everything that lives on the board, swept off it.
@@ -507,7 +539,7 @@ export class Game {
       this.ui.showTower(null);
       return;
     }
-    const st = towerStats(tower.kind, tower.level);
+    const st = this._stats(tower);
     this.selRing.visible = !TOWERS[tower.kind].global;
     this.selRing.position.set(tower.group.position.x, 0.1, tower.group.position.z);
     this.selRing.scale.setScalar(st.range);
@@ -516,7 +548,7 @@ export class Game {
 
   _towerInfo(tower) {
     const base = TOWERS[tower.kind];
-    const st = towerStats(tower.kind, tower.level);
+    const st = this._stats(tower);
     const maxed = tower.level >= maxLevel(tower.kind);
     let ability = null;
     if (base.ability === 'curse') {
@@ -528,14 +560,16 @@ export class Game {
     } else if (base.ability === 'bow') {
       ability = t('ability.bow', { stun: base.stun, cooldown: base.cooldown });
     } else if (base.ability === 'aura') {
-      const bonus = auraBonus('ema', tower.level);
+      const bonus = auraBonus('ema', tower.level, tower.branch);
       ability = t('ability.aura', {
         damage: Math.round(bonus.damage * 100), rate: Math.round(bonus.rate * 100),
         range: st.range.toFixed(1),
       });
     } else if (base.ability === 'gold') {
-      const income = goldIncome(tower.level);
-      const purse = Math.round((bountyMultiplier({ x: 0, z: 0 }, [{ kind: 'sofija', level: tower.level, x: 0, z: 0, range: 1 }]) - 1) * 100);
+      const income = goldIncome(tower.level, tower.branch);
+      const purse = Math.round((bountyMultiplier({ x: 0, z: 0 }, [{
+        kind: 'sofija', level: tower.level, branch: tower.branch, x: 0, z: 0, range: 1,
+      }]) - 1) * 100);
       ability = t('ability.gold', {
         coin: income.coin, interval: income.interval, bounty: purse, range: st.range.toFixed(1),
       });
@@ -549,7 +583,50 @@ export class Game {
       canAfford: !maxed && this.gold >= upgradeCost(tower.kind, tower.level),
       global: !!base.global,
       buffed: !!(tower.buff && tower.buff.buffed),
+      synergies: (tower.syn ? tower.syn.ids : []).map((id) => ({ id, name: t(`synergy.${id}.name`) })),
+      branch: tower.branch,
+      branchName: tower.branch ? t(`branch.${tower.kind}.${tower.branch}.name`) : null,
+      branches: tower.branch ? [] : branchesFor(tower.kind, tower.level).map((b) => ({
+        id: b.id, icon: b.icon, cost: b.cost,
+        name: t(`branch.${tower.kind}.${b.id}.name`),
+        blurb: t(`branch.${tower.kind}.${b.id}.blurb`),
+        afford: this.gold >= b.cost,
+        stats: branchStats(tower.kind, b.id),
+      })),
     };
+  }
+
+  // Walking a cat down one of its two hybrid paths. One-way, on purpose.
+  chooseBranch(id) {
+    const tw = this.selected;
+    if (!tw || tw.branch || tw.level < maxLevel(tw.kind)) return;
+    const mods = BRANCHES[tw.kind] && BRANCHES[tw.kind][id];
+    if (!mods) return;
+    const cost = branchCost(tw.kind);
+    if (this.gold < cost) { sfx.deny(); this.ui.toast(t('toast.poor')); return; }
+    this.gold -= cost;
+    tw.spent += cost;
+    tw.branch = id;
+    tw.pop = 0.6;
+
+    // A visible badge so a specialised cat reads at a glance: a glowing gem
+    // above its head in the colour of the path.
+    const gem = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.24),
+      new THREE.MeshLambertMaterial({ color: 0xfff0a0, emissive: 0x6b5200 })
+    );
+    gem.position.set(0, 1.95, 0);
+    tw.group.add(gem);
+    tw.group.userData.badge = gem;
+
+    this.effects.ring(tw.pos.clone().setY(0.1), { color: 0xfff0a0, from: 0.3, to: 4.2, life: 0.7 });
+    this.effects.burst(tw.pos.clone().setY(1.6), { count: 22, color: 0xfff0a0, speed: 6, size: 0.5 });
+    this.effects.kick(0.4);
+    sfx.upgrade();
+    this._refreshSupports();
+    this.ui.setGold(this.gold);
+    this.ui.toast(t('toast.branch', { name: t(`branch.${tw.kind}.${id}.name`) }));
+    this.selectTower(tw);
   }
 
   placeTower(kind, tile) {
@@ -569,7 +646,10 @@ export class Game {
       group: model.group, head: model.head, arm: model.arm, body: model.body,
       cool: 0, recoil: 0, pos: new THREE.Vector3(p.x, 0.9, p.z), pop: 0, disabledT: 0,
       abilityCool: TOWERS[kind].ability ? TOWERS[kind].cooldown : 0,
+      branch: null,
       buff: { damage: 1, rate: 1, buffed: false },
+      syn: { damage: 1, rate: 1, range: 1, ids: [] },
+      mult: { damage: 1, rate: 1, range: 1 },
       incomeT: TOWERS[kind].support === 'gold' ? goldIncome(1).interval : 0,
     };
     this.towers.push(tower);
@@ -833,7 +913,7 @@ export class Game {
   }
 
   _fire(tower, target) {
-    const st = towerStats(tower.kind, tower.level);
+    const st = this._stats(tower);
     const from = tower.pos.clone().setY(1.15);
     const mesh = makeBullet(st.bullet);
     mesh.position.copy(from);
@@ -1116,7 +1196,7 @@ export class Game {
   _updateTowers(dt) {
     const frenzy = this.frenzy > 0 ? 2 : 1;
     for (const t of this.towers) {
-      const st = towerStats(t.kind, t.level);
+      const st = this._stats(t);
       // Banana'd: the cat sits there seeing stars and does nothing at all.
       if (t.disabledT > 0) {
         t.disabledT -= dt;
@@ -1153,6 +1233,8 @@ export class Game {
       if (t.arm) t.arm.position.z = 0.28 - t.recoil * 0.18;
       const spin = t.group.userData.spin;
       if (spin) spin.rotation.y += dt * 14;
+      const badge = t.group.userData.badge;
+      if (badge) { badge.rotation.y += dt * 2.2; badge.position.y = 1.95 + Math.sin(this.time * 3) * 0.06; }
       const glow = t.group.userData.glow;
       if (glow) glow.scale.setScalar(0.2 + Math.sin(this.time * 4 + t.pos.z) * 0.03 + (this.frenzy > 0 ? 0.06 : 0));
     }
@@ -1187,7 +1269,7 @@ export class Game {
 
     // Sofija: a fish every few seconds, faster while the queen has the board
     // in a frenzy.
-    const income = goldIncome(tower.level);
+    const income = goldIncome(tower.level, tower.branch);
     tower.incomeT -= dt * frenzy;
     if (tower.incomeT > 0) return;
     tower.incomeT = income.interval;
