@@ -5,6 +5,7 @@ import { MAPS, currentMap } from './maps.js';
 import { TOWERS, TOWER_ORDER, WAVES } from './config.js';
 import { canPlaceTower } from './rules.js';
 import { t, toggleLang, onLangChange, applyStatic } from './i18n.js';
+import { VERSION } from './version.js';
 
 applyStatic();
 
@@ -292,6 +293,10 @@ function sfxTapFeedback() {
 
 buildMapPicker();
 
+// The build shown on the title screen, so bug reports can name a version.
+const refreshVersion = () => { $('version-text').textContent = t('title.version', { version: VERSION }); };
+refreshVersion();
+
 $('btn-lang').addEventListener('click', toggleLang);
 $('btn-play').addEventListener('click', startGame);
 $('btn-again').addEventListener('click', startGame);
@@ -311,7 +316,7 @@ $('btn-quit').addEventListener('click', () => {
   game.startDemo();
   show('title');
 });
-onLangChange(() => { ui.refreshSettings(); refreshMapPicker(); });
+onLangChange(() => { ui.refreshSettings(); refreshMapPicker(); refreshVersion(); });
 
 // Escape pauses on a desktop keyboard; switching apps or tabs pauses on a
 // phone, so nobody comes back to a lost run.

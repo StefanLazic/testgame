@@ -26,6 +26,7 @@ export const STRINGS = {
     'map.garden.blurb': 'Wide and sunny — shorter route, more room to build.',
     'title.help': 'How to play',
     'title.hint': 'Built for phones — tap a cat, tap the floor, watch the mice regret everything.',
+    'title.version': 'Version {version}',
 
     'help.heading': 'How to play',
     'help.place': '<b>Place cats:</b> tap a cat in the shop, then tap any free floor tile.',
@@ -347,6 +348,7 @@ export const STRINGS = {
     'map.garden.blurb': 'Široka i sunčana — kraća staza, više mesta za gradnju.',
     'title.help': 'Kako se igra',
     'title.hint': 'Pravljeno za telefone — dodirni mačku, dodirni pod i gledaj kako se miševi kaju.',
+    'title.version': 'Verzija {version}',
 
     'help.heading': 'Kako se igra',
     'help.place': '<b>Postavi mačke:</b> dodirni mačku u prodavnici, pa dodirni slobodno polje na podu.',

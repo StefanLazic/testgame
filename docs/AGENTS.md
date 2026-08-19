@@ -36,3 +36,15 @@ rule), update **both** files.
   roster changes.
 - Keep the docs consistent with the values in `js/config.js`; that file is the
   single source of truth for balance.
+
+## Bump the version on every pull request
+
+The game version lives in [`js/version.js`](../js/version.js) and is shown on
+the title screen. Every pull request — human or AI agent — **must** bump it:
+
+- patch (`1.0.0` → `1.0.1`) for fixes, docs, tests and small tweaks
+- minor (`1.0.1` → `1.1.0`) for new cats, enemies, maps or features
+- major (`1.1.0` → `2.0.0`) for a reworked game
+
+Keep the `version` field in `package.json` identical to `VERSION`;
+`tests/unit/version.test.js` fails if the two drift apart.
