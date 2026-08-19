@@ -9,7 +9,7 @@
 export const LANGS = ['sr', 'en'];
 const STORE_KEY = 'cd-lang';
 
-const STRINGS = {
+export const STRINGS = {
   en: {
     'lang.name': 'English',
     'lang.switch': 'Srpski',
@@ -362,7 +362,9 @@ export function t(key, params) {
 //   data-i18n       -> textContent
 //   data-i18n-html  -> innerHTML (only for our own strings, never user input)
 //   data-i18n-aria  -> aria-label
-export function applyStatic(root = document) {
+export function applyStatic(root = globalThis.document) {
+  // The tests import this module in plain node, where there is no DOM at all.
+  if (!root || typeof document === 'undefined') return;
   document.documentElement.lang = lang === 'sr' ? 'sr-Latn' : 'en';
   document.title = t('meta.title');
   const desc = document.querySelector('meta[name="description"]');

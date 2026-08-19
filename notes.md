@@ -293,3 +293,33 @@ as before.
   `1 + 0.17 × (wave − 1)` ramp for waves 1–10 and switches to a gentler
   `+0.09` per wave afterwards — the barnyard already brings its own bulk, and
   waves 1–10 stay bit-for-bit identical.
+
+## 2026-08-19 — a test suite, at last
+
+The game had no automated tests: every session ended with a hand-driven
+headless playtest that nobody could repeat later. That is now a committed,
+**zero-dependency** suite that runs on plain node and plain Chromium.
+
+- **`package.json`** exists only so the tests have somewhere to live —
+  `npm test` runs the unit tests, `npm run test:browser` runs the smoke test,
+  `npm run test:all` runs both. There are no dependencies, no build step, and
+  `index.html` still opens straight off the filesystem.
+- **Unit tests** (`tests/unit/*.test.js`, node's built-in test runner) import
+  `js/config.js` and `js/i18n.js` directly — both are pure and three.js-free.
+  They lock down the balance invariants (every wave spawns a real enemy, boss
+  waves have bosses, upgrade costs rise, the queen stays priced at 10× the
+  priciest cat) and, importantly, **translation parity**: every key must exist
+  in both languages with matching `{placeholders}`, and every cat, enemy and
+  wave must have a name. A missing Serbian string used to be invisible until a
+  player tripped over it.
+- **Browser smoke test** (`tests/browser/smoke.test.js`) serves the repository
+  from a tiny node static server and drives real headless Chromium through the
+  **Chrome DevTools Protocol** over node 22's built-in `WebSocket` — no
+  puppeteer, no playwright, nothing in `node_modules`. It emulates a 390×844
+  phone with touch enabled, taps the actual buttons with `Input.dispatchTouchEvent`,
+  and asserts: the title screen renders, WebGL initialised and built the board,
+  Play starts a run, a cat can be bought and placed, a wave spawns pests, the
+  cats kill something — and the console stayed clean the whole time.
+- Two tiny production tweaks were needed to make `js/i18n.js` importable in
+  node: `STRINGS` is exported (so parity can be asserted) and `applyStatic()`
+  returns early when there is no DOM.
