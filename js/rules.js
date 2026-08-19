@@ -128,6 +128,13 @@ export function bountyMultiplier(pos, supports = []) {
   return 1 + best;
 }
 
+// A chill only counts if it wears off. A slow with no duration would stick to
+// a pest forever, so treat it as no slow at all.
+export function slowFrom({ slow = 0, slowTime = 0 } = {}) {
+  if (!slow || slowTime <= 0) return null;
+  return { factor: Math.min(0.8, slow), time: slowTime };
+}
+
 // --------------------------------------------------------------- synergies
 // Cats that work well together. A pairing counts once no matter how many
 // partners are in reach, but different pairings stack.

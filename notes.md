@@ -602,3 +602,30 @@ were rescaled after a screenshot review — Father at 4.6× dwarfed the kitchen,
 the family now sits between the Rat King and Sophie in size. Stefo's basketball
 was shrunk to a 0.3 radius and its arc lowered so it reads as a shot, not an
 eclipse.
+
+## 2026-08-19 — balance pass: two broken paths, four fair prices
+
+A numeric audit of `js/config.js` (DPS per gold, HP per second per wave, armour
+retention, board coverage) turned up two outright bugs and four tuning problems.
+This entry tracks the fixes.
+
+### 1. Two hybrid paths did not do what they said
+
+`towerStats()` applied every branch modifier as a *multiplier*, and `0 × 2.2` is
+still `0`:
+
+* **❄️ Frost → 🌨️ Hailstorm** advertised `splash: 2.2` — but Frost has no base
+  splash, so the shards never shattered over a group. The path was silently just
+  "×1.5 damage, shorter chill".
+* **😴 Sleepy → 🌙 Dreamer** granted `slow: 0.45` through a special case, but its
+  `slowTime` multiplied Sleepy's non-existent duration down to `0`. The engine
+  only ever clears a slow when its timer expires (`if (e.slowT > 0)`), so Dreamer
+  applied a **permanent 45% slow to everything it touched** — accidentally the
+  strongest effect in the game.
+
+Both are fixed by giving branches an explicit `grants` block for stats a cat
+never had, keeping multipliers for stats it already has. `slowFrom()` in
+`js/rules.js` is the new single gate: a chill with no duration is not a chill,
+so the "forever slow" class of bug cannot come back. `tests/unit/branches.test.js`
+covers both bugs plus a sweep that fails any future path which multiplies a stat
+its cat does not own.

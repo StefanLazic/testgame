@@ -147,6 +147,11 @@ export const SYNERGIES = [
 // ------------------------------------------------ hybrid (branch) upgrades --
 // At the last collar a cat can specialise once, permanently, down one of two
 // paths. Every value is a multiplier on the level-3 stats.
+//
+// A multiplier can only scale something a cat already has: 0 × anything is
+// still 0. Paths that hand a cat a brand new trick therefore list it under
+// `grants` as an absolute value (Hailstorm's splash, Dreamer's slow) and under
+// `air` when the trick is simply "can now shoot upwards".
 export const BRANCHES = {
   archer: {
     sniper: { icon: '🎯', damage: 1.75, range: 1.5, rate: 0.6 },
@@ -158,14 +163,14 @@ export const BRANCHES = {
   },
   frost: {
     glacier: { icon: '🧊', slow: 1.45, slowTime: 1.6, damage: 1.1, rate: 0.85 },
-    hail: { icon: '🌨️', damage: 1.5, splash: 2.2, slowTime: 0.7 },
+    hail: { icon: '🌨️', damage: 1.5, slowTime: 0.7, grants: { splash: 2.2 } },
   },
   ninja: {
     assassin: { icon: '🗡️', crit: 2.2, damage: 1.35, rate: 0.85 },
-    shadow: { icon: '🌫️', rate: 1.45, range: 1.35 },
+    shadow: { icon: '🌫️', rate: 1.45, range: 1.35, air: true },
   },
   sleepy: {
-    dreamer: { icon: '🌙', splash: 1.6, slow: 0.45, slowTime: 2.4, damage: 0.9 },
+    dreamer: { icon: '🌙', splash: 1.6, damage: 0.9, grants: { slow: 0.45, slowTime: 2.4 } },
     boulder: { icon: '🪨', damage: 1.85, rate: 0.75, range: 1.12 },
   },
   ema: {
@@ -221,11 +226,20 @@ export function towerStats(kind, level, branch = null) {
   const mods = branch && BRANCHES[kind] && BRANCHES[kind][branch];
   if (!mods) return st;
   st.branch = branch;
+  // A path can hand a cat something it never had — that is an absolute value,
+  // and it lands before the multipliers so a path can grant *and* scale.
+  for (const [key, value] of Object.entries(mods.grants || {})) {
+    if (!st[key]) st[key] = value;
+  }
+  if (mods.air) st.air = true;
   for (const key of ['damage', 'range', 'rate', 'splash', 'slowTime', 'crit', 'cooldown']) {
     if (mods[key] != null) st[key] = (st[key] || 0) * mods[key];
   }
-  // Sleepy's dream path adds a slow it never had; Frost's glacier deepens one.
-  if (mods.slow != null) st.slow = st.slow ? Math.min(0.8, st.slow * mods.slow) : mods.slow;
+  // Frost's glacier path deepens a chill it already has.
+  if (mods.slow != null) st.slow = (st.slow || 0) * mods.slow;
+  // A slow with no duration would never wear off, so it is not a slow at all.
+  if (!st.slowTime) st.slow = 0;
+  if (st.slow) st.slow = Math.min(0.8, st.slow);
   if (st.bushido) {
     st.bushido = {
       ...st.bushido,
