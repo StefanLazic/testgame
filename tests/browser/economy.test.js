@@ -78,6 +78,34 @@ test('gold and lives', { concurrency: 1 }, async (t) => {
     assert.equal(res, Math.round(ENEMIES.ratking.bounty * bountyScale(wave)));
   });
 
+  await t.test('the life message survives the other toasts a boss kill fires', async () => {
+    // A boss kill announces the kill, the life and the guaranteed catnip drop
+    // in the same frame. A single-slot toast would show only the last one.
+    const res = await page.eval(`(() => {
+      const g = window.game;
+      g.lives = 3;
+      g.ui.clearToasts();
+      g._kill(g._spawn('ratking'));
+      return {
+        first: document.getElementById('toast').textContent,
+        queued: g.ui.toastQueue.length,
+      };
+    })()`);
+    assert.match(res.first, /Rat King|Pacovski/, 'the kill is announced first');
+    assert.ok(res.queued >= 2, `the life and catnip messages must queue, got ${res.queued}`);
+    const seen = await page.eval(`(() => new Promise((done) => {
+      const seen = [];
+      const el = document.getElementById('toast');
+      const tick = setInterval(() => {
+        const txt = el.textContent;
+        if (txt && seen[seen.length - 1] !== txt) seen.push(txt);
+      }, 60);
+      setTimeout(() => { clearInterval(tick); done(seen); }, 4200);
+    }))()`);
+    assert.ok(seen.some((x) => /🥛/.test(x)), `the life toast must appear, saw ${JSON.stringify(seen)}`);
+    assert.ok(seen.length >= 3, `each message gets its own moment, saw ${JSON.stringify(seen)}`);
+  });
+
   await t.test('the life chip and its toast fit a phone screen', async () => {
     const box = await page.eval(`(() => {
       const r = document.getElementById('lives-text').parentElement.getBoundingClientRect();

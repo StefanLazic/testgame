@@ -765,6 +765,24 @@ inverse of the red `body.hit` vignette — a mint ring blooms out of the milk bo
 itself, the upgrade chime plays, and a toast says so. Both new strings are in
 `js/i18n.js` in English and Serbian (`toast.lifeBack`).
 
+### A bug the reward flushed out
+
+The first playtest of the refill showed the milk chip tick up to 4 — and then a
+toast saying *"Catnip! Tap it!"*. The life message was gone.
+
+Toasts share a single DOM slot, and a boss kill fires up to four in the same
+frame: the kill, the life, the guaranteed catnip drop, and (on wave 40) Stefo
+checking in off the bench. Whichever ran last won, so the other three were
+never seen by anyone. This was pre-existing — boss kills have always been
+silently eating their own "defeated!" message — but the new reward made it
+obvious, and a reward the player cannot see is not a reward.
+
+`ui.toast()` now queues: the first message shows immediately, and each
+subsequent one gets its own 1.5 s moment. Nothing else had to change, because
+every caller already just handed it a string. `ui.clearToasts()` exists so the
+browser tests can start from an empty slot rather than racing the "Build your
+defence!" toast from the start of the round.
+
 ### Where the rules live
 
 The two new pure helpers went into `js/rules.js` next to the rest of the plain
@@ -783,7 +801,7 @@ and — as a regression guard — that a full 50-wave run now earns materially l
 than it used to. `tests/browser/economy.test.js` (8 tests) drives the same rules
 through a real browser: spawn a boss, kill it, watch the HUD chip change.
 
-Full suite: **114 unit tests, 89 browser tests, green.**
+Full suite: **114 unit tests, 90 browser tests, green.**
 
 ### Mobile check
 

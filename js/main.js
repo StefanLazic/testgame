@@ -167,12 +167,33 @@ const ui = {
     $('btn-sound').classList.toggle('off', !settings.get('sound'));
     $('btn-shake').classList.toggle('off', !settings.get('shake'));
   },
+  // Toasts share one slot, and a single dramatic moment can fire several at
+  // once — a boss kill announces the kill, the life it hands back and the
+  // catnip it drops in the same frame. Queue them so none is swallowed.
+  toastQueue: [],
+  toastTimer: null,
   toast(text) {
+    if (!text) return;
+    if (this.toastTimer) { this.toastQueue.push(text); return; }
+    this._showToast(text);
+  },
+  clearToasts() {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastTimer = null;
+    this.toastQueue.length = 0;
+    $('toast').classList.remove('show');
+  },
+  _showToast(text) {
     const el = $('toast');
     el.textContent = text;
     el.classList.remove('show');
     void el.offsetWidth;
     el.classList.add('show');
+    this.toastTimer = setTimeout(() => {
+      this.toastTimer = null;
+      const next = this.toastQueue.shift();
+      if (next) this._showToast(next);
+    }, 1500);
   },
   banner(big, sub) {
     const el = $('wave-banner');
