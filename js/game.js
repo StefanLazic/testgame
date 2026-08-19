@@ -1697,7 +1697,13 @@ export class Game {
       mesh.position.copy(from);
       this.scene.add(mesh);
       const to = tw.pos.clone().setY(1.15);
-      this.hazards.push({ mesh, from, to, t: 0, dur: Math.max(0.4, from.distanceTo(to) / 9), tower: tw });
+      // Grandma Vera doesn't throw bananas, she throws balls of wool.
+      const knit = !!source.def.knits;
+      if (knit) mesh.traverse((o) => { if (o.isMesh && o.material.color) o.material.color.setHex(0xff8ad8); });
+      this.hazards.push({
+        mesh, from, to, t: 0, knit,
+        dur: Math.max(0.4, from.distanceTo(to) / 9), tower: tw,
+      });
     }
     sfx.banana();
   }
@@ -1731,7 +1737,10 @@ export class Game {
       this.effects.burst(h.to.clone(), { count: 12, color: 0xffe066, speed: 4, size: 0.4 });
       this.effects.ring(h.tower.group.position, { color: 0xffe066, from: 0.3, to: 2.6, life: 0.4 });
       sfx.bonk();
-      this.ui.toast(t('toast.banana', { name: t(`tower.${h.tower.kind}.name`), sec: BANANA_STUN }));
+      const catName = t(`tower.${h.tower.kind}.name`);
+      this.ui.toast(h.knit
+        ? t('toast.grannyKnit', { name: catName })
+        : t('toast.banana', { name: catName, sec: BANANA_STUN }));
     }
   }
 

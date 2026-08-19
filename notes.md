@@ -590,3 +590,8 @@ pests, and:
 Tests: `tests/unit/family.test.js`, `tests/unit/simba.test.js` and a live
 browser run in `tests/browser/family.test.js` (limit, katana, clones, handstand,
 star jump, teleports, baskets, the revive). 110 unit + 81 browser checks green.
+
+Docs updated in the same change (`docs/cats.md`, `docs/enemies.md`, `README.md`,
+help screen, meta description and the victory line — the game now ends with
+Father, not Emilija). Grandma Vera throws pink balls of wool instead of bananas.
+Full suite: 95 unit + 81 browser checks green.

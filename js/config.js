@@ -338,7 +338,7 @@ export const ENEMIES = {
   },
   father: {
     name: 'Father', hp: 260000, speed: 1.1, bounty: 12000, scale: 4.6, flying: false,
-    armor: 30, leak: 9, boss: 'main', father: true, gymnast: false,
+    armor: 30, leak: 9, boss: 'main', father: true,
   },
 };
 

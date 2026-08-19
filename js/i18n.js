@@ -15,7 +15,7 @@ export const STRINGS = {
     'lang.switch': 'Srpski',
 
     'meta.title': 'Mimi-chan Defense — Cat Tower Defense',
-    'meta.description': 'A 3D mobile tower defense game: every cat defends the milk of their queen, Mimi-chan. Place nine cats — archer, wizard, frost, ninja, sleepy, Ema, Sofija, witch and the queen herself — to stop thirty waves of mice, dogs, birds, pigs, turtles, horses, chickens, monkeys, Sophie the dragon and Emilija the butterfly.',
+    'meta.description': 'A 3D mobile tower defense game: every cat defends the milk of their queen, Mimi-chan. Place ten cats — archer, wizard, frost, ninja, sleepy, Ema, Sofija, witch, Simba-kun the samurai and the queen herself — to stop fifty waves of mice, dogs, birds, pigs, turtles, horses, chickens, monkeys, Sophie the dragon, Emilija the butterfly and the whole family: Grandma Vera, Simona, Stefo and Father.',
 
     'title.tagline': 'Nine cats. Thirty waves. Every cat defends the milk of their queen.',
     'title.play': 'Play',
@@ -79,7 +79,7 @@ export const STRINGS = {
     'error.noscript': 'This game needs JavaScript and WebGL.',
 
     'over.wonTitle': '👑 Kitchen defended!',
-    'over.wonSub': 'Emilija has folded her wings. The milk is safe and Mimi-chan is pleased.',
+    'over.wonSub': 'Father is down. The whole family has been shown the door, the milk is safe, and Mimi-chan is pleased.',
     'over.lostTitle': 'The milk is gone',
     'over.wavesHeld': 'waves held',
     'over.pestsStopped': 'pests stopped',
@@ -336,7 +336,7 @@ export const STRINGS = {
     'lang.switch': 'English',
 
     'meta.title': 'Mimi-čan odbrana — Mačja odbrana kule',
-    'meta.description': '3D mobilna igra odbrane kule: sve mačke brane mleko svoje kraljice Mimi-čan. Postavljaj devet mačaka — strelca, čarobnjaka, ledenu, nindžu, pospanu, Emu, Sofiju, vešticu i samu kraljicu — da zaustaviš trideset talasa miševa, pasa, ptica, svinja, kornjača, konja, kokošaka, majmuna, zmajicu Sofi i leptiricu Emiliju.',
+    'meta.description': '3D mobilna igra odbrane kule: sve mačke brane mleko svoje kraljice Mimi-čan. Postavljaj deset mačaka — strelca, čarobnjaka, ledenu, nindžu, pospanu, Emu, Sofiju, vešticu, samuraja Simba-kuna i samu kraljicu — da zaustaviš pedeset talasa miševa, pasa, ptica, svinja, kornjača, konja, kokošaka, majmuna, zmajicu Sofi, leptiricu Emiliju i celu porodicu: baku Veru, Simonu, Stefa i Tatu.',
 
     'title.tagline': 'Devet mačaka. Trideset talasa. Sve mačke brane mleko svoje kraljice.',
     'title.play': 'Igraj',
@@ -400,7 +400,7 @@ export const STRINGS = {
     'error.noscript': 'Ovoj igri trebaju JavaScript i WebGL.',
 
     'over.wonTitle': '👑 Kuhinja je odbranjena!',
-    'over.wonSub': 'Emilija je sklopila krila. Mleko je sigurno, a Mimi-čan je zadovoljna.',
+    'over.wonSub': 'Tata je pao. Cela porodica je ispraćena, mleko je sigurno, a Mimi-čan je zadovoljna.',
     'over.lostTitle': 'Mleka više nema',
     'over.wavesHeld': 'odbranjenih talasa',
     'over.pestsStopped': 'zaustavljenih štetočina',
