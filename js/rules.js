@@ -7,6 +7,22 @@ import {
   TOWERS, towerStats, SUPPORT, SYNERGIES, SYNERGY_RANGE, BRANCHES, branchCost, maxLevel,
 } from './config.js';
 
+// ------------------------------------------------------------ tower limits
+// Some cats are one of a kind. There is exactly one Mimi-chan in the world, so
+// there is exactly one of her on the table.
+export function towerLimit(kind) {
+  const def = TOWERS[kind];
+  return def && def.limit ? def.limit : Infinity;
+}
+
+export function towerCount(kind, towers = []) {
+  return towers.filter((tw) => tw.kind === kind).length;
+}
+
+export function canPlaceTower(kind, towers = []) {
+  return towerCount(kind, towers) < towerLimit(kind);
+}
+
 // What the shop shows before you spend a single fish.
 export function previewStats(kind, level = 1) {
   const base = TOWERS[kind];
@@ -241,4 +257,46 @@ export function nextTrick(tricks, last, rand = Math.random) {
   const pool = tricks.filter((x) => x !== last);
   const from = pool.length ? pool : tricks;
   return from[Math.floor(rand() * from.length)];
+}
+
+// ------------------------------------------------------- the family (31-50)
+// Simona, her brother Stefo and their father all fight by plain maths, kept
+// here so the engine only has to do the bookkeeping.
+
+// A copy of Simona starts life with the same *share* of health she has: hurt
+// her to 90% and the clone shows up at 90% too.
+export function cloneStats({ hp, maxHp }, fraction = 1) {
+  const share = maxHp > 0 ? hp / maxHp : 0;
+  const cloneMax = maxHp * fraction;
+  return { hp: cloneMax * share, maxHp: cloneMax };
+}
+
+// Standing on her hands: `resist` of the blow simply does not land.
+export function guardedDamage(amount, resist = 0) {
+  return amount * (1 - Math.min(Math.max(resist, 0), 1));
+}
+
+// The star jump: a cartwheel that throws her `distance` further down the lane,
+// but never past the milk bowl.
+export function starLeap(progress, distance, routeLength) {
+  return Math.min(progress + distance, routeLength);
+}
+
+// Stefo blinks somewhere else — anywhere but where he is standing.
+export function nextTeleportSpot(spots, current, rand = Math.random) {
+  if (!spots.length) return null;
+  const pool = spots.filter((s) => s !== current);
+  const from = pool.length ? pool : spots;
+  return from[Math.floor(rand() * from.length)];
+}
+
+// Father flattens a share of the army. Same shape as Emilija's nap, but these
+// cats do not wake up.
+export function destroyPicks(count, fraction, rand = Math.random) {
+  return sleepPicks(count, fraction, rand);
+}
+
+// "I AM THE BOSS": when he gets back up he takes 50% more cats with him.
+export function reviveFraction(base, extra = 0.5) {
+  return Math.min(1, base * (1 + extra));
 }
