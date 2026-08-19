@@ -1,6 +1,6 @@
 {
   "name": "mimi-chan-defense",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "3D browser tower defense. Static files only — this manifest exists purely so the tests can be run with plain node.",
   "type": "module",
