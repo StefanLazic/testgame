@@ -63,3 +63,18 @@ test('Shadow ninjas learn to hit the sky, assassins do not', () => {
   assert.equal(towerStats('ninja', 3, 'shadow').air, true);
   assert.equal(towerStats('ninja', 3, 'assassin').air, false);
 });
+
+test('a Sniper shoots straight through armour, a Ranger does not', () => {
+  assert.equal(towerStats('archer', 3).pierce, 0, 'a plain archer respects armour');
+  assert.equal(towerStats('archer', 3, 'sniper').pierce, 1, 'a sniper aims for the gaps');
+  assert.equal(towerStats('archer', 3, 'ranger').pierce, 0);
+});
+
+test('pierce never leaves the 0-1 band', () => {
+  for (const [kind, paths] of Object.entries(BRANCHES)) {
+    for (const id of Object.keys(paths)) {
+      const p = towerStats(kind, 3, id).pierce;
+      assert.ok(p >= 0 && p <= 1, `${kind}/${id} pierces ${p}`);
+    }
+  }
+});

@@ -52,3 +52,19 @@ test('he has squadmates to stand next to', () => {
     assert.ok(TOWERS[other], `${other} must be a real cat`);
   }
 });
+
+test('the sensei\'s moonlight reaches the sky, the ronin\'s katana does not', () => {
+  const top = maxLevel('simba');
+  assert.equal(towerStats('simba', top).air, false, 'plain Simba-kun is ground only');
+  assert.equal(towerStats('simba', top, 'ronin').air, false);
+  assert.equal(towerStats('simba', top, 'sensei').air, true);
+});
+
+test('the sensei pays for that reach in damage', () => {
+  const top = maxLevel('simba');
+  const sensei = towerStats('simba', top, 'sensei');
+  const ronin = towerStats('simba', top, 'ronin');
+  assert.ok(sensei.damage < ronin.damage, 'the ronin still hits hardest');
+  assert.ok(sensei.damage < towerStats('simba', top).damage, 'softer than an unspecialised swing');
+  assert.ok(sensei.splash > ronin.splash, 'but he cleaves much wider');
+});

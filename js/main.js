@@ -124,11 +124,12 @@ const ui = {
       ? info.ability
       : t('hud.stats', { damage: info.damage, range: info.range, rate: info.rate });
     const cheer = info.buffed ? `<br><b class="buffed">${escapeHtml(t('hud.buffed'))}</b>` : '';
+    const pierce = info.pierce ? `<br><b class="path">${escapeHtml(t('hud.pierce'))}</b>` : '';
     const squad = info.synergies && info.synergies.length
       ? `<br>${info.synergies.map((s) => `<b class="syn">✦ ${escapeHtml(s.name)}</b>`).join(' ')}`
       : '';
     const path = info.branchName ? `<br><b class="path">✧ ${escapeHtml(info.branchName)}</b>` : '';
-    $('tp-stats').innerHTML = `${escapeHtml(stats)}${path}${cheer}${squad}<br><i>${escapeHtml(info.blurb)}</i>`;
+    $('tp-stats').innerHTML = `${escapeHtml(stats)}${path}${pierce}${cheer}${squad}<br><i>${escapeHtml(info.blurb)}</i>`;
     this.showBranches(info);
     const up = $('btn-upgrade');
     up.classList.toggle('maxed', info.maxed);
