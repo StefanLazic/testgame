@@ -629,3 +629,35 @@ never had, keeping multipliers for stats it already has. `slowFrom()` in
 so the "forever slow" class of bug cannot come back. `tests/unit/branches.test.js`
 covers both bugs plus a sweep that fails any future path which multiplies a stat
 its cat does not own.
+
+### 2. Fair prices (and range that finally means something)
+
+Every damage cat was scored with the same yardstick — *value per fish* — where
+value is `DPS × splash × air × utility × uptime`, and `uptime` comes from how
+much lane a cat at a good tile actually covers at its range (measured against
+the real waypoints in `config.js`). The spread between the best and worst deal
+was **2.04×**: Ninja was the bargain of the game, Frost was nearly twice the
+price of anything else per point of value.
+
+| Cat | before | after |
+| --- | --- | --- |
+| 🏹 Archer | 🐟 70, 13 dmg, range 6.4 | 🐟 70, **14** dmg, range **5.6** |
+| 🔮 Wizard | 🐟 120, 24 dmg, range 6.0 | 🐟 **115**, **27** dmg, range **5.2** |
+| ❄️ Frost | 🐟 95, 9 dmg, range 5.4 | 🐟 **85**, **13** dmg, range **4.8** |
+| 🥷 Ninja | 🐟 150, 3.6/s, 22% crit, range 4.4 | 🐟 **160**, **3.3**/s, **16%** crit, range **4.2** |
+| 😴 Sleepy | 🐟 210, 58 dmg, range 7.2 | 🐟 **195**, **62** dmg, range **6.4** |
+| 🗡️ Simba-kun | 🐟 260, 34 dmg, range 4.6 | 🐟 **250**, **33** dmg, range **4.2** |
+
+Spread is now **1.26×** — every cat is a real choice instead of a trap or an
+auto-buy — at about 95% of the old total power, which the wave curve had plenty
+of slack for.
+
+### 4. Range as a trade-off
+
+Every range was cut 10–15% (support cats and the Witch too). Before, 97 of the
+100 buildable tiles already touched a lane at Archer range, so "where" barely
+mattered and the ×1.5-range paths bought almost nothing. Now the good tiles are
+genuinely good: a well-placed Archer covers ~2× the lane of a lazy one, corner
+tiles are real mistakes, and 🎯 Sniper, 🌫️ Shadow, 📣 Anthem and 💀 Doomsayer
+have something to sell. The range ladder also spreads the cats out: Ninja and
+Simba are 4.2 brawlers, Sleepy is the 6.4 artillery piece.
