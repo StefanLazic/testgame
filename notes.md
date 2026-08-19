@@ -661,3 +661,31 @@ genuinely good: a well-placed Archer covers ~2× the lane of a lazy one, corner
 tiles are real mistakes, and 🎯 Sniper, 🌫️ Shadow, 📣 Anthem and 💀 Doomsayer
 have something to sell. The range ladder also spreads the cats out: Ninja and
 Simba are 4.2 brawlers, Sleepy is the 6.4 artillery piece.
+
+### 6. Anti-air is now a standing tax, not a spike
+
+Anti-air used to be all-or-nothing. Fourteen waves had **no flyers at all**, so
+an Archer or Frost bought for the birds sat idle for whole stretches; then wave
+27 arrived 60% air and punished anyone who had cashed out of it. Two changes:
+
+**The air roster is now a ladder.** Birds (46 HP) were the only mid-game flyer
+worth spawning, and carrying a serious share of wave-40 health with birds would
+have meant *hundreds* of them. So the 🐖 Flying Pig was promoted from a leftover
+novelty into the middle rung:
+
+| | before | after |
+| --- | --- | --- |
+| 🐖 Flying Pig | 110 HP, speed 2.4, 🐟 26, no armour | **320** HP, speed **2.2**, 🐟 **48**, **3 armour** |
+
+The ladder now reads 🐦 bird (waves 4+) → 🐖 pig (11+) → 🦋 flutterling (27+),
+so every era has a flyer that is actually worth shooting.
+
+**Every wave from 4 on carries 15–40% of its health in the air.** About 35 wave
+groups were re-tuned to land inside that band: flyers were added to the fourteen
+waves that had none, and the sky-themed waves (11, 18, 24, 27, 29) were pulled
+back from being walls. Waves 1–3 stay deliberately ground-only so that the first
+bird on wave 4 is still a surprise. `tests/unit/waves.test.js` now enforces the
+band, so a future wave edit cannot quietly re-open the gap.
+
+The 🥷 Ninja's **Shadow Step** path also grants air targeting (see §1), which
+gives a second, cheaper answer to the sky than "buy an Archer".

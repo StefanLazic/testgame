@@ -19,7 +19,7 @@ balance data lives in [`js/config.js`](../js/config.js) (`ENEMIES`, `WAVES`,
 | 🐶 Dog | 120 | 2.1 | 20 | 4 | 2 | no |
 | 🐦 Bird | 46 | 4.2 | 14 | — | 1 | **yes** |
 | 🌟 Golden Mouse | 40 | 6.4 | 90 | — | 0 | no |
-| 🐖 Flying Pig | 110 | 2.4 | 26 | — | 1 | **yes** |
+| 🐖 Flying Pig | 320 | 2.2 | 48 | 3 | 1 | **yes** |
 | 🐢 Turtle | 460 | 1.15 | 34 | 16 | 2 | no |
 | 🐎 Horse | 150 | 5.6 | 30 | 5 | 1 | no |
 | 🐔 Chicken | 80 | 5.2 | 12 | — | 1 | no |
@@ -62,9 +62,11 @@ hit still deals at least 25% of its raw damage). Costs **2 lives** if it reaches
 the milk bowl.
 
 ### 🐦 Bird
-The only flying enemy. It ignores the walking path entirely and flies straight
-over your maze, so only cats with air targeting (Archer, Wizard, Frost) can
-touch it.
+The first flying enemy, and the cheap one. It ignores the walking path entirely
+and flies straight over your maze, so only cats with air targeting — Archer,
+Wizard, Frost, or a Ninja on the **Shadow Step** path — can touch it. It arrives
+on wave 4 and every wave after that carries *some* air, so an anti-air cat is
+never a wasted purchase.
 
 ### 🌟 Golden Mouse
 A bonus enemy: from wave 2 onwards there is a 75% chance one sneaks in at a
@@ -84,8 +86,10 @@ Always drops catnip when killed.
 
 ### 🐖 Flying Pig
 Physics is not this pig's problem. It flies straight over the maze like a bird,
-but it is far slower (2.4) and far tougher (110 HP), so air-capable cats have to
-grind it down while everything else watches.
+but it is far slower (2.2) and *far* tougher — 320 HP and 3 armour. The pig is
+the middle rung of the air ladder (🐦 bird → 🐖 pig → 🦋 flutterling): birds
+stop being scary long before the barnyard opens, so from wave 11 on the pig is
+what actually tests whether you bought anti-air.
 
 ### 🐢 Turtle
 A walking wall: 460 HP and **16 armour**, the highest in the game, so small fast
@@ -275,56 +279,56 @@ in the bank, rebuild after the crash, and rebuild again after the revive.
 
 | # | Name | Contents |
 | --- | --- | --- |
-| 1 | Squeaky Beginnings | mice |
-| 2 | Snakes in the Pantry | mice, snakes |
-| 3 | Bad Dog | mice, dogs |
-| 4 | First Flight | birds, mice, snakes |
-| 5 | MINI BOSS: Sir Barksalot | Sir Barksalot, mice, snakes |
+| 1 | Squeaky Beginnings | **mice** |
+| 2 | Snakes in the Pantry | mice, **snakes** |
+| 3 | Bad Dog | mice, **dogs** |
+| 4 | First Flight | **birds**, mice, snakes |
+| 5 | MINI BOSS: Sir Barksalot | **Sir Barksalot**, mice, snakes, birds |
 | 6 | The Kennel Opens | dogs, snakes, birds |
 | 7 | Feathers and Fangs | birds, snakes, dogs |
 | 8 | Stampede | mice, dogs, birds |
 | 9 | Everything At Once | dogs, birds, snakes, mice |
-| 10 | BOSS: The Rat King | The Rat King, dogs, birds, snakes |
-| 11 | The Second Door | chickens, flying pigs (new lane), mice, snakes |
-| 12 | Shell Wall | turtles (both lanes), **shield beetles**, birds, chickens |
-| 13 | Hoofbeats | horses (both lanes), **moles**, dogs, flying pigs |
-| 14 | Monkey Business | monkeys (both lanes), **nurses**, chickens, turtles |
-| 15 | MINI BOSS: Baron Bananas | Baron Bananas, **nurses**, monkeys, chickens, horses |
-| 16 | Barnyard Riot | chickens, horses, **moles**, flying pigs, monkeys, **nurses** |
-| 17 | Armoured Parade | turtles, **shield beetles**, dogs, horses, **nurses** |
-| 18 | Sky Bacon | flying pigs, birds, **moles**, monkeys, chickens, **shield beetles** |
-| 19 | Everything, Twice | horses, turtles, pigs, monkeys, chickens, dogs, **all three pests** |
-| 20 | FINAL BOSS: Sophie the Dragon | Sophie, chickens, horses, pigs, turtles, monkeys, **all three pests** |
-| 21 | After the Ashes | mice, snakes, dogs, birds, chickens |
-| 22 | Iron Hooves | horses, turtles, **shield beetles**, **nurses** |
-| 23 | The Nursery | **nurses**, **shield beetles**, **moles**, monkeys, chickens |
-| 24 | Sky Full of Trouble | birds, flying pigs, monkeys, horses |
-| 25 | MINI BOSSES: The Terrible Two | Sir Barksalot **and** Baron Bananas, dogs, monkeys, nurses, horses, chickens |
-| 26 | Shell Shock | turtles, **shield beetles**, **moles**, dogs, **nurses** |
-| 27 | First Flutter | **flutterlings**, birds, pigs, horses, monkeys, beetles |
-| 28 | Barnyard Apocalypse | the whole barnyard from both lanes |
-| 29 | The Calm Before Wings | **flutterlings**, snakes, dogs, birds, horses, turtles, nurses |
-| 30 | FINAL BOSS: Emilija the Butterfly | Emilija, flutterlings, birds, horses, turtles, beetles, nurses, monkeys, moles |
-| 31 | Training Day | **gym rats**, dogs, horses, chickens |
-| 32 | The Gym Opens | gym rats (both lanes), turtles, beetles |
-| 33 | Wool and Fangs | gym rats, monkeys, nurses, snakes, birds |
-| 34 | Chalk Dust | horses, pigs, gym rats, moles, flutterlings |
-| 35 | MINI BOSS: Grandma Vera | **Grandma Vera**, gym rats, nurses, turtles, monkeys |
-| 36 | Knitting Circle | nurses, beetles, gym rats, monkeys, moles |
-| 37 | Sprint Drills | horses, snakes, gym rats, chickens |
-| 38 | Feathers in the Rafters | birds, pigs, flutterlings, gym rats |
-| 39 | The Bench Press | turtles, beetles, gym rats, dogs, nurses |
-| 40 | FINAL BOSS: Simona the Gymnast | **Simona** (➜ **Stefo**), gym rats, horses, beetles, nurses, monkeys |
-| 41 | Overtime | gym rats, horses, monkeys, moles, birds |
-| 42 | Full-Court Press | turtles, beetles, gym rats, nurses, pigs |
-| 43 | Family Reunion | gym rats, dogs, chickens, flutterlings, monkeys |
-| 44 | The Long Bench | horses, snakes, gym rats, moles, beetles |
-| 45 | MINI BOSSES: The Family Gathers | **Grandma Vera + Baron Bananas + Sir Barksalot**, gym rats, nurses, monkeys, turtles |
-| 46 | House Rules | pigs, birds, flutterlings, gym rats, horses |
-| 47 | Whistle Drill | gym rats, beetles, moles, nurses, chickens |
-| 48 | The Last Barnyard | the whole barnyard from both lanes |
-| 49 | Silence Before Father | gym rats, turtles, beetles, nurses, monkeys, horses |
-| 50 | FINAL BOSS: Father | **Father**, gym rats, turtles, beetles, nurses, monkeys, horses, flutterlings |
+| 10 | FINAL BOSS: The Rat King | **The Rat King**, dogs, birds, snakes |
+| 11 | The Second Door | **chickens**, **flying pigs**, mice, snakes |
+| 12 | Shell Wall | **turtles**, **shield beetles**, birds, chickens, flying pigs |
+| 13 | Hoofbeats | **horses**, **moles**, dogs, flying pigs |
+| 14 | Monkey Business | **monkeys**, **nurses**, chickens, turtles, flying pigs |
+| 15 | MINI BOSS: Baron Bananas | **Baron Bananas**, nurses, monkeys, chickens, horses, flying pigs |
+| 16 | Barnyard Riot | chickens, horses, moles, flying pigs, monkeys, nurses |
+| 17 | Armoured Parade | turtles, shield beetles, dogs, horses, nurses, flying pigs |
+| 18 | Sky Bacon | flying pigs, birds, moles, monkeys, chickens, shield beetles |
+| 19 | Everything, Twice | horses, turtles, flying pigs, monkeys, chickens, dogs, nurses, shield beetles, moles |
+| 20 | FINAL BOSS: Sophie the Dragon | **Sophie**, chickens, horses, flying pigs, turtles, monkeys, nurses, shield beetles, moles |
+| 21 | After the Ashes | mice, snakes, dogs, birds, chickens, flying pigs |
+| 22 | Iron Hooves | horses, turtles, shield beetles, nurses, flying pigs |
+| 23 | The Nursery | nurses, shield beetles, moles, monkeys, chickens, flying pigs |
+| 24 | Sky Full of Trouble | birds, flying pigs, monkeys, horses, turtles |
+| 25 | MINI BOSSES: The Terrible Two | **Sir Barksalot**, **Baron Bananas**, dogs, monkeys, nurses, horses, chickens, flying pigs |
+| 26 | Shell Shock | turtles, shield beetles, moles, dogs, nurses, flying pigs |
+| 27 | First Flutter | **flutterlings**, birds, flying pigs, horses, monkeys, shield beetles |
+| 28 | Barnyard Apocalypse | chickens, horses, flying pigs, monkeys, turtles, moles, nurses, shield beetles |
+| 29 | The Calm Before Wings | flutterlings, snakes, dogs, birds, horses, turtles, nurses |
+| 30 | FINAL BOSS: Emilija the Butterfly | **Emilija**, flutterlings, birds, horses, turtles, shield beetles, nurses, monkeys, moles |
+| 31 | Training Day | **gym rats**, horses, birds, shield beetles, flying pigs |
+| 32 | The Gym Opens | gym rats, turtles, monkeys, nurses, moles, flying pigs |
+| 33 | Wool and Fangs | dogs, gym rats, flutterlings, flying pigs, chickens |
+| 34 | Chalk Dust | horses, gym rats, shield beetles, nurses, birds, turtles, flying pigs |
+| 35 | MINI BOSS: Grandma Vera | **Grandma Vera**, gym rats, nurses, dogs, monkeys, chickens, flying pigs |
+| 36 | Knitting Circle | nurses, gym rats, shield beetles, moles, turtles, flutterlings |
+| 37 | Sprint Drills | horses, snakes, gym rats, chickens, monkeys, flying pigs, flutterlings |
+| 38 | Feathers in the Rafters | birds, flying pigs, flutterlings, gym rats, nurses, shield beetles |
+| 39 | The Bench Press | turtles, shield beetles, gym rats, dogs, horses, nurses, flying pigs, flutterlings |
+| 40 | FINAL BOSS: Simona the Gymnast | **Simona the Gymnast**, gym rats, horses, flutterlings, nurses, shield beetles, turtles, birds, monkeys |
+| 41 | Overtime | gym rats, horses, dogs, birds, chickens, nurses, flying pigs |
+| 42 | Full-Court Press | shield beetles, turtles, gym rats, moles, monkeys, flying pigs, flutterlings |
+| 43 | Family Reunion | flutterlings, gym rats, horses, nurses, dogs, birds |
+| 44 | The Long Bench | turtles, shield beetles, gym rats, monkeys, moles, nurses, flying pigs, flutterlings |
+| 45 | MINI BOSSES: The Family Gathers | **Grandma Vera**, **Sir Barksalot**, **Baron Bananas**, gym rats, horses, nurses, shield beetles, chickens, flying pigs, flutterlings |
+| 46 | House Rules | gym rats, dogs, flutterlings, flying pigs, turtles, nurses |
+| 47 | Whistle Drill | horses, snakes, gym rats, chickens, birds, monkeys, flying pigs |
+| 48 | The Last Barnyard | chickens, flying pigs, monkeys, turtles, moles, shield beetles, gym rats, flutterlings |
+| 49 | Silence Before Father | flutterlings, gym rats, horses, dogs, nurses, shield beetles, turtles, birds |
+| 50 | FINAL BOSS: Father | **Father**, gym rats, horses, shield beetles, nurses, turtles, flutterlings, monkeys, chickens, dogs |
 
 Waves 1–20 are unchanged; every wave from 11 on uses both lanes. Wave 25 sends
 two mini-bosses at once and wave 45 sends **three**. Wave 40 is the only wave
