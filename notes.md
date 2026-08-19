@@ -489,3 +489,9 @@ absorb + overkill + regen delay, burrow cycle timing, waves 1–10 frozen) and
 `tests/browser/pests.test.js` (spawns each pest live, shoots a beetle through
 its shield, watches it regrow, watches a nurse heal a dying mouse, and watches
 a mole dive and resurface).
+
+## 2026-08-19 — Final pass
+
+README now covers the test harness, the two maps, the nine cats (including the
+support pair), squads and paths, and hints at the three new pests without
+spoiling them. Full suite green: 70 unit tests and 56 browser tests.
