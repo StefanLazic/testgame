@@ -12,3 +12,9 @@ including any change to `TOWERS`, `ENEMIES`, `WAVES` or the related helpers in
 `docs/cats.md` and/or `docs/enemies.md` in the same change.
 
 See [`docs/AGENTS.md`](../docs/AGENTS.md) for the full checklist.
+
+## Required: bump the version on every pull request
+
+`js/version.js` holds `VERSION`, which the title screen displays and
+`package.json` mirrors. Bump it (semver) in **every** pull request and keep
+`package.json` in sync — `tests/unit/version.test.js` checks this.

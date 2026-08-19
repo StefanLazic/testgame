@@ -5,6 +5,7 @@ import { MAPS, currentMap } from './maps.js';
 import { TOWERS, TOWER_ORDER, WAVES } from './config.js';
 import { canPlaceTower } from './rules.js';
 import { t, toggleLang, onLangChange, applyStatic } from './i18n.js';
+import { VERSION } from './version.js';
 
 applyStatic();
 
@@ -311,7 +312,11 @@ $('btn-quit').addEventListener('click', () => {
   game.startDemo();
   show('title');
 });
-onLangChange(() => { ui.refreshSettings(); refreshMapPicker(); });
+// Version stamp on the title screen, so a player can tell us what they played.
+const showVersion = () => { $('version').textContent = t('title.version', { version: VERSION }); };
+showVersion();
+
+onLangChange(() => { ui.refreshSettings(); refreshMapPicker(); showVersion(); });
 
 // Escape pauses on a desktop keyboard; switching apps or tabs pauses on a
 // phone, so nobody comes back to a lost run.

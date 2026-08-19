@@ -250,6 +250,7 @@ h1 .w { color: var(--pink); text-shadow: 0 0 24px rgba(255,122,196,0.6); }
 h2 { font-size: clamp(20px, 6vw, 30px); margin: 2px 0 8px; }
 .tag { opacity: 0.85; font-size: clamp(13px, 3.8vw, 16px); margin: 0 0 14px; }
 .hint { opacity: 0.6; font-size: clamp(11px, 3.2vw, 13px); margin: 14px 0 0; }
+.version { opacity: 0.45; font-size: clamp(10px, 2.8vw, 12px); margin: 8px 0 0; letter-spacing: 0.04em; }
 button.big, button.ghost {
   display: block; width: 100%; margin: 8px auto 0;
   border: none; border-radius: 14px; padding: 13px 18px;
