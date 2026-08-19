@@ -689,3 +689,14 @@ band, so a future wave edit cannot quietly re-open the gap.
 
 The 🥷 Ninja's **Shadow Step** path also grants air targeting (see §1), which
 gives a second, cheaper answer to the sky than "buy an Archer".
+
+### Keeping the tests honest
+
+Two browser tests were pinned to numbers rather than to behaviour, and the
+rebalance flushed them out. `preview.test.js` asserted the Archer's ring was
+literally `6.4`; it now reads `TOWERS.archer.range`, so it tests *"the ring
+matches the cat"* instead of *"the cat has last month's stats"*. The Emilija
+wake-up test was quietly flaky — she picks her next trick at random and can
+re-nap the cats on the same beat — so it now pins `lastTrick` first.
+
+Full suite after all four proposals: **104 unit tests, 81 browser tests, green.**

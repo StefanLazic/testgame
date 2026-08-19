@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startServer } from '../helpers/server.mjs';
 import { launchBrowser, findChrome } from '../helpers/cdp.mjs';
+import { TOWERS } from '../../js/config.js';
 
 const hasChrome = !!findChrome();
 
@@ -23,7 +24,7 @@ test('range preview in the shop', { skip: hasChrome ? false : 'no Chrome binary'
     assert.equal(await page.eval('window.game.ghost.visible'), true);
     assert.equal(await page.eval('window.game.ghostRing.visible'), true);
     const ring = await page.eval('window.game.ghostRing.scale.x');
-    assert.equal(ring, 6.4, 'the ring should be scaled to the archer range');
+    assert.equal(ring, TOWERS.archer.range, 'the ring should be scaled to the archer range');
   });
 
   await t.test('the ring resizes for a longer-ranged cat', async () => {
@@ -38,7 +39,7 @@ test('range preview in the shop', { skip: hasChrome ? false : 'no Chrome binary'
     assert.equal(await page.eval('document.getElementById("preview-card").classList.contains("hidden")'), false);
     assert.match(await page.eval('document.getElementById("pv-cost").textContent'), /70/);
     const stats = await page.eval('document.getElementById("pv-stats").textContent');
-    assert.match(stats, /6\.4/, `range missing from "${stats}"`);
+    assert.ok(stats.includes(String(TOWERS.archer.range)), `range missing from "${stats}"`);
     const box = await page.eval('(() => { const r = document.getElementById("preview-card").getBoundingClientRect(); return { top: r.top, bottom: r.bottom, w: r.width }; })()');
     assert.ok(box.bottom <= 844, 'the card must stay on screen');
     assert.ok(box.w <= 390, 'the card must not overflow a phone');
