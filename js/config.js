@@ -82,8 +82,9 @@ export const TOWERS = {
   },
   witch: {
     name: 'Witch', icon: '🧙', cost: 300, color: 0x8a5bd6, accent: 0x2b1750,
-    damage: 0, range: 6.2, rate: 0, air: true, ability: 'curse', cooldown: 60,
-    blurb: 'Curses one pest every 60 s. Bosses are immune.',
+    damage: 0, range: 6.2, rate: 0, air: true, ability: 'curse', cooldown: 34,
+    curseRadius: 2.6,
+    blurb: 'Hexes everything in reach so it takes more damage, then curses a whole knot of pests at once.',
   },
   ema: {
     name: 'Ema', icon: '🎀', cost: 190, color: 0xffc7e6, accent: 0xff4f9a,
@@ -119,6 +120,7 @@ export const TOWER_ORDER = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'ema
 //   ema    — how much extra damage / fire rate her ribbon gives nearby cats.
 //   sofija — how often she finds a fish, how big it is, and how much more
 //            every pest that dies inside her purse is worth.
+//   witch  — how much more damage everything caught in her hex field takes.
 export const SUPPORT = {
   ema: {
     damage: [0.18, 0.27, 0.38],
@@ -128,6 +130,9 @@ export const SUPPORT = {
     interval: [8, 6.5, 5],
     coin: [12, 19, 28],
     bounty: [0.25, 0.4, 0.6],
+  },
+  witch: {
+    hex: [0.12, 0.18, 0.25],
   },
 };
 
@@ -159,7 +164,9 @@ export const SYNERGIES = [
 // `air` when the trick is simply "can now shoot upwards".
 export const BRANCHES = {
   archer: {
-    sniper: { icon: '🎯', damage: 1.75, range: 1.5, rate: 0.6 },
+    // A sniper aims for the gaps in the armour, so her arrows ignore it
+    // completely. Archer has no base pierce, so it has to be granted.
+    sniper: { icon: '🎯', damage: 1.75, range: 1.5, rate: 0.6, grants: { pierce: 1 } },
     ranger: { icon: '🏹', damage: 0.85, rate: 1.8, range: 0.92 },
   },
   wizard: {
@@ -188,11 +195,17 @@ export const BRANCHES = {
   },
   simba: {
     ronin: { icon: '🌪️', damage: 1.55, range: 1.25, rate: 0.85, bushidoDamage: 1.3 },
-    sensei: { icon: '🎋', rate: 1.35, splash: 1.5, damage: 0.9, bushidoCooldown: 0.6 },
+    // The sensei's slash leaves the blade as an arc of moonlight, so it finally
+    // reaches the sky — softer strokes are the price of that reach.
+    sensei: {
+      icon: '🎋', rate: 1.35, splash: 1.5, damage: 0.72, bushidoCooldown: 0.6, air: true,
+    },
   },
   witch: {
-    hex: { icon: '🪄', cooldown: 0.55 },
-    doom: { icon: '💀', range: 1.6, cooldown: 0.85 },
+    // The crowd path: she curses far more often, and over a much wider knot.
+    hex: { icon: '🪄', cooldown: 0.55, curseRadius: 1.6 },
+    // The boss path: she reaches further and her hex field bites much harder.
+    doom: { icon: '💀', range: 1.6, cooldown: 0.85, hex: 1.5 },
   },
 };
 
@@ -218,6 +231,8 @@ export function towerStats(kind, level, branch = null) {
     rate: b.rate * (1 + 0.18 * l),
     splash: b.splash ? b.splash * (1 + 0.12 * l) : 0,
     slowTime: b.slowTime ? b.slowTime * (1 + 0.2 * l) : 0,
+    pierce: b.pierce || 0,
+    curseRadius: b.curseRadius ? b.curseRadius * (1 + 0.15 * l) : 0,
     branch: null,
   };
   // Simba-kun's unsheathing strike hits harder with every collar.
@@ -237,9 +252,11 @@ export function towerStats(kind, level, branch = null) {
     if (!st[key]) st[key] = value;
   }
   if (mods.air) st.air = true;
-  for (const key of ['damage', 'range', 'rate', 'splash', 'slowTime', 'crit', 'cooldown']) {
+  for (const key of ['damage', 'range', 'rate', 'splash', 'slowTime', 'crit', 'cooldown', 'pierce', 'curseRadius']) {
     if (mods[key] != null) st[key] = (st[key] || 0) * mods[key];
   }
+  // Armour piercing is a fraction: none of it, all of it, or somewhere between.
+  st.pierce = Math.min(1, Math.max(0, st.pierce || 0));
   // Frost's glacier path deepens a chill it already has.
   if (mods.slow != null) st.slow = (st.slow || 0) * mods.slow;
   // A slow with no duration would never wear off, so it is not a slow at all.
@@ -262,6 +279,16 @@ export const CURSES = {
   3: { id: 'doom', label: 'Doom', icon: '💀', text: 'destroys a pest instantly' },
 };
 export const STONE_TIME = 10;
+
+// Bosses shrug off every curse, but they do not shrug off the witch herself:
+// a cast that finds nothing to hex instead brands the scariest thing in reach.
+// A branded pest takes even more damage than her passive field gives, and
+// stumbles while the mark burns.
+export const HEX = {
+  markTime: 8,      // seconds a boss carries the brand
+  markBonus: 0.35,  // extra damage taken on top of the field, while marked
+  markSlow: 0.3,    // and it trips over its own feet a little
+};
 
 // -------------------------------------------------------------- enemies ---
 export const ENEMIES = {

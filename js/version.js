@@ -5,4 +5,4 @@
 // Bump it (semver: MAJOR.MINOR.PATCH) in every pull request — see docs/AGENTS.md.
 // ---------------------------------------------------------------------------
 
-export const VERSION = '1.2.0';
+export const VERSION = '1.3.0';

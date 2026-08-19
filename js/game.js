@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   TILE, COLS, ROWS, PATHS, SECOND_LANE_WAVE, THEME, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
-  TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME, branchCost, BRANCHES,
+  TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME, HEX, branchCost, BRANCHES,
   ENEMIES, hpScale, WAVES, waveBonus, BANANA_STUN, DRAGON, EMILIJA, SIMONA, STEFO, FATHER,
 } from './config.js';
 import {
@@ -19,6 +19,7 @@ import {
   shufflePlan, sleepPicks, nextTrick,
   canPlaceTower, towerLimit, cloneStats, guardedDamage, starLeap, destroyPicks,
   reviveFraction, nextTeleportSpot, slowFrom, bountyFor, lifeReward,
+  armouredDamage, hexMultiplier, hexBonus,
 } from './rules.js';
 import { t } from './i18n.js';
 
@@ -59,6 +60,7 @@ export class Game {
     this.eggs = [];
     this.hazards = [];
     this.supports = [];
+    this.witches = [];
     this.enemyPool = {};
 
     this.placing = null;       // tower kind selected in the shop
@@ -404,6 +406,16 @@ export class Game {
         range: towerStats(tw.kind, tw.level, tw.branch).range * tw.syn.range,
       }));
 
+    // The witches' hex fields work the same way, only they land on pests
+    // instead of cats, so they are kept in their own list.
+    this.witches = this.towers
+      .filter((tw) => TOWERS[tw.kind].ability === 'curse')
+      .map((tw) => ({
+        kind: tw.kind, level: tw.level, branch: tw.branch, tower: tw,
+        x: tw.pos.x, z: tw.pos.z,
+        range: towerStats(tw.kind, tw.level, tw.branch).range * tw.syn.range,
+      }));
+
     // Pass 3: everyone's final multipliers.
     for (const tw of this.towers) {
       const self = this.supports.find((s) => s.tower === tw);
@@ -446,6 +458,7 @@ export class Game {
     this.eggs = []; this.hazards = [];
     this.occupied.clear();
     this.supports = [];
+    this.witches = [];
   }
 
   // Pick another board. Only makes sense from the title screen: the diorama is
@@ -569,7 +582,10 @@ export class Game {
     if (base.ability === 'curse') {
       const c = CURSES[tower.level];
       ability = t('ability.curse', {
-        icon: c.icon, text: t(`curse.${tower.level}.text`), cooldown: base.cooldown,
+        icon: c.icon, text: t(`curse.${tower.level}.text`), cooldown: Math.round(st.cooldown),
+        radius: (st.curseRadius || 0).toFixed(1),
+        hex: Math.round(hexBonus(tower.level, tower.branch) * 100),
+        range: st.range.toFixed(1),
         left: Math.max(0, tower.abilityCool || 0).toFixed(0),
       });
     } else if (base.ability === 'bow') {
@@ -602,6 +618,7 @@ export class Game {
       sellValue: Math.floor(tower.spent * 0.7),
       canAfford: !maxed && this.gold >= upgradeCost(tower.kind, tower.level),
       global: !!base.global,
+      pierce: st.pierce > 0,
       buffed: !!(tower.buff && tower.buff.buffed),
       synergies: (tower.syn ? tower.syn.ids : []).map((id) => ({ id, name: t(`synergy.${id}.name`) })),
       branch: tower.branch,
@@ -828,7 +845,7 @@ export class Game {
       speed: def.speed * (def.boss ? 1 : 1 + 0.012 * this.wave),
       flying: !!def.flying,
       seg: 1, progress: 0, alive: true,
-      slowT: 0, slowF: 0, hurt: 0, wobble: Math.random() * 6,
+      slowT: 0, slowF: 0, hexT: 0, hurt: 0, wobble: Math.random() * 6,
       spawnT: 0, spawnTimer: 3.5, enraged: false,
       stunT: 0, bowT: 0, stone: null,
       layT: Math.random() * 2, bananaT: Math.random(), summonIdx: 0, smashT: 0, swarmT: 0,
@@ -920,11 +937,15 @@ export class Game {
   }
 
   // ---------------------------------------------------------------- combat
-  damage(e, amount, { crit = false } = {}) {
+  damage(e, amount, { crit = false, pierce = 0 } = {}) {
     if (!e.alive) return;
     if (e.burrowed) return;          // nothing can touch it underground
-    const armor = e.def.armor || 0;
-    let dealt = Math.max(amount * 0.25, amount - armor);
+    // A hexed pest is easier to hurt, whatever hurt it: shots, splash, katana.
+    // The field is a multiplier on the target, never on the cat, so it lifts
+    // every damage source exactly once.
+    const hexed = hexMultiplier(e.group.position, this.witches)
+      + (e.hexT > 0 ? HEX.markBonus : 0);
+    let dealt = armouredDamage(amount * hexed, e.def.armor || 0, pierce);
     // Upside down, Simona barely feels it.
     if (e.guardT > 0) dealt = guardedDamage(dealt, SIMONA.handstandResist);
     e.sinceHit = 0;
@@ -1020,6 +1041,7 @@ export class Game {
       mesh, from, target, speed: st.speed, lob: !!st.lob,
       damage: st.damage * (crit ? 3 : 1), crit,
       splash: st.splash || 0, slow: st.slow || 0, slowTime: st.slowTime || 0,
+      pierce: st.pierce || 0,
       color: st.bullet === 'shard' ? 0xbdeaff : st.bullet === 'orb' ? 0xc9a7ff
         : st.bullet === 'pillow' ? 0xdfe6ff : 0xffd166,
       t: 0, life: 3, type: st.bullet,
@@ -1042,11 +1064,11 @@ export class Game {
       for (const e of this.enemies) {
         if (!e.alive) continue;
         if (e.group.position.distanceTo(at) > b.splash) continue;
-        this.damage(e, b.damage * 0.8);
+        this.damage(e, b.damage * 0.8, { pierce: b.pierce });
         this._applySlow(e, b);
       }
     } else if (b.target && b.target.alive && b.target.group.position.distanceTo(at) < 1.4) {
-      this.damage(b.target, b.damage, { crit: b.crit });
+      this.damage(b.target, b.damage, { crit: b.crit, pierce: b.pierce });
       this._applySlow(b.target, b);
     }
   }
@@ -1134,6 +1156,7 @@ export class Game {
       }
 
       if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slowF = 0; }
+      if (e.hexT > 0) e.hexT -= dt;
       let speed = e.speed * (1 - e.slowF);
       if (e.stunT > 0) {
         e.stunT -= dt;
@@ -1442,7 +1465,7 @@ export class Game {
     if (tower.bushidoT > 0) return;
     const reach = st.range * 1.15;
     const caught = this.enemies.filter((e) => e.alive && e.intro == null && !e.burrowed
-      && !e.flying && e.group.position.distanceTo(tower.pos) <= reach);
+      && (st.air || !e.flying) && e.group.position.distanceTo(tower.pos) <= reach);
     if (!caught.length) { tower.bushidoT = 0.4; return; }
     tower.bushidoT = st.bushido.cooldown;
     tower.pop = 0.5;
@@ -1508,11 +1531,18 @@ export class Game {
       if (st.ability === 'curse') {
         const victim = this._pickCurseTarget(t, st);
         if (victim) { this._castCurse(t, victim); t.abilityCool = st.cooldown; }
+        else if (this._markBoss(t, st)) t.abilityCool = st.cooldown;
         else t.abilityCool = 0.5;      // nothing to hex — try again shortly
       } else if (st.ability === 'bow') {
         this._royalBow(t, st);
         t.abilityCool = st.cooldown;
       }
+    }
+    // Her hex field is always on, so it gets a slow purple pulse of its own.
+    if (st.ability === 'curse' && Math.random() < dt * 1.6) {
+      this.effects.ring(t.pos.clone().setY(0.08), {
+        color: 0xc07bff, from: st.range * 0.6, to: st.range * 2, life: 1.1,
+      });
     }
     // Charging glow + a slow regal spin.
     t.group.rotation.y += dt * (st.ability === 'bow' ? 0.5 : 0.35);
@@ -1552,6 +1582,20 @@ export class Game {
     return best;
   }
 
+  // Everything cursable standing around the chosen victim. A curse splashes
+  // over the whole knot, which is what makes her a crowd answer at all.
+  _curseGroup(tower, e) {
+    const radius = this._stats(tower).curseRadius || 0;
+    const group = [e];
+    if (radius <= 0) return group;
+    for (const other of this.enemies) {
+      if (other === e || !this._cursable(other)) continue;
+      if (other.group.position.distanceTo(e.group.position) > radius) continue;
+      group.push(other);
+    }
+    return group;
+  }
+
   _castCurse(tower, e) {
     const curse = CURSES[tower.level] || CURSES[1];
     const from = tower.pos.clone().setY(1.5);
@@ -1562,20 +1606,57 @@ export class Game {
     tower.pop = 0.4;
     sfx.curse();
 
+    const group = this._curseGroup(tower, e);
+    for (const other of group) {
+      if (other === e) continue;
+      this.effects.trail(other.group.position.clone().setY(other.group.position.y + 0.6), 0xc07bff, 0.35);
+    }
+
     if (curse.id === 'frog') {
-      this._transform(e, 'frog');
-      this.ui.toast(t('toast.curseFrog'));
+      for (const victim of group) this._transform(victim, 'frog');
+      this.ui.toast(t('toast.curseFrog', { count: group.length }));
       sfx.frog();
     } else if (curse.id === 'stone') {
-      this._petrify(e);
-      this.ui.toast(t('toast.curseStone', { sec: STONE_TIME }));
+      for (const victim of group) this._petrify(victim);
+      this.ui.toast(t('toast.curseStone', { sec: STONE_TIME, count: group.length }));
       sfx.stone();
     } else {
+      // Doom only ever executes the one pest she pointed at — a mass instant
+      // kill would end waves on its own. Everyone else in the knot is stone.
+      for (const victim of group) { if (victim !== e) this._petrify(victim); }
       this.ui.toast(t('toast.curseDoom'));
       this.effects.kick(0.3);
       sfx.doom();
       this._kill(e);
     }
+  }
+
+  // Bosses shrug off every curse, so a cast aimed at a boss wave used to do
+  // nothing at all. Instead she brands the biggest thing in reach: it takes
+  // more damage for a while, and it stumbles.
+  _markBoss(tower, st) {
+    let best = null;
+    let bestHp = -1;
+    for (const e of this.enemies) {
+      if (!e.alive || e.intro != null || e.burrowed || e.hexT > 0) continue;
+      const dx = e.group.position.x - tower.pos.x;
+      const dz = e.group.position.z - tower.pos.z;
+      if (dx * dx + dz * dz > st.range * st.range) continue;
+      if (e.hp > bestHp) { bestHp = e.hp; best = e; }
+    }
+    if (!best) return false;
+    best.hexT = HEX.markTime;
+    best.slowF = Math.max(best.slowF, HEX.markSlow);
+    best.slowT = Math.max(best.slowT, HEX.markTime);
+    const to = best.group.position.clone().setY(best.flying ? this._flyY(best) : 0.6);
+    this.effects.bolt(tower.pos.clone().setY(1.5), to, 0xc07bff);
+    this.effects.ring(to, { color: 0xc07bff, from: 0.3, to: 3.4, life: 0.5, y: 0.1 });
+    tower.pop = 0.4;
+    sfx.curse();
+    this.ui.toast(t('toast.hexMark', {
+      name: enemyName(best.kind), bonus: Math.round(HEX.markBonus * 100),
+    }));
+    return true;
   }
 
   // Swap an enemy for another kind, keeping its place in the queue.

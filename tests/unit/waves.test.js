@@ -1,7 +1,8 @@
-// The anti-air budget. Only Archer, Wizard, Frost — and a Shadow Ninja — can
-// touch a flying pest, so a wave with no air at all makes that investment idle,
-// and a wave that is nearly all air is a wall for anyone who skipped it. Both
-// used to happen: fourteen waves had zero flyers while wave 27 was 60% air.
+// The anti-air budget. Only Archer, Wizard, Frost — and a Shadow Ninja or a
+// Sensei Simba-kun — can touch a flying pest, so a wave with no air at all
+// makes that investment idle, and a wave that is nearly all air is a wall for
+// anyone who skipped it. Both used to happen: fourteen waves had zero flyers
+// while wave 27 was 60% air.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { WAVES, ENEMIES, hpScale } from '../../js/config.js';

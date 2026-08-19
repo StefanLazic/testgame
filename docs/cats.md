@@ -18,13 +18,14 @@ lives in [`js/config.js`](../js/config.js) (`TOWERS`, `TOWER_ORDER`,
 | 😴 Sleepy | 195 | 62 | 6.4 | 0.34 | ground only | lobbed pillow, splash 3.4 |
 | 🎀 Ema | 190 | — | 5.0 | — | support | ribbon aura: +18/27/38% damage, +12/19/28% fire rate |
 | 💰 Sofija | 200 | — | 4.6 | — | support | purse: 🐟 12/19/28 every 8/6.5/5 s, +25/40/60% bounty nearby |
-| 🗡️ Simba-kun | 250 | 33 | 4.2 | 1.05 | ground only | cleaving katana (splash 1.9, 18% × 2.4 crit) + *bushido* every 14 s |
-| 🧙 Witch | 300 | — | 6.2 | — | ground + air | curse, once every 60 s |
+| 🗡️ Simba-kun | 250 | 33 | 4.2 | 1.05 | ground only | cleaving katana (splash 1.9, 18% × 3 crit) + *bushido* every 14 s |
+| 🧙 Witch | 300 | — | 6.2 | — | ground + air | hex field (+12/18/25% damage taken), area curse every 34 s |
 | 👑 Mimi-chan | 3000 | — | whole board | — | ground + air | royal bow, once every 10 s |
 
 ### 🏹 Archer
 Cheap, reliable single-target damage that hits flying pests. Fires an arrow at
-speed 26. The default opener and the answer to early birds.
+speed 26. The default opener and the answer to early birds. Her 🎯 Sniper path
+is the only source of **true damage** in the game — see *Armour* below.
 
 ### 🔮 Wizard
 Slow-moving arcane orbs (speed 14) that explode on impact for 2.3 splash
@@ -63,25 +64,42 @@ frenzy she counts down at double speed.
 
 ### 🗡️ Simba-kun
 The samurai. His katana cuts everything in a 1.9 splash around whatever he hits,
-with an 18% chance of a 2.4× crit — ground only, because a sword cannot reach a
-bird. On top of the ordinary swings he charges **bushido**: every **14 seconds**,
+with an 18% chance of a 3× crit — ground only, because a sword cannot reach a
+bird. His 🎋 Sensei path is the exception: there the slash leaves the blade as an
+arc of moonlight, so it finally reaches the sky. On top of the ordinary swings
+he charges **bushido**: every **14 seconds**,
 if anything at all is within 1.15× his range, he unsheathes for a ring of
 moonlight that deals **2.6× his damage** to every ground pest around him and
 **stuns them for 1.2 s**. The strike scales with his level and with his path.
 
 ### 🧙 Witch
-Does no damage at all. Every **60 seconds** she hexes the highest-HP pest in
-range (ground or air). What the hex does depends on her level:
+She never deals a point of damage herself. Instead she does two things at once.
+
+**The hex field (always on).** Every pest inside her range — ground, air, boss,
+anything — takes **+12% / 18% / 25%** more damage from *every* source: shots,
+splash, bushido, everything. The multiplier lands on the target rather than on
+the cat, so it lifts your whole army at once and it never double-counts. Like
+Ema's ribbon and Sofija's purse, **hex fields do not stack**: only the strongest
+witch in reach counts, so a wall of witches is never the answer.
+
+**The curse (every 34 seconds).** She hexes the highest-HP legal pest in range,
+**and everything cursable within `curseRadius` of it** (2.6 → 3.4 as she levels).
+What the curse does depends on her level:
 
 | Level | Curse | Effect |
 | --- | --- | --- |
-| 1 | 🐸 Frog | the pest becomes a Frog — the same stats as a Mouse |
-| 2 | 🗿 Stone | the pest is petrified: it cannot move for 10 seconds |
-| 3 | 💀 Doom | the pest is destroyed instantly (you still collect its bounty) |
+| 1 | 🐸 Frog | every pest in the knot becomes a Frog — the same stats as a Mouse |
+| 2 | 🗿 Stone | every pest in the knot is petrified: it cannot move for 10 seconds |
+| 3 | 💀 Doom | the pest she pointed at is destroyed instantly (you still collect its bounty); the rest of the knot is petrified instead |
 
-**Bosses and mini-bosses are immune** to every curse, as are pests that are
-already frogs or already made of stone. The curse timer keeps ticking while she
-has no legal target, so she fires the moment one walks in.
+Doom stays a single-target execute on purpose — a mass instant kill would end
+waves on its own.
+
+**Bosses and mini-bosses are still immune** to every curse, as are pests that
+are already frogs or already made of stone. But a cast no longer fizzles on a
+boss wave: with nothing cursable in reach she **brands** the biggest thing she
+can see instead, for **+35% damage taken and a 30% slow over 8 seconds**
+(`HEX` in `js/config.js`). The brand stacks on top of her passive field.
 
 ### 👑 Mimi-chan — the queen
 **One of a kind:** `TOWERS.queen.limit = 1`, so only one Mimi-chan may ever
@@ -112,25 +130,35 @@ Per level above 1 (`l = level - 1`):
 | Fire rate | `× (1 + 0.18 · l)` |
 | Splash radius | `× (1 + 0.12 · l)` |
 | Slow duration | `× (1 + 0.20 · l)` |
+| Curse radius | `× (1 + 0.15 · l)` |
 
-Ability cats ignore the damage/rate growth: the Witch's cooldown stays at 60
-seconds and her level only decides which curse she casts, and Mimi-chan's bow
-stays at 1 second every 10 seconds.
+Ability cats ignore the damage/rate growth: the Witch's cooldown stays at 34
+seconds, and her level decides which curse she casts, how wide the knot is and
+how deep her hex field bites. Mimi-chan's bow stays at 1 second every 10
+seconds.
 
 Tap a placed cat to inspect, upgrade or sell it.
 
 ## Shared mechanics
 
 - **Air targeting** — only cats with `air: true` (Archer, Wizard, Frost, Witch,
-  Mimi-chan) reach flying enemies. Ninja, Sleepy and Simba-kun ignore 🐦 birds, 🐖 flying
-  pigs and 🐉 Sophie completely.
+  Mimi-chan) reach flying enemies. Ninja, Sleepy and Simba-kun ignore 🐦 birds,
+  🐖 flying pigs and 🐉 Sophie completely — unless the Ninja walks the 🌫️ Shadow
+  path or Simba-kun walks the 🎋 Sensei path, the only two ways a ground cat ever
+  learns to hit the sky. An air-capable Simba-kun's *bushido* ring catches
+  flyers too.
 - **Ability cats** — cats with an `ability` (Witch, Mimi-chan) never fire a
   projectile. They charge a cooldown (visible in the tower panel) and then do
-  something to the board. Catnip frenzy halves those cooldowns too.
+  something to the board. Catnip frenzy halves those cooldowns too. The Witch
+  is the exception that also works *between* casts: her hex field is passive
+  and always on.
 - **Stuns** — petrified and bowing pests do not move at all, but they can still
   be shot, and armour still applies.
 - **Armour** — enemy armour is subtracted from every hit, but a hit always
-  deals at least 25% of its raw damage.
+  deals at least 25% of its raw damage. A shot with `pierce` ignores that
+  fraction of the armour first: 🎯 Sniper Archer has `pierce: 1`, so her arrows
+  are **true damage** and the 25% floor never comes into play. Nothing else in
+  the game pierces.
 - **Catnip frenzy** — picking up a catnip drop makes every cat fire at double
   speed for 9 seconds.
 - **Placement** — cats can only be placed on free floor tiles, never on either
@@ -185,15 +213,15 @@ is shown with a ✧ and a floating gem above the cat.
 
 | Cat | Path | What changes |
 | --- | --- | --- |
-| 🏹 Archer | 🎯 Sniper / 🏹 Ranger | ×1.75 damage, ×1.5 range, ×0.6 rate / ×1.8 rate, ×0.85 damage |
+| 🏹 Archer | 🎯 Sniper / 🏹 Ranger | ×1.75 damage, ×1.5 range, ×0.6 rate **and true damage** / ×1.8 rate, ×0.85 damage |
 | 🔮 Wizard | 🔥 Inferno / 💫 Nova | ×1.55 damage / ×1.85 splash, ×1.15 rate |
 | ❄️ Frost | 🧊 Glacier / 🌨️ Hailstorm | deeper, longer chill / ×1.5 damage plus a granted 2.2 splash, shorter chill |
 | 🥷 Ninja | 🗡️ Assassin / 🌫️ Shadow | ×2.2 crit chance, ×1.35 damage / ×1.45 rate, ×1.35 range **and hits air** |
 | 😴 Sleepy | 🌙 Dreamer / 🪨 Boulder | ×1.6 splash plus a granted 45% slow for 2.4 s / ×1.85 damage, ×0.75 rate |
 | 🎀 Ema | 📣 Anthem / 🎶 Duet | ×1.75 aura radius / ×1.55 aura strength |
 | 💰 Sofija | 🏦 Banker / 🏴‍☠️ Pirate | ×1.7 coins, faster / ×1.9 bounty, ×1.2 radius |
-| 🗡️ Simba-kun | 🌪️ Ronin / 🎋 Sensei | ×1.55 damage, ×1.25 range, ×0.85 rate and a ×1.3 bushido / ×1.35 rate, ×1.5 splash and bushido every 8.4 s |
-| 🧙 Witch | 🪄 Hexer / 💀 Doomsayer | ×0.55 cooldown / ×1.6 range |
+| 🗡️ Simba-kun | 🌪️ Ronin / 🎋 Sensei | ×1.55 damage, ×1.25 range, ×0.85 rate and a ×1.3 bushido / ×1.35 rate, ×1.5 splash, ×0.72 damage, bushido every 8.4 s **and hits air** |
+| 🧙 Witch | 🪄 Hexer / 💀 Doomsayer | ×0.55 cooldown, ×1.6 curse radius / ×1.6 range, ×1.5 hex field |
 
 👑 Mimi-chan has no path — she is already at the top.
 

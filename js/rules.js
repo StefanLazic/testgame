@@ -150,6 +150,38 @@ export function bountyMultiplier(pos, supports = []) {
   return 1 + best;
 }
 
+// How much more damage everything inside a witch's hex field takes.
+export function hexBonus(level, branch = null) {
+  const { hex } = SUPPORT.witch;
+  const i = clampLevel(level, hex);
+  const mult = (BRANCHES.witch[branch] && BRANCHES.witch[branch].hex) || 1;
+  return hex[i] * mult;
+}
+
+// Pests standing in a hex field are easier to hurt — every cat's shots, splash
+// and spinning strikes all land harder. Like ribbons and purses, hex fields do
+// not stack: only the strongest witch in reach counts.
+export function hexMultiplier(pos, witches = []) {
+  let best = 0;
+  for (const w of witches) {
+    if (w.kind !== 'witch' || !covers(w, pos)) continue;
+    best = Math.max(best, hexBonus(w.level, w.branch));
+  }
+  return 1 + best;
+}
+
+// --------------------------------------------------------------- armour --
+// What a hit is actually worth once the pest's armour has eaten its share.
+// Armour is flat, but a hit never drops below a quarter of its raw damage, so
+// even a shuriken tickles a turtle. `pierce` is the fraction of the armour a
+// shot ignores outright: 0 is a normal hit, 1 is true damage.
+export function armouredDamage(amount, armor = 0, pierce = 0) {
+  const raw = Math.max(0, amount || 0);
+  const p = Math.min(1, Math.max(0, pierce || 0));
+  const left = Math.max(0, armor || 0) * (1 - p);
+  return Math.max(raw * 0.25, raw - left);
+}
+
 // A chill only counts if it wears off. A slow with no duration would stick to
 // a pest forever, so treat it as no slow at all.
 export function slowFrom({ slow = 0, slowTime = 0 } = {}) {
@@ -203,6 +235,7 @@ export function branchStats(kind, branch) {
   return {
     damage: Math.round(st.damage), range: Number(st.range.toFixed(1)),
     rate: Number(st.rate.toFixed(2)), splash: Number((st.splash || 0).toFixed(1)),
+    pierce: Number((st.pierce || 0).toFixed(2)),
     branch: st.branch,
   };
 }
