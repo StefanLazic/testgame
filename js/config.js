@@ -325,19 +325,19 @@ export const ENEMIES = {
     heals: { radius: 6.4, amount: 260, interval: 3.6 },
   },
   simona: {
-    name: 'Simona the Gymnast', hp: 96000, speed: 2.0, bounty: 4200, scale: 2.4, flying: false,
+    name: 'Simona the Gymnast', hp: 96000, speed: 2.0, bounty: 4200, scale: 1.7, flying: false,
     armor: 20, leak: 9, boss: 'main', gymnast: true, successor: 'stefo',
   },
   simonaclone: {
-    name: 'Simona (clone)', hp: 40000, speed: 2.2, bounty: 320, scale: 1.9, flying: false,
+    name: 'Simona (clone)', hp: 40000, speed: 2.2, bounty: 320, scale: 1.35, flying: false,
     armor: 12, leak: 3, base: 'simona', gymnast: true, clone: true,
   },
   stefo: {
-    name: 'Stefo the Baller', hp: 120000, speed: 2.0, bounty: 6000, scale: 2.6, flying: false,
+    name: 'Stefo the Baller', hp: 120000, speed: 2.0, bounty: 6000, scale: 1.8, flying: false,
     armor: 24, leak: 9, boss: 'main', baller: true, stationary: true,
   },
   father: {
-    name: 'Father', hp: 260000, speed: 1.1, bounty: 12000, scale: 4.6, flying: false,
+    name: 'Father', hp: 260000, speed: 1.1, bounty: 12000, scale: 2.4, flying: false,
     armor: 30, leak: 9, boss: 'main', father: true,
   },
 };

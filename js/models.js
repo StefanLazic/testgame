@@ -768,11 +768,11 @@ export function makeEnemy(kind) {
 }
 
 // A basketball. Stefo brings his own.
-export function makeBasketball(r = 0.34) {
+export function makeBasketball(r = 0.28) {
   const g = new THREE.Group();
-  g.add(part(SPHERE, mat(0xff8a1f, { emissive: 0x4a2000 }), { scale: [r * 2, r * 2, r * 2] }));
+  g.add(part(SPHERE, mat(0xff8a1f, { emissive: 0x4a2000 }), { scale: [r, r, r] }));
   for (const rot of [[0, 0, 0], [Math.PI / 2, 0, 0], [0, 0, Math.PI / 2]]) {
-    g.add(part(new THREE.TorusGeometry(r * 1.01, r * 0.06, 4, 14), mat(0x1b0a12), { rot }));
+    g.add(part(new THREE.TorusGeometry(r * 1.01, r * 0.05, 4, 14), mat(0x1b0a12), { rot }));
   }
   return g;
 }

@@ -1714,7 +1714,7 @@ export class Game {
       h.t += dt;
       const k = Math.min(1, h.t / h.dur);
       const p = h.from.clone().lerp(h.to, k);
-      p.y += Math.sin(k * Math.PI) * (h.basket ? 6 : 3.2);
+      p.y += Math.sin(k * Math.PI) * (h.basket ? 4.4 : 3.2);
       h.mesh.position.copy(p);
       h.mesh.rotation.z += dt * 12;
       h.mesh.rotation.x += dt * 6;
@@ -2117,7 +2117,7 @@ export class Game {
   }
 
   _stefoShoot(e) {
-    const mesh = makeBasketball(0.42);
+    const mesh = makeBasketball(0.3);
     const from = e.group.position.clone().setY(2.6);
     mesh.position.copy(from);
     this.scene.add(mesh);

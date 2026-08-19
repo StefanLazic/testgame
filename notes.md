@@ -595,3 +595,10 @@ Docs updated in the same change (`docs/cats.md`, `docs/enemies.md`, `README.md`,
 help screen, meta description and the victory line — the game now ends with
 Father, not Emilija). Grandma Vera throws pink balls of wool instead of bananas.
 Full suite: 95 unit + 81 browser checks green.
+
+Mobile pass on a 390×780 phone screen: the shop row still scrolls with all ten
+cats (601px of buttons in a 378px row, fade hint intact), and the new humans
+were rescaled after a screenshot review — Father at 4.6× dwarfed the kitchen, so
+the family now sits between the Rat King and Sophie in size. Stefo's basketball
+was shrunk to a 0.3 radius and its arc lowered so it reads as a shot, not an
+eclipse.
