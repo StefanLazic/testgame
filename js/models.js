@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TILE, COLS, ROWS } from './config.js';
+import { TILE, COLS, ROWS, THEME } from './config.js';
 
 // ---------------------------------------------------------------------------
 // Procedural low-poly models. No external assets — every mesh is built from
@@ -148,6 +148,33 @@ export function makeCatTower(kind, palette) {
     const wisp = part(SPHERE, new THREE.MeshBasicMaterial({ color: 0xc07bff }), { pos: [0.36, 0.4, 0.16], scale: [0.22, 0.22, 0.22] });
     arm.add(wisp);
     g.userData.glow = wisp;
+  } else if (kind === 'ema') {
+    // A big bow, pompoms and a floating heart: pure encouragement.
+    const bow = new THREE.Group();
+    bow.position.set(0, 0.4, 0.06);
+    for (const sx of [-1, 1]) {
+      bow.add(part(SPHERE, accM, { pos: [0.26 * sx, 0.06, 0], scale: [0.26, 0.2, 0.14], rot: [0, 0, 0.5 * sx] }));
+    }
+    bow.add(part(SPHERE, mat(0xfff2dd), { scale: [0.13, 0.13, 0.13] }));
+    head.add(bow);
+    for (const sx of [-1, 1]) {
+      const pom = part(SPHERE, accM, { pos: [0.34 * sx, 0.34, 0.16], scale: [0.24, 0.24, 0.24] });
+      arm.add(pom);
+    }
+    const heart = part(SPHERE, new THREE.MeshBasicMaterial({ color: 0xff6fae }), { pos: [0, 1.85, 0.1], scale: [0.2, 0.2, 0.2] });
+    g.add(heart);
+    g.userData.glow = heart;
+  } else if (kind === 'sofija') {
+    // Merchant's visor, a coin purse and a fish coin she keeps flipping.
+    head.add(part(new THREE.CylinderGeometry(0.34, 0.34, 0.06, 12), mat(0x8a6b1f), { pos: [0, 0.3, 0] }));
+    head.add(part(new THREE.CircleGeometry(0.3, 12, 0, Math.PI), mat(0x3fd0a0, { side: THREE.DoubleSide }), { pos: [0, 0.28, 0.18], rot: [-1.1, 0, 0] }));
+    const purse = part(SPHERE, accM, { pos: [-0.34, 0.12, 0.1], scale: [0.26, 0.28, 0.24] });
+    g.add(purse);
+    g.add(part(new THREE.TorusGeometry(0.12, 0.03, 6, 10), mat(0x6b4a2a), { pos: [-0.34, 0.32, 0.1], rot: [Math.PI / 2, 0, 0] }));
+    const coin = part(new THREE.CylinderGeometry(0.19, 0.19, 0.05, 12), mat(0xffd166, { emissive: 0x6b5200 }), { pos: [0.3, 0.36, 0.16], rot: [Math.PI / 2, 0, 0] });
+    arm.add(coin);
+    g.userData.spin = coin;
+    g.userData.glow = coin;
   } else if (kind === 'queen') {
     // Mimi-chan: crown, cape, pearls, and an expression of total authority.
     const crown = new THREE.Group();
@@ -192,6 +219,7 @@ function makePillow(size = 0.6) {
 // Some enemies reuse another enemy's body and just add regalia on top.
 const ENEMY_BASE = {
   golden: 'mouse', baron: 'dog', ratking: 'mouse', chick: 'chicken', monkeyking: 'monkey',
+  nurse: 'mouse', beetle: 'turtle', mole: 'mouse',
 };
 
 export function makeEnemy(kind) {
@@ -464,6 +492,54 @@ export function makeEnemy(kind) {
     g.traverse((o) => { if (o.isMesh && o.material.color && o.material.color.getHex() === 0x9aa4b2) o.material = mat(0x63527f); });
   }
 
+  if (kind === 'nurse') {
+    // A field medic: white coat, red cross cap, little satchel.
+    g.traverse((o) => {
+      if (o.isMesh && o.material.color && o.material.color.getHex() === 0x9aa4b2) o.material = mat(0xf6f6fa);
+    });
+    const cap = part(new THREE.CylinderGeometry(0.26, 0.26, 0.1, 10), mat(0xffffff), { pos: [0, 0.62, 0.3] });
+    g.add(cap);
+    for (const rot of [0, Math.PI / 2]) {
+      g.add(part(BOX, mat(0xff3b5b, { emissive: 0x6b0010 }), { pos: [0, 0.68, 0.3], scale: [0.22, 0.07, 0.07], rot: [0, 0, rot] }));
+    }
+    const bag = part(BOX, mat(0xffffff), { pos: [0.34, 0.28, -0.05], scale: [0.22, 0.2, 0.26] });
+    g.add(bag);
+    g.add(part(BOX, mat(0xff3b5b), { pos: [0.46, 0.28, -0.05], scale: [0.02, 0.12, 0.04] }));
+  }
+  if (kind === 'beetle') {
+    // Chitin instead of shell, and a hovering hexagonal barrier.
+    g.traverse((o) => {
+      if (!o.isMesh || !o.material.color) return;
+      const hex = o.material.color.getHex();
+      if (hex === 0x3f8f5a) o.material = mat(0x2f3f7a);
+      else if (hex === 0x2c6b42) o.material = mat(0x1d2a5c);
+      else if (hex === 0xa8d86b) o.material = mat(0x8fa6ff);
+    });
+    for (const s of [-1, 1]) {
+      g.add(part(CONE, mat(0x6bd8ff, { emissive: 0x1b5b78 }), { pos: [0.22 * s, 0.9, 0.6], scale: [0.1, 0.34, 0.1], rot: [-0.5, 0, 0.3 * s] }));
+    }
+    const bubble = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1.15, 1),
+      new THREE.MeshBasicMaterial({ color: 0x6bd8ff, transparent: true, opacity: 0.24, wireframe: true })
+    );
+    bubble.position.set(0, 0.55, 0);
+    g.add(bubble);
+    g.userData.shield = bubble;
+  }
+  if (kind === 'mole') {
+    // Velvet fur, huge digging claws, tiny sunglasses.
+    g.traverse((o) => {
+      if (o.isMesh && o.material.color && o.material.color.getHex() === 0x9aa4b2) o.material = mat(0x4a3d55);
+    });
+    for (const s of [-1, 1]) {
+      const claw = part(SPHERE, mat(0xf0e0c0), { pos: [0.3 * s, 0.18, 0.34], scale: [0.16, 0.14, 0.26] });
+      g.add(claw);
+      for (let i = -1; i <= 1; i++) {
+        claw.add(part(CONE, mat(0xfff6e0), { pos: [i * 0.4, -0.1, 0.9], scale: [0.22, 0.5, 0.22], rot: [1.4, 0, 0] }));
+      }
+    }
+    g.add(part(BOX, mat(0x120c18), { pos: [0, 0.4, 0.52], scale: [0.34, 0.1, 0.06] }));
+  }
   if (kind === 'chick') {
     // Fluffy yellow baby version of the chicken.
     g.traverse((o) => {
@@ -514,21 +590,21 @@ export function tileToWorld(col, row) {
   return new THREE.Vector3((col - (COLS - 1) / 2) * TILE, 0, (row - (ROWS - 1) / 2) * TILE);
 }
 
-export function makeMap(pathTiles) {
+export function makeMap(pathTiles, theme = THEME) {
   const g = new THREE.Group();
   const w = COLS * TILE;
   const h = ROWS * TILE;
 
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(w + TILE * 2, h + TILE * 2), mat(0x3a2360));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(w + TILE * 2, h + TILE * 2), mat(theme.floor));
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   g.add(floor);
 
-  // Checkerboard kitchen tiles (merged into two instanced-ish groups of meshes).
+  // Checkerboard floor (kitchen tiles, garden turf, …).
   const tileGeo = new THREE.PlaneGeometry(TILE * 0.96, TILE * 0.96);
-  const lightM = mat(0x53377f);
-  const darkM = mat(0x472e6f);
-  const pathM = mat(0x8f6a3e);
+  const lightM = mat(theme.tileLight);
+  const darkM = mat(theme.tileDark);
+  const pathM = mat(theme.path);
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const onPath = pathTiles.has(`${c},${r}`);
@@ -541,8 +617,8 @@ export function makeMap(pathTiles) {
     }
   }
 
-  // Skirting board around the room
-  const wallM = mat(0x2a1a46);
+  // Skirting board / garden fence around the room
+  const wallM = mat(theme.wall);
   for (const [sx, sz, px, pz] of [
     [w + TILE * 2, 0.6, 0, -h / 2 - TILE * 0.6],
     [w + TILE * 2, 0.6, 0, h / 2 + TILE * 0.6],
@@ -554,6 +630,36 @@ export function makeMap(pathTiles) {
     g.add(wall);
   }
 
+  if (theme.decor === 'flowers') g.add(makeFlowers(pathTiles));
+
+  return g;
+}
+
+// Little sprouts of colour on the free tiles of the garden. Deterministic-ish
+// scatter so the board reads as "planted" rather than noisy.
+function makeFlowers(pathTiles) {
+  const g = new THREE.Group();
+  const stemGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 5);
+  const headGeo = new THREE.SphereGeometry(0.22, 8, 6);
+  const stemM = mat(0x3f7a37);
+  const heads = [0xffd24a, 0xff7fbf, 0xfff0a0, 0xc07bff].map((c) => mat(c, { emissive: c, emissiveIntensity: 0.25 }));
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (pathTiles.has(`${c},${r}`)) continue;
+      if ((c * 7 + r * 5) % 6 !== 0) continue;
+      const p = tileToWorld(c, r);
+      const jx = ((c * 13 + r * 29) % 7) / 14 - 0.25;
+      const jz = ((c * 31 + r * 17) % 7) / 14 - 0.25;
+      const flower = new THREE.Group();
+      flower.add(part(stemGeo, stemM, { pos: [0, 0.25, 0] }));
+      const head = part(headGeo, heads[(c + r) % heads.length], { pos: [0, 0.56, 0], scale: [1, 0.7, 1] });
+      head.castShadow = true;
+      flower.add(head);
+      flower.position.set(p.x + jx * TILE, 0, p.z + jz * TILE);
+      flower.scale.setScalar(0.8);
+      g.add(flower);
+    }
+  }
   return g;
 }
 
@@ -562,7 +668,7 @@ export function makeMap(pathTiles) {
 export function makePathArrows(waypoints) {
   const g = new THREE.Group();
   const geo = new THREE.ConeGeometry(0.3, 0.55, 4);
-  const material = new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0.4 });
+  const material = new THREE.MeshBasicMaterial({ color: THEME.arrow, transparent: true, opacity: 0.4 });
   const arrows = [];
   for (let i = 1; i < waypoints.length; i++) {
     const a = waypoints[i - 1];

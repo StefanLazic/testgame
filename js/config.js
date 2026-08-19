@@ -1,10 +1,13 @@
 // ---------------------------------------------------------------------------
 // All balance data for Claw Defense lives here so it is easy to tweak.
+//
+// The board itself (size, lanes, theme) belongs to the *map* — see js/maps.js.
+// The exports below are live bindings that `setBoard()` swaps when the player
+// picks a different map, so every module that imports COLS/ROWS/PATHS sees the
+// change without any wiring.
 // ---------------------------------------------------------------------------
 
 export const TILE = 2;
-export const COLS = 9;
-export const ROWS = 19;
 
 // Path through the kitchen, in [col, row] tile coordinates. Pests walk the
 // centre of these tiles from the mouse hole to the milk bowl.
@@ -20,9 +23,24 @@ export const PATH2 = [
   [8, 0], [8, 3], [6, 3], [6, 6], [8, 6], [8, 9], [6, 9], [6, 12], [8, 12], [8, 16], [4, 16],
 ];
 
-// Lane 0 is the mouse hole, lane 1 is the top-right portal.
-export const PATHS = [PATH, PATH2];
-export const SECOND_LANE_WAVE = 11;
+// The kitchen is the default board; js/maps.js owns the full list.
+export let COLS = 9;
+export let ROWS = 19;
+export let PATHS = [PATH, PATH2];
+export let SECOND_LANE_WAVE = 11;
+export let THEME = {
+  floor: 0x3a2360, tileLight: 0x53377f, tileDark: 0x472e6f, path: 0x8f6a3e,
+  wall: 0x2a1a46, fog: 0x140a24, arrow: 0xffd9a0, decor: null,
+};
+
+// Swap the board. Called by js/maps.js; everything else just reads the exports.
+export function setBoard(map) {
+  COLS = map.cols;
+  ROWS = map.rows;
+  PATHS = map.paths;
+  SECOND_LANE_WAVE = map.secondLaneWave;
+  THEME = map.theme;
+}
 
 export const START_LIVES = 9;
 export const START_GOLD = 260;
@@ -62,6 +80,16 @@ export const TOWERS = {
     damage: 0, range: 7.0, rate: 0, air: true, ability: 'curse', cooldown: 60,
     blurb: 'Curses one pest every 60 s. Bosses are immune.',
   },
+  ema: {
+    name: 'Ema', icon: '🎀', cost: 190, color: 0xffc7e6, accent: 0xff4f9a,
+    damage: 0, range: 5.6, rate: 0, air: true, ability: 'aura', support: 'buff',
+    blurb: 'Cheers on every cat around her: more damage, faster paws.',
+  },
+  sofija: {
+    name: 'Sofija', icon: '💰', cost: 200, color: 0xffe08a, accent: 0xb8860b,
+    damage: 0, range: 5.2, rate: 0, air: true, ability: 'gold', support: 'gold',
+    blurb: 'Finds fish on her own, and shakes extra out of pests that fall nearby.',
+  },
   queen: {
     name: 'Mimi-chan', icon: '👑', cost: 0, color: 0xffd9ef, accent: 0xd41f6b,
     damage: 0, range: 0, rate: 0, air: true, ability: 'bow', cooldown: 10, stun: 1,
@@ -73,25 +101,110 @@ export const TOWERS = {
 TOWERS.queen.cost = 10 * Math.max(...Object.entries(TOWERS)
   .filter(([k]) => k !== 'queen').map(([, t]) => t.cost));
 
-export const TOWER_ORDER = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'witch', 'queen'];
+export const TOWER_ORDER = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'ema', 'sofija', 'witch', 'queen'];
+
+// Support cats, per collar (level 1 / 2 / 3).
+//   ema    — how much extra damage / fire rate her ribbon gives nearby cats.
+//   sofija — how often she finds a fish, how big it is, and how much more
+//            every pest that dies inside her purse is worth.
+export const SUPPORT = {
+  ema: {
+    damage: [0.18, 0.27, 0.38],
+    rate: [0.12, 0.19, 0.28],
+  },
+  sofija: {
+    interval: [8, 6.5, 5],
+    coin: [12, 19, 28],
+    bounty: [0.25, 0.4, 0.6],
+  },
+};
+
+// ------------------------------------------------------------- synergies ---
+// Two different cats standing close together egg each other on. Bonuses are
+// small on their own but they stack across different pairings, which rewards
+// building little squads instead of one long row of archers.
+export const SYNERGY_RANGE = 4.6;   // world units — about two tiles
+export const SYNERGIES = [
+  { id: 'shatter', a: 'frost', b: 'ninja', icon: '🧊', damage: 0.25 },
+  { id: 'blizzard', a: 'frost', b: 'wizard', icon: '🌩️', damage: 0.15, rate: 0.15 },
+  { id: 'lullaby', a: 'sleepy', b: 'wizard', icon: '💤', damage: 0.2 },
+  { id: 'hunt', a: 'archer', b: 'ninja', icon: '🎯', rate: 0.25 },
+  { id: 'coven', a: 'witch', b: 'wizard', icon: '🔮', range: 0.2, damage: 0.1 },
+  { id: 'charm', a: 'ema', b: 'sofija', icon: '💞', range: 0.25 },
+  { id: 'court', a: 'queen', b: 'ema', icon: '👑', rate: 0.2, damage: 0.1 },
+];
+
+// ------------------------------------------------ hybrid (branch) upgrades --
+// At the last collar a cat can specialise once, permanently, down one of two
+// paths. Every value is a multiplier on the level-3 stats.
+export const BRANCHES = {
+  archer: {
+    sniper: { icon: '🎯', damage: 1.75, range: 1.5, rate: 0.6 },
+    ranger: { icon: '🏹', damage: 0.85, rate: 1.8, range: 0.92 },
+  },
+  wizard: {
+    inferno: { icon: '🔥', damage: 1.55, rate: 0.9, splash: 1.15 },
+    nova: { icon: '💫', damage: 0.85, splash: 1.85, rate: 1.15 },
+  },
+  frost: {
+    glacier: { icon: '🧊', slow: 1.45, slowTime: 1.6, damage: 1.1, rate: 0.85 },
+    hail: { icon: '🌨️', damage: 1.5, splash: 2.2, slowTime: 0.7 },
+  },
+  ninja: {
+    assassin: { icon: '🗡️', crit: 2.2, damage: 1.35, rate: 0.85 },
+    shadow: { icon: '🌫️', rate: 1.45, range: 1.35 },
+  },
+  sleepy: {
+    dreamer: { icon: '🌙', splash: 1.6, slow: 0.45, slowTime: 2.4, damage: 0.9 },
+    boulder: { icon: '🪨', damage: 1.85, rate: 0.75, range: 1.12 },
+  },
+  ema: {
+    anthem: { icon: '📣', range: 1.75 },
+    duet: { icon: '🎶', buff: 1.55 },
+  },
+  sofija: {
+    banker: { icon: '🏦', coin: 1.7, interval: 0.85 },
+    pirate: { icon: '🏴‍☠️', bounty: 1.9, range: 1.2 },
+  },
+  witch: {
+    hex: { icon: '🪄', cooldown: 0.55 },
+    doom: { icon: '💀', range: 1.6, cooldown: 0.85 },
+  },
+};
+
+// Specialising costs a little more than a normal collar — it is the last thing
+// you will ever buy for that cat.
+export function branchCost(kind) {
+  return Math.round(TOWERS[kind].cost * 1.9);
+}
 
 export const MAX_LEVEL = 3;
 export function maxLevel(kind) { return TOWERS[kind].maxLevel || MAX_LEVEL; }
 export function upgradeCost(kind, level) {
   return Math.round(TOWERS[kind].cost * (0.75 + 0.45 * level));
 }
-// Multipliers applied at level 1 / 2 / 3.
-export function towerStats(kind, level) {
+// Multipliers applied at level 1 / 2 / 3, then the chosen hybrid path on top.
+export function towerStats(kind, level, branch = null) {
   const b = TOWERS[kind];
   const l = level - 1;
-  return {
+  const st = {
     ...b,
     damage: b.damage * (1 + 0.62 * l),
     range: b.range * (1 + 0.13 * l),
     rate: b.rate * (1 + 0.18 * l),
     splash: b.splash ? b.splash * (1 + 0.12 * l) : 0,
     slowTime: b.slowTime ? b.slowTime * (1 + 0.2 * l) : 0,
+    branch: null,
   };
+  const mods = branch && BRANCHES[kind] && BRANCHES[kind][branch];
+  if (!mods) return st;
+  st.branch = branch;
+  for (const key of ['damage', 'range', 'rate', 'splash', 'slowTime', 'crit', 'cooldown']) {
+    if (mods[key] != null) st[key] = (st[key] || 0) * mods[key];
+  }
+  // Sleepy's dream path adds a slow it never had; Frost's glacier deepens one.
+  if (mods.slow != null) st.slow = st.slow ? Math.min(0.8, st.slow * mods.slow) : mods.slow;
+  return st;
 }
 
 // The witch's curse gets nastier with every collar she earns.
@@ -142,6 +255,19 @@ export const ENEMIES = {
   monkeyking: {
     name: 'Baron Bananas', hp: 5200, speed: 2.2, bounty: 520, scale: 3.0, flying: false,
     armor: 12, leak: 4, boss: 'mini', base: 'monkey', banana: 4.0, bananaVolley: 3,
+  },
+  // ------------------------------------------- counterplay pests (wave 11+)
+  nurse: {
+    name: 'Nurse Hazel', hp: 150, speed: 3.2, bounty: 26, scale: 1.3, flying: false, leak: 1,
+    base: 'mouse', heals: { radius: 5.2, amount: 30, interval: 3.4 },
+  },
+  beetle: {
+    name: 'Shield Beetle', hp: 190, speed: 2.5, bounty: 30, scale: 1.35, flying: false, leak: 2,
+    armor: 4, shield: 260, shieldRegen: 45, shieldDelay: 4,
+  },
+  mole: {
+    name: 'Mole', hp: 200, speed: 3.1, bounty: 28, scale: 1.3, flying: false, leak: 1,
+    burrow: { interval: 3.6, duration: 2.2, speed: 2.1 },
   },
   dragon: {
     name: 'Sophie', hp: 24000, speed: 0.6, bounty: 2000, scale: 4.4, flying: true,
@@ -206,49 +332,49 @@ export const WAVES = [
     name: 'Shell Wall',
     groups: [
       ['turtle', 6, 1.6, 0, 1], ['turtle', 4, 1.8, 4],
-      ['bird', 10, 0.6, 6], ['chicken', 8, 0.6, 9, 1],
+      ['beetle', 4, 1.5, 3], ['bird', 10, 0.6, 6], ['chicken', 8, 0.6, 9, 1],
     ],
   },
   {
     name: 'Hoofbeats',
     groups: [
       ['horse', 8, 1.0, 0, 1], ['horse', 6, 1.2, 4],
-      ['dog', 8, 0.9, 7], ['pig', 6, 1.1, 10, 1],
+      ['mole', 5, 1.3, 2], ['dog', 8, 0.9, 7], ['pig', 6, 1.1, 10, 1],
     ],
   },
   {
     name: 'Monkey Business',
     groups: [
       ['monkey', 7, 1.2, 0, 1], ['monkey', 5, 1.4, 4],
-      ['chicken', 10, 0.5, 6, 1], ['turtle', 5, 1.7, 9],
+      ['nurse', 4, 1.6, 3], ['chicken', 10, 0.5, 6, 1], ['turtle', 5, 1.7, 9],
     ],
   },
   {
     name: 'MINI BOSS: Baron Bananas',
     groups: [
-      ['monkeyking', 1, 1, 0, 1], ['monkey', 8, 1.1, 6],
+      ['monkeyking', 1, 1, 0, 1], ['nurse', 3, 2.0, 4], ['monkey', 8, 1.1, 6],
       ['chicken', 12, 0.5, 9, 1], ['horse', 6, 1.2, 13],
     ],
   },
   {
     name: 'Barnyard Riot',
     groups: [
-      ['chicken', 16, 0.4, 0, 1], ['horse', 8, 1.0, 3],
-      ['pig', 6, 1.0, 6, 1], ['monkey', 8, 1.1, 10],
+      ['chicken', 16, 0.4, 0, 1], ['horse', 8, 1.0, 3], ['mole', 6, 1.2, 5],
+      ['pig', 6, 1.0, 6, 1], ['monkey', 8, 1.1, 10], ['nurse', 3, 1.8, 12],
     ],
   },
   {
     name: 'Armoured Parade',
     groups: [
-      ['turtle', 10, 1.2, 0], ['turtle', 8, 1.3, 2, 1],
-      ['dog', 10, 0.8, 6, 1], ['horse', 10, 0.9, 9],
+      ['turtle', 10, 1.2, 0], ['turtle', 8, 1.3, 2, 1], ['beetle', 8, 1.1, 4],
+      ['dog', 10, 0.8, 6, 1], ['horse', 10, 0.9, 9], ['nurse', 4, 1.6, 11],
     ],
   },
   {
     name: 'Sky Bacon',
     groups: [
-      ['pig', 10, 0.9, 0, 1], ['bird', 18, 0.45, 2],
-      ['monkey', 8, 1.0, 8, 1], ['chicken', 14, 0.4, 11],
+      ['pig', 10, 0.9, 0, 1], ['bird', 18, 0.45, 2], ['mole', 8, 1.0, 5],
+      ['monkey', 8, 1.0, 8, 1], ['chicken', 14, 0.4, 11], ['beetle', 6, 1.3, 13],
     ],
   },
   {
@@ -257,6 +383,7 @@ export const WAVES = [
       ['horse', 12, 0.8, 0, 1], ['turtle', 8, 1.2, 2],
       ['pig', 8, 0.9, 5, 1], ['monkey', 10, 0.9, 8],
       ['chicken', 16, 0.35, 11, 1], ['dog', 12, 0.7, 13],
+      ['nurse', 5, 1.4, 9], ['beetle', 6, 1.2, 15], ['mole', 8, 1.0, 17],
     ],
   },
   {
@@ -264,6 +391,7 @@ export const WAVES = [
     groups: [
       ['dragon', 1, 1, 0], ['chicken', 14, 0.5, 14, 1], ['horse', 10, 0.9, 20],
       ['pig', 8, 1.0, 26, 1], ['turtle', 8, 1.2, 32], ['monkey', 10, 1.0, 38, 1],
+      ['nurse', 6, 1.3, 30], ['beetle', 8, 1.1, 35], ['mole', 10, 0.9, 42],
     ],
   },
 ];

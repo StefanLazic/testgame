@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
-  TILE, COLS, ROWS, PATHS, SECOND_LANE_WAVE, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
-  TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME,
+  TILE, COLS, ROWS, PATHS, SECOND_LANE_WAVE, THEME, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
+  TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME, branchCost, BRANCHES,
   ENEMIES, hpScale, WAVES, waveBonus, BANANA_STUN, DRAGON,
 } from './config.js';
 import {
@@ -10,6 +10,13 @@ import {
   makeStoneShell, makePortal, makeBanana, makeEgg,
 } from './models.js';
 import { Effects } from './fx.js';
+import { settings } from './settings.js';
+import { useMap, currentMap } from './maps.js';
+import {
+  previewStats, previewTile, auraMultipliers, bountyMultiplier, goldIncome, auraBonus,
+  synergyMultipliers, branchesFor, branchStats,
+  healTargets, shieldAbsorb, shieldRegen, burrowedAt,
+} from './rules.js';
 import { t } from './i18n.js';
 
 // Enemy display names live in i18n; ENEMIES keeps the English fallback name.
@@ -35,6 +42,7 @@ export class Game {
     this.scene.fog = new THREE.Fog(0x140a24, 46, 96);
     this.camera = new THREE.PerspectiveCamera(52, 1, 0.1, 300);
 
+    this._buildLights();
     this._buildWorld();
 
     this.raycaster = new THREE.Raycaster();
@@ -47,6 +55,7 @@ export class Game {
     this.drops = [];
     this.eggs = [];
     this.hazards = [];
+    this.supports = [];
     this.enemyPool = {};
 
     this.placing = null;       // tower kind selected in the shop
@@ -54,6 +63,7 @@ export class Game {
     this.speed = 1;
     this.phase = 'idle';
     this.frenzy = 0;
+    this.paused = false;
 
     this._bindPointer();
     window.addEventListener('resize', () => this.resize());
@@ -65,7 +75,9 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ world
-  _buildWorld() {
+  // Lights never change; they live straight on the scene so swapping maps only
+  // has to throw away `this.world`.
+  _buildLights() {
     const scene = this.scene;
 
     scene.add(new THREE.HemisphereLight(0xffd9f5, 0x2a1a46, 1.15));
@@ -81,6 +93,13 @@ export class Game {
     const rim = new THREE.DirectionalLight(0x9a7bff, 0.7);
     rim.position.set(-16, 12, -14);
     scene.add(rim);
+  }
+
+  _buildWorld() {
+    const scene = this.world = new THREE.Group();
+    this.scene.add(scene);
+    this.scene.fog = new THREE.Fog(THEME.fog, 46, 96);
+    this.renderer.setClearColor(THEME.fog, 1);
 
     // Path tiles + world-space waypoints, one lane per entrance.
     this.pathTiles = new Set();
@@ -104,7 +123,7 @@ export class Game {
     }
     this.waypoints = this.lanes[0].waypoints;
 
-    scene.add(makeMap(this.pathTiles));
+    scene.add(makeMap(this.pathTiles, THEME));
     scene.add(makeStars());
     for (const lane of this.lanes) {
       lane.arrows = makePathArrows(lane.waypoints);
@@ -254,7 +273,7 @@ export class Game {
     c.addEventListener('pointerup', (e) => {
       const moved = downXY ? Math.hypot(e.clientX - downXY.x, e.clientY - downXY.y) : 0;
       downXY = null;
-      if (moved > 24) { this.ghost.visible = false; this.ghostRing.visible = false; return; }
+      if (moved > 24) { if (this.placing) this._previewGhost(this.placing); return; }
       toNDC(e);
       this._tap();
     });
@@ -341,7 +360,7 @@ export class Game {
         if (adj) spots.push({ col: c, row: r, key });
       }
     }
-    const kinds = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'witch', 'queen'];
+    const kinds = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'ema', 'sofija', 'witch', 'queen'];
     for (const kind of kinds) {
       const spot = spots.splice(Math.floor(Math.random() * spots.length), 1)[0];
       if (!spot) break;
@@ -351,8 +370,58 @@ export class Game {
     this.gold = 0;
   }
 
-  start() {
-    // Reset everything for a fresh run.
+  // ------------------------------------------------------------- support cats
+  // Ema's ribbon and Sofija's purse only change when a cat is built, upgraded
+  // or sold, so the maths is done then and cached on every tower.
+  _refreshSupports() {
+    // Pass 1: who is standing next to whom. Synergies depend only on kinds and
+    // positions, so they can be resolved before any aura maths.
+    const nodes = this.towers.map((tw) => ({ kind: tw.kind, x: tw.pos.x, z: tw.pos.z, tower: tw }));
+    for (const node of nodes) {
+      node.tower.syn = synergyMultipliers(node, nodes);
+    }
+
+    // Pass 2: the support cats, with their reach already widened by synergy.
+    this.supports = this.towers
+      .filter((tw) => TOWERS[tw.kind].support)
+      .map((tw) => ({
+        kind: tw.kind, level: tw.level, branch: tw.branch, tower: tw,
+        x: tw.pos.x, z: tw.pos.z,
+        range: towerStats(tw.kind, tw.level, tw.branch).range * tw.syn.range,
+      }));
+
+    // Pass 3: everyone's final multipliers.
+    for (const tw of this.towers) {
+      const self = this.supports.find((s) => s.tower === tw);
+      const buff = auraMultipliers(self || { x: tw.pos.x, z: tw.pos.z }, this.supports);
+      const was = tw.buff && tw.buff.buffed;
+      tw.buff = buff;
+      tw.mult = {
+        damage: buff.damage * tw.syn.damage,
+        rate: buff.rate * tw.syn.rate,
+        range: tw.syn.range,
+      };
+      if (buff.buffed && !was && this.phase !== 'demo') {
+        this.effects.ring(tw.pos.clone().setY(0.1), { color: 0xff6fae, from: 0.3, to: 2.2, life: 0.45 });
+      }
+    }
+  }
+
+  // The stats a cat actually fights with: its collar, its chosen path, Ema's
+  // ribbon and whatever squad it stands in.
+  _stats(tw) {
+    const st = towerStats(tw.kind, tw.level, tw.branch);
+    const m = tw.mult || { damage: 1, rate: 1, range: 1 };
+    return {
+      ...st,
+      damage: st.damage * m.damage,
+      rate: st.rate * m.rate,
+      range: st.range * m.range,
+    };
+  }
+
+  // Everything that lives on the board, swept off it.
+  _clearEntities() {
     for (const t of this.towers) this.scene.remove(t.group);
     for (const e of this.enemies) this.scene.remove(e.group);
     for (const b of this.bullets) this.scene.remove(b.mesh);
@@ -362,8 +431,31 @@ export class Game {
     this.towers = []; this.enemies = []; this.bullets = []; this.drops = [];
     this.eggs = []; this.hazards = [];
     this.occupied.clear();
+    this.supports = [];
+  }
+
+  // Pick another board. Only makes sense from the title screen: the diorama is
+  // rebuilt straight away so the choice is its own preview.
+  setMap(id) {
+    if (currentMap().id === id) return currentMap();
+    const map = useMap(id);
+    this._clearEntities();
+    this.selectTower(null);
+    this.setPlacing(null);
+    this.scene.remove(this.world);
+    this._buildWorld();
+    this.resize();
+    this.startDemo();
+    return map;
+  }
+
+  start() {
+    // Reset everything for a fresh run.
+    this._clearEntities();
     this.setLaneOpen(1, false);
 
+    this.paused = false;
+    if (this.ui.setPaused) this.ui.setPaused(false);
     this.lives = START_LIVES;
     this.gold = START_GOLD;
     this.wave = 0;
@@ -391,12 +483,54 @@ export class Game {
     this.ui.setSpeed(mult);
   }
 
+  // Pausing freezes the simulation but keeps rendering, so the board stays on
+  // screen behind the settings sheet. Only a live run can be paused.
+  setPaused(on) {
+    const canPause = this.phase === 'prep' || this.phase === 'running';
+    const next = !!on && canPause;
+    if (next === this.paused) return this.paused;
+    this.paused = next;
+    // Dropping the accumulated clock stops the game lurching forward on resume.
+    this.clock.getDelta();
+    if (this.ui.setPaused) this.ui.setPaused(this.paused);
+    return this.paused;
+  }
+
+  togglePause() { return this.setPaused(!this.paused); }
+
   setPlacing(kind) {
     this.placing = kind;
     this.ghost.visible = false;
     this.ghostRing.visible = false;
     if (kind) this.selectTower(null);
     this.ui.setPlacing(kind);
+    // Show the reach of the cat you are shopping for *before* you spend on it:
+    // the ghost tile and its range ring park themselves on a sensible tile and
+    // then follow your finger.
+    if (kind) {
+      const info = previewStats(kind);
+      this.ui.showPreview({ ...info, name: t(`tower.${kind}.name`), blurb: t(`tower.${kind}.blurb`), afford: this.gold >= info.cost });
+      this._previewGhost(kind);
+    } else {
+      this.ui.showPreview(null);
+    }
+  }
+
+  _previewGhost(kind) {
+    const tile = previewTile({
+      cols: COLS, rows: ROWS, pathTiles: this.pathTiles, occupied: this.occupied,
+    });
+    if (!tile) return;
+    const def = TOWERS[kind];
+    const p = tileToWorld(tile.col, tile.row);
+    this.ghost.position.set(p.x, 0.08, p.z);
+    this.ghostRing.position.set(p.x, 0.09, p.z);
+    this.ghostRing.scale.setScalar(def.range || 1);
+    const color = this.gold >= def.cost ? 0x9dffd8 : 0xff6b6b;
+    this.ghost.material.color.setHex(color);
+    this.ghostRing.material.color.setHex(color);
+    this.ghost.visible = true;
+    this.ghostRing.visible = !def.global;
   }
 
   selectTower(tower) {
@@ -406,7 +540,7 @@ export class Game {
       this.ui.showTower(null);
       return;
     }
-    const st = towerStats(tower.kind, tower.level);
+    const st = this._stats(tower);
     this.selRing.visible = !TOWERS[tower.kind].global;
     this.selRing.position.set(tower.group.position.x, 0.1, tower.group.position.z);
     this.selRing.scale.setScalar(st.range);
@@ -415,7 +549,7 @@ export class Game {
 
   _towerInfo(tower) {
     const base = TOWERS[tower.kind];
-    const st = towerStats(tower.kind, tower.level);
+    const st = this._stats(tower);
     const maxed = tower.level >= maxLevel(tower.kind);
     let ability = null;
     if (base.ability === 'curse') {
@@ -426,6 +560,20 @@ export class Game {
       });
     } else if (base.ability === 'bow') {
       ability = t('ability.bow', { stun: base.stun, cooldown: base.cooldown });
+    } else if (base.ability === 'aura') {
+      const bonus = auraBonus('ema', tower.level, tower.branch);
+      ability = t('ability.aura', {
+        damage: Math.round(bonus.damage * 100), rate: Math.round(bonus.rate * 100),
+        range: st.range.toFixed(1),
+      });
+    } else if (base.ability === 'gold') {
+      const income = goldIncome(tower.level, tower.branch);
+      const purse = Math.round((bountyMultiplier({ x: 0, z: 0 }, [{
+        kind: 'sofija', level: tower.level, branch: tower.branch, x: 0, z: 0, range: 1,
+      }]) - 1) * 100);
+      ability = t('ability.gold', {
+        coin: income.coin, interval: income.interval, bounty: purse, range: st.range.toFixed(1),
+      });
     }
     return {
       kind: tower.kind, icon: base.icon, name: t(`tower.${tower.kind}.name`), level: tower.level, maxed, ability,
@@ -435,7 +583,51 @@ export class Game {
       sellValue: Math.floor(tower.spent * 0.7),
       canAfford: !maxed && this.gold >= upgradeCost(tower.kind, tower.level),
       global: !!base.global,
+      buffed: !!(tower.buff && tower.buff.buffed),
+      synergies: (tower.syn ? tower.syn.ids : []).map((id) => ({ id, name: t(`synergy.${id}.name`) })),
+      branch: tower.branch,
+      branchName: tower.branch ? t(`branch.${tower.kind}.${tower.branch}.name`) : null,
+      branches: tower.branch ? [] : branchesFor(tower.kind, tower.level).map((b) => ({
+        id: b.id, icon: b.icon, cost: b.cost,
+        name: t(`branch.${tower.kind}.${b.id}.name`),
+        blurb: t(`branch.${tower.kind}.${b.id}.blurb`),
+        afford: this.gold >= b.cost,
+        stats: branchStats(tower.kind, b.id),
+      })),
     };
+  }
+
+  // Walking a cat down one of its two hybrid paths. One-way, on purpose.
+  chooseBranch(id) {
+    const tw = this.selected;
+    if (!tw || tw.branch || tw.level < maxLevel(tw.kind)) return;
+    const mods = BRANCHES[tw.kind] && BRANCHES[tw.kind][id];
+    if (!mods) return;
+    const cost = branchCost(tw.kind);
+    if (this.gold < cost) { sfx.deny(); this.ui.toast(t('toast.poor')); return; }
+    this.gold -= cost;
+    tw.spent += cost;
+    tw.branch = id;
+    tw.pop = 0.6;
+
+    // A visible badge so a specialised cat reads at a glance: a glowing gem
+    // above its head in the colour of the path.
+    const gem = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.24),
+      new THREE.MeshLambertMaterial({ color: 0xfff0a0, emissive: 0x6b5200 })
+    );
+    gem.position.set(0, 1.95, 0);
+    tw.group.add(gem);
+    tw.group.userData.badge = gem;
+
+    this.effects.ring(tw.pos.clone().setY(0.1), { color: 0xfff0a0, from: 0.3, to: 4.2, life: 0.7 });
+    this.effects.burst(tw.pos.clone().setY(1.6), { count: 22, color: 0xfff0a0, speed: 6, size: 0.5 });
+    this.effects.kick(0.4);
+    sfx.upgrade();
+    this._refreshSupports();
+    this.ui.setGold(this.gold);
+    this.ui.toast(t('toast.branch', { name: t(`branch.${tw.kind}.${id}.name`) }));
+    this.selectTower(tw);
   }
 
   placeTower(kind, tile) {
@@ -455,9 +647,15 @@ export class Game {
       group: model.group, head: model.head, arm: model.arm, body: model.body,
       cool: 0, recoil: 0, pos: new THREE.Vector3(p.x, 0.9, p.z), pop: 0, disabledT: 0,
       abilityCool: TOWERS[kind].ability ? TOWERS[kind].cooldown : 0,
+      branch: null,
+      buff: { damage: 1, rate: 1, buffed: false },
+      syn: { damage: 1, rate: 1, range: 1, ids: [] },
+      mult: { damage: 1, rate: 1, range: 1 },
+      incomeT: TOWERS[kind].support === 'gold' ? goldIncome(1).interval : 0,
     };
     this.towers.push(tower);
     this.occupied.set(tile.key, tower);
+    this._refreshSupports();
     this.effects.ring(p, { color: 0x9dffd8, from: 0.3, to: 2.4, life: 0.4 });
     this.effects.burst(new THREE.Vector3(p.x, 0.6, p.z), { count: 10, color: 0xfff0d8, speed: 3, size: 0.35 });
     sfx.place();
@@ -465,6 +663,7 @@ export class Game {
     this.ghost.visible = false;
     this.ghostRing.visible = false;
     if (this.gold < cost) this.setPlacing(null);
+    else this._previewGhost(kind);
     this.ui.setGold(this.gold);
   }
 
@@ -489,6 +688,7 @@ export class Game {
     this.effects.ring(tw.group.position, { color: 0xffd166, from: 0.3, to: 2.6, life: 0.45 });
     this.effects.burst(tw.pos, { count: 14, color: 0xffd166, speed: 4, size: 0.4 });
     sfx.upgrade();
+    this._refreshSupports();
     this.ui.setGold(this.gold);
     this.selectTower(tw);
   }
@@ -501,6 +701,7 @@ export class Game {
     this.occupied.delete(tw.tile);
     this.towers.splice(this.towers.indexOf(tw), 1);
     this.scene.remove(tw.group);
+    this._refreshSupports();
     this.effects.burst(tw.pos, { count: 12, color: 0xff9ec4, speed: 3.4, size: 0.4 });
     sfx.sell();
     this.ui.setGold(this.gold);
@@ -598,6 +799,7 @@ export class Game {
       spawnT: 0, spawnTimer: 3.5, enraged: false,
       stunT: 0, bowT: 0, stone: null,
       layT: Math.random() * 2, bananaT: Math.random(), summonIdx: 0, smashT: 0, swarmT: 0,
+      healT: 0, shield: def.shield || 0, sinceHit: 99, burrowT: Math.random() * 2, burrowed: false,
     };
     e.pos = start;
     if (e.flying) {
@@ -656,9 +858,25 @@ export class Game {
   // ---------------------------------------------------------------- combat
   damage(e, amount, { crit = false } = {}) {
     if (!e.alive) return;
+    if (e.burrowed) return;          // nothing can touch it underground
     const armor = e.def.armor || 0;
     const dealt = Math.max(amount * 0.25, amount - armor);
-    e.hp -= dealt;
+    e.sinceHit = 0;
+    if (e.shield > 0) {
+      const after = shieldAbsorb({ hp: e.hp, shield: e.shield }, dealt);
+      e.hp = after.hp;
+      e.shield = after.shield;
+      if (after.absorbed > 0) {
+        this.effects.trail(e.group.position.clone().setY(e.group.position.y + 0.8), 0x6bd8ff, 0.3);
+      }
+      if (after.broke) {
+        this.effects.ring(e.group.position, { color: 0x6bd8ff, from: 0.4, to: 3.4, life: 0.45 });
+        this.effects.burst(e.group.position.clone().setY(0.7), { count: 16, color: 0x6bd8ff, speed: 5, size: 0.4 });
+        sfx.pop();
+      }
+    } else {
+      e.hp -= dealt;
+    }
     e.hurt = 0.12;
     if (crit) this.effects.burst(e.group.position.clone().setY(e.group.position.y + 0.6), { count: 6, color: 0xffe066, speed: 4, size: 0.3, life: 0.4 });
     if (e.hp <= 0) this._kill(e);
@@ -672,7 +890,8 @@ export class Game {
       sfx.pop();
       return;
     }
-    const bounty = Math.round(e.def.bounty * (1 + 0.02 * this.wave));
+    const purse = bountyMultiplier(e.group.position, this.supports);
+    const bounty = Math.round(e.def.bounty * (1 + 0.02 * this.wave) * purse);
     this.gold += bounty;
     this.kills++;
     this.ui.setGold(this.gold, true);
@@ -712,7 +931,7 @@ export class Game {
   }
 
   _fire(tower, target) {
-    const st = towerStats(tower.kind, tower.level);
+    const st = this._stats(tower);
     const from = tower.pos.clone().setY(1.15);
     const mesh = makeBullet(st.bullet);
     mesh.position.copy(from);
@@ -762,6 +981,7 @@ export class Game {
   // ----------------------------------------------------------------- frame
   _frame() {
     const raw = Math.min(this.clock.getDelta(), 0.05);
+    if (this.paused) { this.renderer.render(this.scene, this.camera); return; }
     if (this.phase === 'prep' || this.phase === 'running' || this.phase === 'demo') {
       const dt = raw * (this.phase === 'demo' ? 1 : this.speed);
       this.update(dt, raw);
@@ -773,7 +993,7 @@ export class Game {
   }
 
   _shakeCamera(dt) {
-    const s = this.effects.shake;
+    const s = settings.get('shake') ? this.effects.shake : 0;
     if (s > 0.001) {
       this.camera.position.set(
         this.camBase.x + (Math.random() - 0.5) * s,
@@ -901,6 +1121,61 @@ export class Game {
         }
       }
 
+      // Nurse Hazel patches up whoever is worst off around her.
+      if (e.def.heals && !e.burrowed) {
+        e.healT += dt;
+        if (e.healT >= e.def.heals.interval) {
+          e.healT = 0;
+          const here = { x: e.group.position.x, z: e.group.position.z };
+          const friends = this.enemies.map((o) => ({
+            ref: o, alive: o.alive && !o.burrowed, hp: o.hp, maxHp: o.maxHp,
+            x: o.group.position.x, z: o.group.position.z,
+          }));
+          const me = friends[this.enemies.indexOf(e)];
+          const targets = healTargets(me || here, friends, e.def.heals.radius);
+          if (targets.length) {
+            this.effects.ring(e.group.position, { color: 0x6bff9a, from: 0.4, to: e.def.heals.radius * 2, life: 0.5 });
+            for (const target of targets) {
+              const o = target.ref;
+              o.hp = Math.min(o.maxHp, o.hp + e.def.heals.amount);
+              this.effects.trail(o.group.position.clone().setY(o.group.position.y + 0.8), 0x6bff9a, 0.35);
+            }
+          }
+        }
+      }
+
+      // Shield beetles rebuild their barrier if you let them breathe.
+      if (e.def.shield) {
+        e.sinceHit += dt;
+        const before = e.shield;
+        e.shield = shieldRegen({ shield: e.shield, sinceHit: e.sinceHit }, e.def, dt);
+        const bubble = e.model.group.userData.shield;
+        if (bubble) {
+          const frac = e.shield / e.def.shield;
+          bubble.visible = frac > 0.02;
+          bubble.material.opacity = 0.1 + frac * 0.22;
+          bubble.rotation.y += dt * 0.8;
+          bubble.scale.setScalar(0.9 + frac * 0.2);
+        }
+        if (before === 0 && e.shield > 0) sfx.pop();
+      }
+
+      // Moles dive under the floor, where nothing can reach them, then pop up
+      // again somewhere further along.
+      if (e.def.burrow) {
+        e.burrowT += dt;
+        const under = burrowedAt(e.burrowT, e.def.burrow);
+        if (under !== e.burrowed) {
+          e.burrowed = under;
+          this.effects.burst(e.group.position.clone().setY(0.3), { count: 14, color: 0x8a6b4a, speed: 4, size: 0.45 });
+          this.effects.ring(e.group.position, { color: 0x8a6b4a, from: 0.3, to: 2.4, life: 0.4 });
+          sfx.pop();
+        }
+        e.model.group.visible = !under;
+        e.bar.group.visible = !under;
+        if (under) speed *= e.def.burrow.speed;
+      }
+
       // Move along the route
       const route = e.route;
       let step = speed * dt;
@@ -956,7 +1231,7 @@ export class Game {
 
       // Health bar + hurt flash
       const ratio = Math.max(0, e.hp / e.maxHp);
-      e.bar.group.visible = ratio < 0.999;
+      e.bar.group.visible = ratio < 0.999 && !e.burrowed;
       e.bar.fg.scale.x = 1.06 * ratio;
       e.bar.fg.material.color.setHex(ratio > 0.55 ? 0x6bff9a : ratio > 0.25 ? 0xffd166 : 0xff5b5b);
       if (e.hurt > 0) {
@@ -994,7 +1269,7 @@ export class Game {
   _updateTowers(dt) {
     const frenzy = this.frenzy > 0 ? 2 : 1;
     for (const t of this.towers) {
-      const st = towerStats(t.kind, t.level);
+      const st = this._stats(t);
       // Banana'd: the cat sits there seeing stars and does nothing at all.
       if (t.disabledT > 0) {
         t.disabledT -= dt;
@@ -1003,8 +1278,10 @@ export class Game {
         if (t.disabledT <= 0) { t.disabledT = 0; t.group.rotation.z = 0; }
         continue;
       }
+      const buff = t.buff || { damage: 1, rate: 1, buffed: false };
+      if (TOWERS[t.kind].support) { this._updateSupport(t, st, dt, frenzy); continue; }
       if (st.ability) { this._updateAbility(t, st, dt, frenzy); continue; }
-      t.cool -= dt * st.rate * frenzy;
+      t.cool -= dt * st.rate * buff.rate * frenzy;
       const target = this._pickTarget(t, st);
 
       if (target) {
@@ -1029,11 +1306,54 @@ export class Game {
       if (t.arm) t.arm.position.z = 0.28 - t.recoil * 0.18;
       const spin = t.group.userData.spin;
       if (spin) spin.rotation.y += dt * 14;
+      const badge = t.group.userData.badge;
+      if (badge) { badge.rotation.y += dt * 2.2; badge.position.y = 1.95 + Math.sin(this.time * 3) * 0.06; }
       const glow = t.group.userData.glow;
       if (glow) glow.scale.setScalar(0.2 + Math.sin(this.time * 4 + t.pos.z) * 0.03 + (this.frenzy > 0 ? 0.06 : 0));
     }
   }
 
+
+  // Support cats never shoot. Ema pulses her ribbon over the cats she is
+  // helping; Sofija counts down to the next fish she digs up.
+  _updateSupport(tower, st, dt, frenzy) {
+    if (tower.pop > 0) tower.pop = Math.max(0, tower.pop - dt);
+    const breathe = 1 + Math.sin(this.time * 3.2 + tower.pos.x) * 0.03;
+    const s = (TOWER_SCALE + (tower.level - 1) * 0.1) * breathe * (1 + tower.pop * 0.5);
+    tower.group.scale.setScalar(s);
+    tower.group.rotation.y += dt * 0.6;
+    const spin = tower.group.userData.spin;
+    if (spin) spin.rotation.y += dt * 6;
+
+    if (tower.kind === 'ema') {
+      const glow = tower.group.userData.glow;
+      const pulse = 0.5 + Math.sin(this.time * 3) * 0.5;
+      if (glow) glow.scale.setScalar(0.18 + pulse * 0.08);
+      if (Math.random() < dt * 3) {
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.random() * st.range;
+        this.effects.trail(
+          new THREE.Vector3(tower.pos.x + Math.cos(a) * r, 0.4 + Math.random() * 1.2, tower.pos.z + Math.sin(a) * r),
+          0xff6fae, 0.3
+        );
+      }
+      return;
+    }
+
+    // Sofija: a fish every few seconds, faster while the queen has the board
+    // in a frenzy.
+    const income = goldIncome(tower.level, tower.branch);
+    tower.incomeT -= dt * frenzy;
+    if (tower.incomeT > 0) return;
+    tower.incomeT = income.interval;
+    tower.pop = 0.4;
+    if (this.phase === 'demo') return;
+    this.gold += income.coin;
+    this.ui.setGold(this.gold, true);
+    this.effects.ring(tower.pos.clone().setY(0.1), { color: 0xffd166, from: 0.3, to: 2.4, life: 0.5 });
+    this.effects.burst(tower.pos.clone().setY(1.4), { count: 10, color: 0xffd166, speed: 3.4, size: 0.4 });
+    sfx.coin();
+  }
 
   // Ability cats (witch, queen) don't shoot — they charge a timer and then do
   // something dramatic to the whole board.
@@ -1070,7 +1390,7 @@ export class Game {
   }
 
   _cursable(e) {
-    return e.alive && !e.def.boss && !e.def.cursed && !e.stone;
+    return e.alive && !e.def.boss && !e.def.cursed && !e.stone && !e.burrowed;
   }
 
   _pickCurseTarget(t, st) {
@@ -1155,7 +1475,7 @@ export class Game {
     let best = null;
     let bestProgress = -1;
     for (const e of this.enemies) {
-      if (!e.alive || e.intro != null) continue;
+      if (!e.alive || e.intro != null || e.burrowed) continue;
       if (e.flying && !st.air) continue;
       const dx = e.group.position.x - t.pos.x;
       const dz = e.group.position.z - t.pos.z;

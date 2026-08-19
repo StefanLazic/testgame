@@ -25,6 +25,9 @@ balance data lives in [`js/config.js`](../js/config.js) (`ENEMIES`, `WAVES`,
 | 🐔 Chicken | 80 | 5.2 | 12 | — | 1 | no |
 | 🐣 Chick | 26 | 4.6 | 4 | — | 1 | no |
 | 🐒 Monkey | 170 | 3.4 | 24 | 3 | 2 | no |
+| 💉 Nurse Hazel | 150 | 3.2 | 26 | — | 1 | no |
+| 🛡️ Shield Beetle | 190 (+260 shield) | 2.5 | 30 | 4 | 2 | no |
+| 🕳️ Mole | 200 | 3.1 | 28 | — | 1 | no |
 | 👑 Sir Barksalot (mini boss, wave 5) | 1200 | 1.7 | 220 | 8 | 3 | no |
 | 👑 The Rat King (boss, wave 10) | 6000 | 1.5 | 600 | 10 | 9 | no |
 | 🍌 Baron Bananas (mini boss, wave 15) | 5200 | 2.2 | 520 | 12 | 4 | no |
@@ -105,6 +108,28 @@ The monkey king: 5200 HP, 12 armour, and a **volley of 3 bananas every 4
 seconds**, so he can black out a third of your board at once. Enters through the
 second door. Leaks 4 lives, always drops catnip.
 
+### 💉 Nurse Hazel
+A medic in a little white coat. Every 3.4 s she heals **every other pest within
+5.2 tiles for 30 HP** (never herself, never above their maximum), which quietly
+undoes chip damage across a whole group. *Counter:* kill her first — she is soft
+— or bring burst damage (Wizard, Ninja) that outruns the heal. A Witch curse
+turns her into a harmless Frog.
+
+### 🛡️ Shield Beetle
+Wears a shimmering blue barrier worth **260 points of damage on top of its 190
+HP and 4 armour**. Damage eats the shield before it touches health, and if the
+beetle goes **4 seconds without being hit the shield regenerates at 45/s** —
+the bubble visibly fades back in as it recharges. *Counter:* sustained fire.
+Anything that keeps hitting it stops the regeneration; slow single-shot setups
+will never break through.
+
+### 🕳️ Mole
+Dives underground every 3.6 s for 2.2 s. While burrowed it is **completely
+untargetable and immune to damage, curses and splashes**, and it moves at speed
+2.1 instead of 3.1 — a little slower, but unstoppable. *Counter:* depth. Because
+you cannot burst it in one spot, spread your damage along the lane so it is shot
+every time it surfaces, and use Frost to keep it in range longer.
+
 ### 🐉 Sophie — final boss (wave 20)
 A dragon with 24000 HP and 18 armour who **flies** straight for the bowl, so
 ground-only cats cannot touch her. She arrives in a cinematic entrance —
@@ -146,6 +171,11 @@ first 55% of the route, so Sophie can never teleport a boss next to the bowl.
 - **Two lanes** — from wave 11 the second door is open and waves spawn from both
   entrances at once (each wave group names its lane in `WAVES`). The lanes merge
   on the bottom row, and both finish at the milk bowl.
+- **Healing** — Nurse Hazel restores HP to nearby pests (never herself, capped
+  at their maximum).
+- **Shields** — the Shield Beetle's barrier absorbs damage before health and
+  regenerates after `shieldDelay` seconds without a hit.
+- **Burrowing** — a burrowed Mole cannot be targeted, damaged or cursed.
 - **Cats can be attacked** — bananas disable a cat for 3 seconds; Sophie's fire
   destroys one outright. These are the only two ways the pests fight back.
 
@@ -164,15 +194,15 @@ first 55% of the route, so Sophie can never teleport a boss next to the bowl.
 | 9 | Everything At Once | dogs, birds, snakes, mice |
 | 10 | BOSS: The Rat King | The Rat King, dogs, birds, snakes |
 | 11 | The Second Door | chickens, flying pigs (new lane), mice, snakes |
-| 12 | Shell Wall | turtles (both lanes), birds, chickens |
-| 13 | Hoofbeats | horses (both lanes), dogs, flying pigs |
-| 14 | Monkey Business | monkeys (both lanes), chickens, turtles |
-| 15 | MINI BOSS: Baron Bananas | Baron Bananas, monkeys, chickens, horses |
-| 16 | Barnyard Riot | chickens, horses, flying pigs, monkeys |
-| 17 | Armoured Parade | turtles, dogs, horses |
-| 18 | Sky Bacon | flying pigs, birds, monkeys, chickens |
-| 19 | Everything, Twice | horses, turtles, pigs, monkeys, chickens, dogs |
-| 20 | FINAL BOSS: Sophie the Dragon | Sophie, chickens, horses, pigs, turtles, monkeys |
+| 12 | Shell Wall | turtles (both lanes), **shield beetles**, birds, chickens |
+| 13 | Hoofbeats | horses (both lanes), **moles**, dogs, flying pigs |
+| 14 | Monkey Business | monkeys (both lanes), **nurses**, chickens, turtles |
+| 15 | MINI BOSS: Baron Bananas | Baron Bananas, **nurses**, monkeys, chickens, horses |
+| 16 | Barnyard Riot | chickens, horses, **moles**, flying pigs, monkeys, **nurses** |
+| 17 | Armoured Parade | turtles, **shield beetles**, dogs, horses, **nurses** |
+| 18 | Sky Bacon | flying pigs, birds, **moles**, monkeys, chickens, **shield beetles** |
+| 19 | Everything, Twice | horses, turtles, pigs, monkeys, chickens, dogs, **all three pests** |
+| 20 | FINAL BOSS: Sophie the Dragon | Sophie, chickens, horses, pigs, turtles, monkeys, **all three pests** |
 
 Waves 1–10 are unchanged; waves 11–20 use both lanes.
 
@@ -201,4 +231,7 @@ languages when an enemy or wave is added or renamed.
 | `chick` | Chick | Pile |
 | `monkey` | Monkey | Majmun |
 | `monkeyking` | Baron Bananas | Baron Banana |
+| `nurse` | Nurse Hazel | Sestra Lejla |
+| `beetle` | Shield Beetle | Buba sa štitom |
+| `mole` | Mole | Krtica |
 | `dragon` | Sophie | Sofi |

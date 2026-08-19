@@ -293,3 +293,205 @@ as before.
   `1 + 0.17 × (wave − 1)` ramp for waves 1–10 and switches to a gentler
   `+0.09` per wave afterwards — the barnyard already brings its own bulk, and
   waves 1–10 stay bit-for-bit identical.
+
+## 2026-08-19 — a test suite, at last
+
+The game had no automated tests: every session ended with a hand-driven
+headless playtest that nobody could repeat later. That is now a committed,
+**zero-dependency** suite that runs on plain node and plain Chromium.
+
+- **`package.json`** exists only so the tests have somewhere to live —
+  `npm test` runs the unit tests, `npm run test:browser` runs the smoke test,
+  `npm run test:all` runs both. There are no dependencies, no build step, and
+  `index.html` still opens straight off the filesystem.
+- **Unit tests** (`tests/unit/*.test.js`, node's built-in test runner) import
+  `js/config.js` and `js/i18n.js` directly — both are pure and three.js-free.
+  They lock down the balance invariants (every wave spawns a real enemy, boss
+  waves have bosses, upgrade costs rise, the queen stays priced at 10× the
+  priciest cat) and, importantly, **translation parity**: every key must exist
+  in both languages with matching `{placeholders}`, and every cat, enemy and
+  wave must have a name. A missing Serbian string used to be invisible until a
+  player tripped over it.
+- **Browser smoke test** (`tests/browser/smoke.test.js`) serves the repository
+  from a tiny node static server and drives real headless Chromium through the
+  **Chrome DevTools Protocol** over node 22's built-in `WebSocket` — no
+  puppeteer, no playwright, nothing in `node_modules`. It emulates a 390×844
+  phone with touch enabled, taps the actual buttons with `Input.dispatchTouchEvent`,
+  and asserts: the title screen renders, WebGL initialised and built the board,
+  Play starts a run, a cat can be bought and placed, a wave spawns pests, the
+  cats kill something — and the console stayed clean the whole time.
+- Two tiny production tweaks were needed to make `js/i18n.js` importable in
+  node: `STRINGS` is exported (so parity can be asserted) and `applyStatic()`
+  returns early when there is no DOM.
+
+## 2026-08-19 — pause, and a place to put settings ⏸
+
+The game had a fast-forward chip but no way to stop, and no way to turn the
+sound off — awkward on a phone, where a run could be lost to an incoming call.
+
+- **`js/settings.js` (new)** is a tiny store: defaults, JSON in `localStorage`
+  under `cd-settings`, change listeners, and a hard rule that it must never
+  throw. Private mode, blocked cookies, hand-edited garbage, no storage object
+  at all — every case falls back to the defaults, and all of them are unit
+  tested (`tests/unit/settings.test.js`).
+- **Pause** (`game.setPaused`) freezes the simulation but keeps rendering, so
+  the board stays visible behind the sheet. It also drops the accumulated
+  `Clock` delta on both edges — without that, resuming after ten seconds in
+  another app would lurch the whole wave forward in one frame. The test asserts
+  the prep timer doesn't move while paused and doesn't jump on resume.
+- **The sheet** offers Resume, Restart run, Quit to title and two settings:
+  🔊 sound and 〰️ screen shake. Muting keeps the WebAudio graph alive and just
+  closes the master gain, so nothing has to be rebuilt when it comes back.
+  Screen shake off makes `_shakeCamera` a no-op for anyone who finds the camera
+  kicks unpleasant.
+- **Auto-pause** on `visibilitychange` and `blur`, plus Escape/P on a desktop
+  keyboard. The ⏸ chip is a 44 px touch target next to the speed chip.
+
+## 2026-08-19 — see the reach before you spend 🎯
+
+Buying a cat used to be an act of faith: the range ring only appeared once your
+finger was already on the floor, and the shop button showed a price and nothing
+else.
+
+- **`js/rules.js` (new)** is where pure gameplay maths now lives — no three.js,
+  no DOM, so it can be unit tested. It starts with `previewStats(kind)` (the
+  level 1 numbers the shop shows) and `previewTile(...)`, which parks the
+  preview on the free tile next to the lane closest to the middle of the board.
+- **Selecting a cat in the shop** immediately shows the ghost tile *and* its
+  range ring on that tile, sized to the cat's real range, tinted mint when you
+  can afford it and red when you can't. Dragging moves it as before; a drag that
+  ends nowhere snaps the preview back instead of hiding it.
+- **A preview card** sits above the shop with the icon, name, price, damage /
+  range / fire rate and whether the cat can hit air. Ability cats (Witch,
+  Mimi-chan) show their blurb instead of pretend damage numbers, and the queen —
+  who has no range at all — says so and draws no ring.
+- Tests: `tests/unit/rules.test.js` for the pure part, `tests/browser/preview.test.js`
+  for the real UI, including that the card stays inside a 390 px phone screen.
+- The CDP helper learned to `scrollIntoView` before tapping and to fail loudly
+  if something covers the target — the seven-cat shop row scrolls horizontally,
+  so a naive tap on the queen used to land on the kitchen floor instead.
+
+## 2026-08-19 — A second battlefield: The Garden
+
+The board is no longer baked into `config.js`. `js/maps.js` owns the list of
+maps (size, lanes, theme, scenery) and `setBoard()` swaps the live bindings
+`COLS`, `ROWS`, `PATHS`, `SECOND_LANE_WAVE` and `THEME` that everything else
+imports — ES module live bindings mean no wiring had to change.
+
+* **The Kitchen** — unchanged, so waves 1–10 still play exactly as before (a
+  unit test asserts the lanes byte-for-byte).
+* **The Garden** — 11×17 instead of 9×19: wider, shorter, sunnier. Grass
+  checkerboard, a dirt path, a fence, and little flowers sprouting on the free
+  tiles. The route is shorter, so leaks arrive sooner, but there is much more
+  room to build.
+
+A map picker sits on the title screen. Tapping a card rebuilds the diorama
+immediately — the choice previews itself — and the pick is remembered in
+settings (`map`), so a reload drops you back on your board.
+
+Engine changes: lights moved to `_buildLights()` (built once) and the board
+into a `this.world` group that `setMap()` throws away and rebuilds;
+`_clearEntities()` is now shared by `start()` and `setMap()`.
+
+Tests: `tests/unit/maps.test.js` validates every lane (in bounds, axis-aligned,
+no zero-length segments, starts on an edge, all lanes end at the bowl, at least
+60 buildable tiles) and that `useMap()` really swaps the live bindings.
+`tests/browser/maps.test.js` taps through the picker, checks persistence across
+a reload, and plays a wave on the garden.
+
+## 2026-08-19 — Support cats: Ema and Sofija
+
+Two cats that never fire a shot.
+
+* **🎀 Ema** (🐟 190) buffs every cat inside her ribbon: +18% damage / +12% fire
+  rate at level 1, up to +38% / +28% at level 3. Ribbons never stack (only the
+  strongest Ema in reach counts) and she never cheers for herself, so spamming
+  Emas is a trap. A buffed cat says "🎀 cheered on by Ema" in its panel and
+  gets a little pink ring when the ribbon first reaches it.
+* **💰 Sofija** (🐟 200) digs up fish on her own — 🐟 12 every 8 s, 🐟 28 every
+  5 s at level 3 — and every pest that dies inside her purse is worth 25–60%
+  more. Purses do not stack either. She speeds up during the queen's frenzy.
+
+The maths lives in `js/rules.js` (`auraBonus`, `auraMultipliers`, `goldIncome`,
+`bountyMultiplier`) over a `SUPPORT` table in `config.js`, so it is all unit
+tested. The engine caches the result on each tower (`tower.buff`) and only
+recomputes it when a cat is built, upgraded or sold — no per-frame distance
+scans.
+
+Both cats got hand-built models: Ema has a giant bow, pompoms and a floating
+heart; Sofija wears a merchant's visor and flips a fish coin over a coin purse.
+
+Tests: `tests/unit/support.test.js` (aura/purse maths, no stacking, no
+self-buff, clamping) and `tests/browser/support.test.js` (shop entries, a
+neighbour really gets buffed, the panel badge, selling removes the buff, gold
+ticks up on its own, kills near Sofija pay more).
+
+## 2026-08-19 — Squads and hybrid paths
+
+Two systems that reward thinking about *where* cats stand and *what* they
+become.
+
+**Squads (synergies).** Two different cats within 4.6 units of each other buff
+one another: Shatter (Frost + Ninja), Blizzard (Frost + Wizard), Lullaby
+(Sleepy + Wizard), The Hunt (Archer + Ninja), Coven (Witch + Wizard), Charm
+(Ema + Sofija) and Royal Court (Mimi-chan + Ema). A pairing counts once, but
+different pairings stack — so a mixed squad beats a row of clones. Active
+squads show as ✦ badges in the tower panel.
+
+**Hybrid paths.** At the last collar a cat can specialise once, permanently,
+for 1.9× its base cost. The panel offers two cards (Sniper vs Ranger, Inferno
+vs Nova, Glacier vs Hailstorm, Assassin vs Shadow, Dreamer vs Boulder, Anthem
+vs Duet, Banker vs Pirate, Hexer vs Doomsayer) and the cat gets a floating gem
+plus a ✧ line in its panel. Every path is a multiplier table in
+`BRANCHES` (config), applied inside `towerStats(kind, level, branch)`, so the
+support maths, the previews and the engine all pick it up for free.
+
+The engine now resolves multipliers in three passes when the board changes
+(synergies → support ranges → auras) and caches the result per tower, so the
+per-frame cost is one small object.
+
+Tests: `tests/unit/synergy.test.js` (pairing rules, no self-synergy, no double
+counting, branch tables well formed, unknown branches ignored),
+`tests/unit/i18n.test.js` grew a check that every path and squad is translated,
+and `tests/browser/synergy.test.js` builds a squad, sells the partner, upgrades
+to the last collar, buys a path and fights a wave with it.
+
+## 2026-08-19 — Enemy counterplay: nurses, beetles and moles
+
+Waves 11+ now include three pests that each break one of the game's rules, so
+that a single perfect tower can no longer answer everything. Waves 1–10 are
+untouched (a unit test asserts this) — the new pests only appear once the
+second door opens.
+
+**💉 Nurse Hazel** heals every *other* pest within 5.2 tiles for 30 HP every
+3.4 s, capped at their maximum. She punishes chip damage: kill her first or
+bring burst.
+
+**🛡️ Shield Beetle** carries a 260-point barrier on top of 190 HP and 4 armour.
+Damage eats the shield before health, and after 4 quiet seconds the shield
+regrows at 45/s — the wireframe bubble around it fades back in as it recharges.
+It rewards sustained fire and punishes slow single shots.
+
+**🕳️ Mole** dives for 2.2 s every 3.6 s. Underground it is untargetable and
+immune to damage, curses and splash, but it also travels slower, so the trade
+is time for safety. Spread your damage down the lane instead of stacking it.
+
+All three behaviours are pure functions first — `healTargets`, `shieldAbsorb`,
+`shieldRegen` and `burrowedAt` in `js/rules.js` — with the engine only doing
+the bookkeeping. That kept the TDD loop fast and means the rules are testable
+without a browser.
+
+Also fixed a real bug found while wiring this up: Ema's damage aura was being
+applied twice in `_fire` (once via the cached multiplier and again directly).
+
+Tests: `tests/unit/pests.test.js` (heal targeting/self-exclusion/HP cap, shield
+absorb + overkill + regen delay, burrow cycle timing, waves 1–10 frozen) and
+`tests/browser/pests.test.js` (spawns each pest live, shoots a beetle through
+its shield, watches it regrow, watches a nurse heal a dying mouse, and watches
+a mole dive and resurface).
+
+## 2026-08-19 — Final pass
+
+README now covers the test harness, the two maps, the nine cats (including the
+support pair), squads and paths, and hints at the three new pests without
+spoiling them. Full suite green: 70 unit tests and 56 browser tests.

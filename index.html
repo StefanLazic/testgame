@@ -23,6 +23,7 @@
       <div class="chip gold">🐟 <span id="gold-text">0</span></div>
       <div class="chip wave">🌊 <span id="wave-text">1 / 20</span></div>
       <button id="btn-speed" class="chip btn" type="button" data-i18n-aria="hud.speed" aria-label="Brzina igre">▶▶ <span id="speed-text">1×</span></button>
+      <button id="btn-pause" class="chip btn pause" type="button" data-i18n-aria="hud.pause" aria-label="Pauza">⏸</button>
     </div>
 
     <div id="boss-bar" class="hidden">
@@ -45,10 +46,24 @@
     <div id="tower-panel" class="hidden">
       <div class="tp-head"><span id="tp-icon">🐱</span><b id="tp-name">Mačka</b><span id="tp-level" class="lvl">Niv 1</span></div>
       <div class="tp-stats" id="tp-stats"></div>
+      <div class="tp-branches hidden" id="tp-branches">
+        <div class="tp-branch-title" data-i18n="hud.branchTitle">Izaberi put — ovo je zauvek</div>
+        <div class="tp-branch-row" id="tp-branch-row"></div>
+      </div>
       <div class="tp-actions">
         <button id="btn-upgrade" class="pill up" type="button"><span data-i18n="hud.upgrade">Unapredi</span> <span id="tp-upcost">🐟 0</span></button>
         <button id="btn-sell" class="pill sell" type="button"><span data-i18n="hud.sell">Prodaj</span> <span id="tp-sell">🐟 0</span></button>
         <button id="btn-close-panel" class="pill ghost" type="button" data-i18n-aria="hud.close" aria-label="Zatvori panel">✕</button>
+      </div>
+    </div>
+
+    <!-- Range / stat preview for the cat you are shopping for -->
+    <div id="preview-card" class="hidden">
+      <span class="pv-ic" id="pv-icon">🏹</span>
+      <div class="pv-body">
+        <div class="pv-top"><b id="pv-name">Strelac</b><span class="pv-cost" id="pv-cost">🐟 70</span></div>
+        <div class="pv-stats" id="pv-stats"></div>
+        <div class="pv-hint" id="pv-hint" data-i18n="hud.previewHint">Dodirni slobodno polje — prsten pokazuje domet.</div>
       </div>
     </div>
 
@@ -64,6 +79,7 @@
     <div class="panel">
       <h1><span class="cat">👑</span> Mimi-chan <span class="w">Defense</span></h1>
       <p class="tag" data-i18n="title.tagline">Sedam mačaka. Deset talasa. Jedna činija mleka koju treba odbraniti.</p>
+      <div class="maps" id="map-picker" role="group" aria-label="Map" data-i18n-aria="title.mapPick"></div>
       <button id="btn-play" class="big" type="button" data-i18n="title.play">Igraj</button>
       <button id="btn-help" class="ghost" type="button" data-i18n="title.help">Kako se igra</button>
       <button id="btn-lang" class="lang" type="button" data-i18n="lang.switch">English</button>
@@ -87,6 +103,25 @@
         <li data-i18n-html="help.bosses"><b>Talasi 5, 10, 15 i 20:</b> dva mini-bosa, kralj — a onda nešto sa krilima.</li>
       </ul>
       <button id="btn-help-back" class="big" type="button" data-i18n="help.back">Jasno mi je</button>
+    </div>
+  </div>
+
+  <!-- Pause + settings sheet -->
+  <div id="pause" class="screen hidden">
+    <div class="panel">
+      <h2 data-i18n="pause.title">Pauza</h2>
+      <p class="tag" data-i18n="pause.sub">Mleko je bezbedno dok razmišljaš.</p>
+      <div class="settings">
+        <button id="btn-sound" class="toggle" type="button">
+          <span data-i18n="pause.sound">🔊 Zvuk</span><b id="sound-state">Uklj.</b>
+        </button>
+        <button id="btn-shake" class="toggle" type="button">
+          <span data-i18n="pause.shake">〰️ Trešenje ekrana</span><b id="shake-state">Uklj.</b>
+        </button>
+      </div>
+      <button id="btn-resume" class="big" type="button" data-i18n="pause.resume">Nastavi</button>
+      <button id="btn-restart" class="ghost" type="button" data-i18n="pause.restart">Počni ispočetka</button>
+      <button id="btn-quit" class="ghost" type="button" data-i18n="pause.quit">Izađi na naslovnu</button>
     </div>
   </div>
 
