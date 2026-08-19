@@ -117,6 +117,21 @@ export const sfx = {
   emilijaSleep() {
     [660, 520, 392, 294].forEach((f, i) => tone({ freq: f, type: 'sine', dur: 0.4, vol: 0.18, slide: -40, delay: i * 0.1 }));
   },
+  // ------------------------------------------------------------ the family
+  katana() { noise({ dur: 0.14, vol: 0.2, freq: 3200, q: 1.6 }); tone({ freq: 1800, type: 'triangle', dur: 0.12, vol: 0.1, slide: -900 }); },
+  bushido() {
+    noise({ dur: 0.45, vol: 0.3, freq: 2600, q: 1.1 });
+    [880, 1175, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.24, vol: 0.2, delay: i * 0.05 }));
+    tone({ freq: 130, type: 'sawtooth', dur: 0.5, vol: 0.2, slide: -50 });
+  },
+  whistle() { tone({ freq: 1800, type: 'square', dur: 0.28, vol: 0.14, slide: 260 }); noise({ dur: 0.28, vol: 0.12, freq: 3000, q: 2 }); },
+  bounce() { tone({ freq: 220, type: 'sine', dur: 0.16, vol: 0.22, slide: -120 }); noise({ dur: 0.1, vol: 0.12, freq: 500 }); },
+  swish() { noise({ dur: 0.3, vol: 0.2, freq: 1600, q: 0.9 }); tone({ freq: 660, type: 'sine', dur: 0.2, vol: 0.14, slide: -260 }); },
+  stomp() { tone({ freq: 70, type: 'square', dur: 0.5, vol: 0.36, slide: -30 }); noise({ dur: 0.45, vol: 0.3, freq: 200, q: 0.5 }); },
+  roar() {
+    [90, 70, 110].forEach((f, i) => tone({ freq: f, type: 'sawtooth', dur: 0.9, vol: 0.34, slide: 30, delay: i * 0.25 }));
+    noise({ dur: 1.2, vol: 0.3, freq: 160, q: 0.4 });
+  },
   victory() { [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.34, vol: 0.26, delay: i * 0.14 })); },
   gameover() { [440, 370, 294, 220].forEach((f, i) => tone({ freq: f, type: 'sawtooth', dur: 0.4, vol: 0.22, delay: i * 0.18 })); },
 };

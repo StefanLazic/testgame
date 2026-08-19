@@ -3,6 +3,7 @@ import { initAudio } from './audio.js';
 import { settings } from './settings.js';
 import { MAPS, currentMap } from './maps.js';
 import { TOWERS, TOWER_ORDER, WAVES } from './config.js';
+import { canPlaceTower } from './rules.js';
 import { t, toggleLang, onLangChange, applyStatic } from './i18n.js';
 
 applyStatic();
@@ -75,7 +76,13 @@ const ui = {
     for (const k of TOWER_ORDER) shopButtons[k].classList.toggle('sel', k === kind);
   },
   refreshShop() {
-    for (const k of TOWER_ORDER) shopButtons[k].classList.toggle('poor', this.gold < TOWERS[k].cost);
+    const towers = (typeof game !== 'undefined' && game && game.towers) || [];
+    for (const k of TOWER_ORDER) {
+      // A cat you cannot have any more of is locked, not just unaffordable.
+      const maxed = !canPlaceTower(k, towers);
+      shopButtons[k].classList.toggle('locked', maxed);
+      shopButtons[k].classList.toggle('poor', maxed || this.gold < TOWERS[k].cost);
+    }
     if (this.towerInfo && game && game.selected) this.showTower(game._towerInfo(game.selected));
     if (this.preview) $('preview-card').classList.toggle('poor', this.gold < this.preview.cost);
   },

@@ -175,6 +175,30 @@ export function makeCatTower(kind, palette) {
     arm.add(coin);
     g.userData.spin = coin;
     g.userData.glow = coin;
+  } else if (kind === 'simba') {
+    // Simba-kun: topknot, headband, shoulder armour and a katana he keeps
+    // half-drawn, because he expects trouble.
+    head.add(part(BOX, mat(0xd8203c), { pos: [0, 0.22, 0.02], scale: [0.72, 0.12, 0.66] }));
+    head.add(part(BOX, mat(0xd8203c), { pos: [-0.36, 0.2, -0.3], scale: [0.08, 0.1, 0.6], rot: [0.4, 0, 0] }));
+    head.add(part(SPHERE, mat(0x3a2a1c), { pos: [0, 0.4, -0.06], scale: [0.16, 0.24, 0.16] }));
+    for (const s of [-1, 1]) {
+      g.add(part(SPHERE, accM, { pos: [0.42 * s, 0.66, 0.02], scale: [0.3, 0.16, 0.3] }));
+    }
+    g.add(part(new THREE.CylinderGeometry(0.06, 0.05, 1.1, 6), mat(0x241730), {
+      pos: [-0.34, 0.42, -0.16], rot: [0.2, 0, -0.5],
+    }));
+    const blade = part(BOX, mat(0xeef3ff, { emissive: 0x66708c }), {
+      pos: [0.34, 0.36, 0.18], scale: [0.06, 0.06, 1.15], rot: [0.35, 0.2, 0],
+    });
+    arm.add(blade);
+    arm.add(part(BOX, mat(0x2a1a2e), { pos: [0.34, 0.16, -0.28], scale: [0.09, 0.09, 0.34], rot: [0.35, 0.2, 0] }));
+    arm.add(part(new THREE.TorusGeometry(0.12, 0.03, 6, 10), mat(0xffd166, { emissive: 0x6b5200 }), {
+      pos: [0.34, 0.24, -0.06], rot: [1.2, 0, 0],
+    }));
+    g.userData.blade = blade;
+    const spark = part(SPHERE, new THREE.MeshBasicMaterial({ color: 0xfff0c0 }), { pos: [0.34, 0.7, 0.6], scale: [0.14, 0.14, 0.14] });
+    g.add(spark);
+    g.userData.glow = spark;
   } else if (kind === 'queen') {
     // Mimi-chan: crown, cape, pearls, and an expression of total authority.
     const crown = new THREE.Group();
@@ -220,6 +244,7 @@ function makePillow(size = 0.6) {
 const ENEMY_BASE = {
   golden: 'mouse', baron: 'dog', ratking: 'mouse', chick: 'chicken', monkeyking: 'monkey',
   nurse: 'mouse', beetle: 'turtle', mole: 'mouse', flutterling: 'emilija',
+  gymrat: 'mouse', granny: 'mouse', simonaclone: 'simona',
 };
 
 export function makeEnemy(kind) {
@@ -502,6 +527,82 @@ export function makeEnemy(kind) {
         }));
       }
     },
+    // ------------------------------------------------------- the family --
+    // Simona, her brother Stefo and their father are people, not pests, and
+    // they are built from the same handful of spheres.
+    simona: () => {
+      const skinM = mat(0xffd9b8);
+      const suitM = mat(0xff2e88, { emissive: 0x5c0033 });
+      const hairM = mat(0x3a2418);
+      g.add(part(SPHERE, suitM, { pos: [0, 1.1, 0], scale: [0.5, 0.8, 0.38] }));
+      g.add(part(SPHERE, suitM, { pos: [0, 0.72, 0], scale: [0.46, 0.4, 0.36] }));
+      head = part(SPHERE, skinM, { pos: [0, 1.72, 0.02], scale: [0.36, 0.42, 0.36] });
+      g.add(head);
+      head.add(part(SPHERE, hairM, { pos: [0, 0.3, -0.1], scale: [1.05, 0.7, 1.05] }));
+      head.add(part(SPHERE, hairM, { pos: [0, 0.24, -1.0], scale: [0.5, 0.5, 0.9] }));
+      for (const s of [-1, 1]) {
+        head.add(part(SPHERE, mat(0x1b0a24), { pos: [0.4 * s, 0.05, 0.72], scale: [0.16, 0.2, 0.1] }));
+        const arm = part(SPHERE, skinM, { pos: [0.44 * s, 1.24, 0], scale: [0.14, 0.5, 0.16] });
+        g.add(arm); legs.push(arm);
+        const leg = part(SPHERE, skinM, { pos: [0.2 * s, 0.34, 0], scale: [0.16, 0.44, 0.18] });
+        g.add(leg); legs.push(leg);
+        g.add(part(SPHERE, mat(0xfff0f8), { pos: [0.2 * s, 0.06, 0.06], scale: [0.17, 0.1, 0.24] }));
+      }
+      g.add(part(new THREE.TorusGeometry(0.34, 0.05, 6, 14), mat(0xffd166, { emissive: 0x6b5200 }), {
+        pos: [0, 1.06, 0], rot: [Math.PI / 2, 0, 0],
+      }));
+      const ribbon = part(new THREE.TorusGeometry(0.5, 0.05, 6, 16), mat(0xffe066, { emissive: 0x8a6b00 }), {
+        pos: [0.7, 1.5, 0], rot: [0.4, 0.4, 0],
+      });
+      g.add(ribbon);
+      g.userData.ribbon = ribbon;
+    },
+    stefo: () => {
+      const skinM = mat(0xffd9b8);
+      const jerseyM = mat(0xff8a1f, { emissive: 0x5c2a00 });
+      g.add(part(SPHERE, jerseyM, { pos: [0, 1.25, 0], scale: [0.6, 0.86, 0.44] }));
+      g.add(part(BOX, mat(0x241730), { pos: [0, 0.78, 0], scale: [0.9, 0.42, 0.76] }));
+      head = part(SPHERE, skinM, { pos: [0, 1.98, 0.02], scale: [0.38, 0.44, 0.38] });
+      g.add(head);
+      head.add(part(SPHERE, mat(0x241a12), { pos: [0, 0.28, -0.04], scale: [1.04, 0.66, 1.04] }));
+      for (const s of [-1, 1]) {
+        head.add(part(SPHERE, mat(0x1b0a24), { pos: [0.4 * s, 0.04, 0.7], scale: [0.16, 0.2, 0.1] }));
+        const arm = part(SPHERE, skinM, { pos: [0.58 * s, 1.36, 0.06], scale: [0.16, 0.56, 0.18], rot: [0, 0, 0.2 * s] });
+        g.add(arm); legs.push(arm);
+        const leg = part(SPHERE, skinM, { pos: [0.24 * s, 0.34, 0], scale: [0.19, 0.46, 0.2] });
+        g.add(leg); legs.push(leg);
+        g.add(part(SPHERE, mat(0xfff0f8), { pos: [0.24 * s, 0.07, 0.08], scale: [0.2, 0.11, 0.26] }));
+      }
+      g.add(part(BOX, mat(0xfff6e8), { pos: [0, 1.36, 0.42], scale: [0.09, 0.34, 0.02] }));
+      const ball = makeBasketball();
+      ball.position.set(0.74, 1.5, 0.26);
+      g.add(ball);
+      g.userData.ball = ball;
+    },
+    father: () => {
+      const skinM = mat(0xf0c49a);
+      const shirtM = mat(0x2f6bd8, { emissive: 0x0a1f4a });
+      const hairM = mat(0x2a1c14);
+      g.add(part(SPHERE, shirtM, { pos: [0, 1.5, 0], scale: [1.1, 1.05, 0.82] }));
+      g.add(part(BOX, mat(0x241730), { pos: [0, 0.86, 0], scale: [1.5, 0.5, 1.2] }));
+      g.add(part(new THREE.TorusGeometry(0.28, 0.09, 6, 12), mat(0xffd166, { emissive: 0x6b5200 }), {
+        pos: [0, 0.88, 0.62], rot: [Math.PI / 2, 0, 0],
+      }));
+      head = part(SPHERE, skinM, { pos: [0, 2.42, 0.04], scale: [0.5, 0.54, 0.5] });
+      g.add(head);
+      head.add(part(SPHERE, hairM, { pos: [0, 0.3, -0.16], scale: [1.02, 0.6, 1.0] }));
+      head.add(part(BOX, hairM, { pos: [0, -0.34, 0.62], scale: [0.7, 0.16, 0.2] }));   // moustache
+      for (const s of [-1, 1]) {
+        head.add(part(SPHERE, mat(0x1b0a24), { pos: [0.4 * s, 0.06, 0.7], scale: [0.16, 0.18, 0.1] }));
+        head.add(part(BOX, hairM, { pos: [0.4 * s, 0.4, 0.6], scale: [0.34, 0.1, 0.14], rot: [0, 0, -0.2 * s] }));
+        const arm = part(SPHERE, skinM, { pos: [1.05 * s, 1.6, 0.06], scale: [0.28, 0.62, 0.3], rot: [0, 0, 0.3 * s] });
+        g.add(arm); legs.push(arm);
+        g.add(part(SPHERE, skinM, { pos: [1.3 * s, 1.02, 0.1], scale: [0.3, 0.3, 0.34] }));
+        const leg = part(SPHERE, mat(0x1c2740), { pos: [0.4 * s, 0.4, 0], scale: [0.32, 0.5, 0.34] });
+        g.add(leg); legs.push(leg);
+        g.add(part(BOX, mat(0x120c18), { pos: [0.4 * s, 0.09, 0.12], scale: [0.4, 0.18, 0.6] }));
+      }
+    },
   };
 
   const kindDef = ENEMY_BASE[kind] || kind;
@@ -621,8 +722,59 @@ export function makeEnemy(kind) {
     g.traverse((o) => { if (o.isMesh && o.material.color && o.material.color.getHex() === 0x8a6244) o.material = mat(0x5f3f2a); });
   }
 
+  if (kind === 'gymrat') {
+    // A mouse who never skips leg day: red fur, a sweatband and dumbbells.
+    g.traverse((o) => {
+      if (o.isMesh && o.material.color && o.material.color.getHex() === 0x9aa4b2) o.material = mat(0xb85c4a);
+    });
+    g.add(part(BOX, mat(0xff3b6b), { pos: [0, 0.52, 0.3], scale: [0.44, 0.1, 0.4] }));
+    for (const s of [-1, 1]) {
+      const bar = part(new THREE.CylinderGeometry(0.04, 0.04, 0.5, 6), mat(0x9aa4b2), { pos: [0.42 * s, 0.16, 0.24], rot: [0, 0, Math.PI / 2] });
+      g.add(bar);
+      for (const e of [-1, 1]) {
+        g.add(part(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 8), mat(0x2a2a3c), { pos: [0.42 * s + e * 0.22, 0.16, 0.24], rot: [0, 0, Math.PI / 2] }));
+      }
+    }
+  }
+  if (kind === 'granny') {
+    // Grandma Vera: lilac perm, shawl, spectacles and an endless ball of wool.
+    g.traverse((o) => {
+      if (o.isMesh && o.material.color && o.material.color.getHex() === 0x9aa4b2) o.material = mat(0xcfc3d8);
+    });
+    g.add(part(SPHERE, mat(0xb07bd6), { pos: [0, 0.5, 0.34], scale: [0.4, 0.34, 0.36] }));
+    g.add(part(CONE, mat(0x7a4fb0), { pos: [0, 0.4, -0.2], scale: [1.0, 0.7, 1.1], rot: [Math.PI, 0, 0] }));
+    for (const s of [-1, 1]) {
+      g.add(part(new THREE.TorusGeometry(0.12, 0.02, 6, 12), mat(0xfff6e8), { pos: [0.13 * s, 0.38, 0.56] }));
+    }
+    const wool = part(SPHERE, mat(0xff8ad8, { emissive: 0x6b1a4a }), { pos: [0.42, 0.24, 0.1], scale: [0.3, 0.3, 0.3] });
+    g.add(wool);
+    g.userData.wool = wool;
+    for (const s of [-1, 1]) {
+      g.add(part(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 5), mat(0xdcc39a), { pos: [0.2 * s, 0.45, 0.3], rot: [0.4, 0, 0.3 * s] }));
+    }
+  }
+  if (kind === 'simonaclone') {
+    // A copy: paler leotard, ghostly glow, so nobody shoots the wrong sister.
+    g.traverse((o) => {
+      if (!o.isMesh || !o.material.color) return;
+      const hex = o.material.color.getHex();
+      if (hex === 0xff2e88) o.material = mat(0x8fe6ff, { emissive: 0x0a3a5c, transparent: true, opacity: 0.9 });
+      else if (hex === 0xffd9b8) o.material = mat(0xdff2ff, { transparent: true, opacity: 0.9 });
+    });
+  }
+
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   return { group: g, head, legs };
+}
+
+// A basketball. Stefo brings his own.
+export function makeBasketball(r = 0.34) {
+  const g = new THREE.Group();
+  g.add(part(SPHERE, mat(0xff8a1f, { emissive: 0x4a2000 }), { scale: [r * 2, r * 2, r * 2] }));
+  for (const rot of [[0, 0, 0], [Math.PI / 2, 0, 0], [0, 0, Math.PI / 2]]) {
+    g.add(part(new THREE.TorusGeometry(r * 1.01, r * 0.06, 4, 14), mat(0x1b0a12), { rot }));
+  }
+  return g;
 }
 
 // A banana thrown by a monkey — the same shape as the one they carry.
@@ -834,6 +986,13 @@ export function makeBullet(type) {
   }
   if (type === 'star') {
     return new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.04, 4), mat(0xe8ecff, { emissive: 0x555c74 }));
+  }
+  if (type === 'slash') {
+    // A crescent of moonlight — the arc the katana leaves behind.
+    const g = new THREE.Group();
+    g.add(part(new THREE.TorusGeometry(0.34, 0.06, 5, 12, Math.PI * 0.8), new THREE.MeshBasicMaterial({ color: 0xeef3ff }), { rot: [Math.PI / 2, 0, 0] }));
+    g.add(part(new THREE.TorusGeometry(0.26, 0.03, 5, 10, Math.PI * 0.7), new THREE.MeshBasicMaterial({ color: 0xffd166 }), { rot: [Math.PI / 2, 0, 0.2] }));
+    return g;
   }
   // pan
   const g = new THREE.Group();
