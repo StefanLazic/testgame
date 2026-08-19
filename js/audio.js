@@ -110,6 +110,13 @@ export const sfx = {
     noise({ dur: 0.8, vol: 0.34, freq: 900, q: 0.5 });
     tone({ freq: 140, type: 'sawtooth', dur: 0.6, vol: 0.26, slide: -70 });
   },
+  emilijaChime() {
+    [1046, 1318, 1568, 2093].forEach((f, i) => tone({ freq: f, type: 'sine', dur: 0.5, vol: 0.2, delay: i * 0.08 }));
+    tone({ freq: 140, type: 'triangle', dur: 0.9, vol: 0.18, slide: 40 });
+  },
+  emilijaSleep() {
+    [660, 520, 392, 294].forEach((f, i) => tone({ freq: f, type: 'sine', dur: 0.4, vol: 0.18, slide: -40, delay: i * 0.1 }));
+  },
   victory() { [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.34, vol: 0.26, delay: i * 0.14 })); },
   gameover() { [440, 370, 294, 220].forEach((f, i) => tone({ freq: f, type: 'sawtooth', dur: 0.4, vol: 0.22, delay: i * 0.18 })); },
 };

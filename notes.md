@@ -495,3 +495,50 @@ a mole dive and resurface).
 README now covers the test harness, the two maps, the nine cats (including the
 support pair), squads and paths, and hints at the three new pests without
 spoiling them. Full suite green: 70 unit tests and 56 browser tests.
+
+## 2026-08-19 — Waves 21–30 and Emilija the butterfly
+
+Two things were wrong or missing after the last pull request.
+
+**The instructions had drifted.** The title screen still said "Seven cats.
+Twenty waves." while the roster had grown to nine (Ema, Sofija and Mimi-chan
+joined), and the how-to-play screen never mentioned the support cats, squads,
+hybrid paths or the counterplay pests. Fixed in `js/i18n.js` (both languages)
+and `index.html`: the tagline now reads nine cats / thirty waves, the boss line
+lists all six boss waves, and there are new bullets for support cats, squads &
+paths, the awkward pests and Emilija herself. The HUD wave chip ships with
+`1 / 30` and the total already came from `WAVES.length`, so nothing else had to
+change.
+
+**Ten new waves (21–30).** Wave 25 is the first double mini-boss: Sir
+Barksalot and Baron Bananas walk in together, one from each door. Waves 27 and
+29 seed a few *flutterlings* — small butterflies that foreshadow what is coming
+— and wave 30 is the new final boss.
+
+**🦋 Emilija.** An enormous butterfly with 52 000 HP and 22 armour who never
+touches a cat. She glides in on a spiral of glitter (her own cinematic, banner
+and warning toasts, mirroring Sophie's wave-20 arrival), then every **13 s**
+plays one of three tricks, never the same one twice in a row:
+
+1. **Shuffle** — every cat swaps tiles with another cat. Squads, synergies and
+   Ema's ribbon are all recalculated, so your careful layout becomes someone
+   else's careful layout.
+2. **Sleep** — a third of your army (rounded up, never all of it) falls asleep
+   until her *next* trick, i.e. 13 s.
+3. **Children** — three flutterlings peel off her wings and fly for the milk.
+
+13 s was chosen so that a trick lands roughly four times per minute: long
+enough to rebuild and re-target after a shuffle, short enough that the board
+never feels settled. Sleep lasting exactly until the next trick means the two
+disruptive tricks can never stack, which keeps the fight readable.
+
+The three tricks are pure functions in `js/rules.js` — `shufflePlan` (a
+derangement, so nobody keeps their own tile), `sleepPicks` and `nextTrick` —
+with the engine only doing the bookkeeping, matching how the pest counterplay
+was built. Sleeping cats now snore blue Zs instead of banana stars, and the
+existing `disabledT` timer does the actual work.
+
+Tests: `tests/unit/emilija.test.js` (seeded PRNG: shuffle keeps the same tiles
+and never leaves a cat in place, sleep picks a third and never the whole army,
+tricks never repeat) plus new assertions in `tests/unit/config.test.js` for the
+30-wave table, the double mini-boss and waves 1–20 being untouched.

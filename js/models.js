@@ -219,7 +219,7 @@ function makePillow(size = 0.6) {
 // Some enemies reuse another enemy's body and just add regalia on top.
 const ENEMY_BASE = {
   golden: 'mouse', baron: 'dog', ratking: 'mouse', chick: 'chicken', monkeyking: 'monkey',
-  nurse: 'mouse', beetle: 'turtle', mole: 'mouse',
+  nurse: 'mouse', beetle: 'turtle', mole: 'mouse', flutterling: 'emilija',
 };
 
 export function makeEnemy(kind) {
@@ -456,6 +456,49 @@ export function makeEnemy(kind) {
       }
       g.add(part(CONE, hornM, { pos: [0, 0.6, -4.0], scale: [0.4, 0.8, 0.4], rot: [-Math.PI / 2, 0, 0] }));
     },
+    // Emilija: an enormous, unreasonably pretty butterfly.
+    emilija: () => {
+      const bodyM = mat(0x4b2a6b);
+      const glowM = mat(0xff8ad8, { emissive: 0x6b1046 });
+      const wingM = mat(0xc46bff, { emissive: 0x3a0a5c, side: THREE.DoubleSide });
+      const wingM2 = mat(0xff7ad0, { emissive: 0x5c0a3a, side: THREE.DoubleSide });
+      const dotM = mat(0xffe066, { emissive: 0x6b5200, side: THREE.DoubleSide });
+      // Segmented abdomen.
+      for (let i = 0; i < 5; i++) {
+        g.add(part(SPHERE, i % 2 ? bodyM : glowM, {
+          pos: [0, 1.1, -i * 0.42], scale: [0.44 - i * 0.05, 0.44 - i * 0.05, 0.5 - i * 0.04],
+        }));
+      }
+      g.add(part(SPHERE, bodyM, { pos: [0, 1.15, 0.45], scale: [0.56, 0.56, 0.7] }));
+      head = part(SPHERE, bodyM, { pos: [0, 1.3, 1.0], scale: [0.46, 0.44, 0.46] });
+      g.add(head);
+      // Big shiny eyes, a smile, and two curling antennae.
+      for (const s of [-1, 1]) {
+        head.add(part(SPHERE, mat(0xfff0ff, { emissive: 0x5a2a6b }), { pos: [0.42 * s, 0.16, 0.34], scale: [0.44, 0.5, 0.36] }));
+        head.add(part(SPHERE, mat(0x1b0a24), { pos: [0.44 * s, 0.14, 0.54], scale: [0.24, 0.3, 0.18] }));
+        head.add(part(new THREE.CylinderGeometry(0.03, 0.02, 1.1, 5), bodyM, {
+          pos: [0.3 * s, 1.0, 0.1], rot: [0.3, 0, 0.5 * s],
+        }));
+        head.add(part(SPHERE, glowM, { pos: [0.78 * s, 1.5, 0.24], scale: [0.2, 0.2, 0.2] }));
+        // Two wings a side: a broad upper wing and a smaller lower one.
+        const wing = new THREE.Group();
+        wing.position.set(0.3 * s, 1.2, 0.1);
+        wing.userData.side = s;
+        const upper = part(CIRCLE, wingM, { pos: [1.9 * s, 0.9, -0.1], scale: [4.4, 3.6, 1], rot: [0, Math.PI / 2 * (s > 0 ? -1 : 1), 0] });
+        const lower = part(CIRCLE, wingM2, { pos: [1.5 * s, -0.8, -0.5], scale: [3.0, 2.6, 1], rot: [0, Math.PI / 2 * (s > 0 ? -1 : 1), 0] });
+        wing.add(upper, lower);
+        for (const [y, z, r] of [[1.5, 0.4, 0.5], [0.6, -0.9, 0.36], [-0.9, -0.3, 0.3]]) {
+          wing.add(part(CIRCLE, dotM, {
+            pos: [1.94 * s, y, z], scale: [r, r, 1], rot: [0, Math.PI / 2 * (s > 0 ? -1 : 1), 0],
+          }));
+        }
+        g.add(wing); legs.push(wing);
+        // Dainty little legs.
+        g.add(part(new THREE.CylinderGeometry(0.04, 0.02, 0.6, 5), bodyM, {
+          pos: [0.28 * s, 0.85, 0.4], rot: [0.2, 0, 0.5 * s],
+        }));
+      }
+    },
   };
 
   const kindDef = ENEMY_BASE[kind] || kind;
@@ -546,6 +589,16 @@ export function makeEnemy(kind) {
       if (o.isMesh && o.material.color && o.material.color.getHex() === 0xfff6e8) {
         o.material = mat(0xffe066);
       }
+    });
+  }
+  if (kind === 'flutterling') {
+    // Emilija's children: paler, greener wings so they read as "not the boss".
+    g.traverse((o) => {
+      if (!o.isMesh || !o.material.color) return;
+      const hex = o.material.color.getHex();
+      if (hex === 0xc46bff) o.material = mat(0x8fe6ff, { emissive: 0x0a3a5c, side: THREE.DoubleSide });
+      else if (hex === 0xff7ad0) o.material = mat(0xa8ffd8, { emissive: 0x0a5c3a, side: THREE.DoubleSide });
+      else if (hex === 0x4b2a6b) o.material = mat(0x2f4a6b);
     });
   }
   if (kind === 'monkeyking') {

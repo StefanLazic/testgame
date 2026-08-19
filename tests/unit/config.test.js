@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   TOWERS, TOWER_ORDER, ENEMIES, WAVES, MAX_LEVEL, maxLevel, upgradeCost, towerStats,
-  hpScale, waveBonus, CURSES,
+  hpScale, waveBonus, CURSES, EMILIJA,
 } from '../../js/config.js';
 
 test('every tower in TOWER_ORDER exists and vice versa', () => {
@@ -62,7 +62,7 @@ test('enemies are well formed', () => {
 });
 
 test('every wave references real enemies and sane timings', () => {
-  assert.ok(WAVES.length >= 20);
+  assert.ok(WAVES.length >= 30);
   WAVES.forEach((wave, i) => {
     assert.ok(wave.name, `wave ${i + 1} name`);
     assert.ok(wave.groups.length, `wave ${i + 1} groups`);
@@ -74,11 +74,35 @@ test('every wave references real enemies and sane timings', () => {
   });
 });
 
-test('waves 5, 10, 15 and 20 are boss waves', () => {
-  for (const n of [5, 10, 15, 20]) {
+test('waves 5, 10, 15, 20, 25 and 30 are boss waves', () => {
+  for (const n of [5, 10, 15, 20, 25, 30]) {
     const kinds = WAVES[n - 1].groups.map(([k]) => k);
     assert.ok(kinds.some((k) => ENEMIES[k].boss), `wave ${n} needs a boss`);
   }
+});
+
+test('wave 25 fields two mini-bosses and wave 30 is Emilija', () => {
+  const minis = WAVES[24].groups.map(([k]) => k).filter((k) => ENEMIES[k].boss === 'mini');
+  assert.equal(minis.length, 2, 'wave 25 needs two mini-bosses');
+  const finals = WAVES[29].groups.map(([k]) => k).filter((k) => ENEMIES[k].boss === 'main');
+  assert.deepEqual(finals, ['emilija']);
+  assert.ok(ENEMIES.emilija.butterfly && ENEMIES.emilija.flying);
+});
+
+test('Emilija\'s children are smaller and weaker than she is', () => {
+  const mum = ENEMIES.emilija;
+  const kid = ENEMIES[EMILIJA.spawn];
+  assert.ok(kid, 'the summoned kind must exist');
+  assert.ok(kid.hp < mum.hp && kid.scale < mum.scale);
+  assert.equal(kid.base, 'emilija');
+  assert.equal(EMILIJA.spawnCount, 3);
+  assert.ok(EMILIJA.ability > 0 && EMILIJA.sleepFraction > 0 && EMILIJA.sleepFraction < 1);
+  assert.deepEqual([...EMILIJA.tricks].sort(), ['shuffle', 'sleep', 'spawn']);
+});
+
+test('waves 1-20 are untouched by the new chapter', () => {
+  assert.equal(WAVES[19].name, 'FINAL BOSS: Sophie the Dragon');
+  assert.equal(WAVES[0].groups.length, 1);
 });
 
 test('difficulty ramps never go backwards', () => {
