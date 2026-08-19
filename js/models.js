@@ -219,6 +219,7 @@ function makePillow(size = 0.6) {
 // Some enemies reuse another enemy's body and just add regalia on top.
 const ENEMY_BASE = {
   golden: 'mouse', baron: 'dog', ratking: 'mouse', chick: 'chicken', monkeyking: 'monkey',
+  nurse: 'mouse', beetle: 'turtle', mole: 'mouse',
 };
 
 export function makeEnemy(kind) {
@@ -491,6 +492,54 @@ export function makeEnemy(kind) {
     g.traverse((o) => { if (o.isMesh && o.material.color && o.material.color.getHex() === 0x9aa4b2) o.material = mat(0x63527f); });
   }
 
+  if (kind === 'nurse') {
+    // A field medic: white coat, red cross cap, little satchel.
+    g.traverse((o) => {
+      if (o.isMesh && o.material.color && o.material.color.getHex() === 0x9aa4b2) o.material = mat(0xf6f6fa);
+    });
+    const cap = part(new THREE.CylinderGeometry(0.26, 0.26, 0.1, 10), mat(0xffffff), { pos: [0, 0.62, 0.3] });
+    g.add(cap);
+    for (const rot of [0, Math.PI / 2]) {
+      g.add(part(BOX, mat(0xff3b5b, { emissive: 0x6b0010 }), { pos: [0, 0.68, 0.3], scale: [0.22, 0.07, 0.07], rot: [0, 0, rot] }));
+    }
+    const bag = part(BOX, mat(0xffffff), { pos: [0.34, 0.28, -0.05], scale: [0.22, 0.2, 0.26] });
+    g.add(bag);
+    g.add(part(BOX, mat(0xff3b5b), { pos: [0.46, 0.28, -0.05], scale: [0.02, 0.12, 0.04] }));
+  }
+  if (kind === 'beetle') {
+    // Chitin instead of shell, and a hovering hexagonal barrier.
+    g.traverse((o) => {
+      if (!o.isMesh || !o.material.color) return;
+      const hex = o.material.color.getHex();
+      if (hex === 0x3f8f5a) o.material = mat(0x2f3f7a);
+      else if (hex === 0x2c6b42) o.material = mat(0x1d2a5c);
+      else if (hex === 0xa8d86b) o.material = mat(0x8fa6ff);
+    });
+    for (const s of [-1, 1]) {
+      g.add(part(CONE, mat(0x6bd8ff, { emissive: 0x1b5b78 }), { pos: [0.22 * s, 0.9, 0.6], scale: [0.1, 0.34, 0.1], rot: [-0.5, 0, 0.3 * s] }));
+    }
+    const bubble = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1.15, 1),
+      new THREE.MeshBasicMaterial({ color: 0x6bd8ff, transparent: true, opacity: 0.24, wireframe: true })
+    );
+    bubble.position.set(0, 0.55, 0);
+    g.add(bubble);
+    g.userData.shield = bubble;
+  }
+  if (kind === 'mole') {
+    // Velvet fur, huge digging claws, tiny sunglasses.
+    g.traverse((o) => {
+      if (o.isMesh && o.material.color && o.material.color.getHex() === 0x9aa4b2) o.material = mat(0x4a3d55);
+    });
+    for (const s of [-1, 1]) {
+      const claw = part(SPHERE, mat(0xf0e0c0), { pos: [0.3 * s, 0.18, 0.34], scale: [0.16, 0.14, 0.26] });
+      g.add(claw);
+      for (let i = -1; i <= 1; i++) {
+        claw.add(part(CONE, mat(0xfff6e0), { pos: [i * 0.4, -0.1, 0.9], scale: [0.22, 0.5, 0.22], rot: [1.4, 0, 0] }));
+      }
+    }
+    g.add(part(BOX, mat(0x120c18), { pos: [0, 0.4, 0.52], scale: [0.34, 0.1, 0.06] }));
+  }
   if (kind === 'chick') {
     // Fluffy yellow baby version of the chicken.
     g.traverse((o) => {

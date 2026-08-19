@@ -161,3 +161,40 @@ export function branchStats(kind, branch) {
     branch: st.branch,
   };
 }
+
+// -------------------------------------------------------- pest counterplay
+// Three pests that punish a one-note defence: one heals, one shields, one
+// burrows. All three behaviours are plain maths so they can be tested.
+
+// Damaged, living friends inside a healer's reach.
+export function healTargets(healer, enemies = [], radius = 0) {
+  return enemies.filter((e) => e !== healer && e.alive && e.hp < e.maxHp
+    && Math.hypot(e.x - healer.x, e.z - healer.z) <= radius + 1e-6);
+}
+
+// A shield soaks damage first; anything left over spills into health.
+export function shieldAbsorb({ hp, shield = 0 }, amount) {
+  const absorbed = Math.min(shield, amount);
+  const left = shield - absorbed;
+  return {
+    hp: hp - (amount - absorbed),
+    shield: left,
+    absorbed,
+    broke: shield > 0 && left === 0,
+  };
+}
+
+// Shields grow back, but only after a quiet spell.
+export function shieldRegen({ shield = 0, sinceHit = 0 }, def, dt) {
+  if (!def || !def.shield) return 0;
+  if (sinceHit < (def.shieldDelay || 0)) return shield;
+  return Math.min(def.shield, shield + (def.shieldRegen || 0) * dt);
+}
+
+// Burrowers spend `interval` seconds above ground, then `duration` below,
+// where nothing can touch them.
+export function burrowedAt(elapsed, def) {
+  if (!def || !def.interval || !def.duration) return false;
+  const cycle = def.interval + def.duration;
+  return (elapsed % cycle) >= def.interval;
+}

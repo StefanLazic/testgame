@@ -455,3 +455,37 @@ counting, branch tables well formed, unknown branches ignored),
 `tests/unit/i18n.test.js` grew a check that every path and squad is translated,
 and `tests/browser/synergy.test.js` builds a squad, sells the partner, upgrades
 to the last collar, buys a path and fights a wave with it.
+
+## 2026-08-19 — Enemy counterplay: nurses, beetles and moles
+
+Waves 11+ now include three pests that each break one of the game's rules, so
+that a single perfect tower can no longer answer everything. Waves 1–10 are
+untouched (a unit test asserts this) — the new pests only appear once the
+second door opens.
+
+**💉 Nurse Hazel** heals every *other* pest within 5.2 tiles for 30 HP every
+3.4 s, capped at their maximum. She punishes chip damage: kill her first or
+bring burst.
+
+**🛡️ Shield Beetle** carries a 260-point barrier on top of 190 HP and 4 armour.
+Damage eats the shield before health, and after 4 quiet seconds the shield
+regrows at 45/s — the wireframe bubble around it fades back in as it recharges.
+It rewards sustained fire and punishes slow single shots.
+
+**🕳️ Mole** dives for 2.2 s every 3.6 s. Underground it is untargetable and
+immune to damage, curses and splash, but it also travels slower, so the trade
+is time for safety. Spread your damage down the lane instead of stacking it.
+
+All three behaviours are pure functions first — `healTargets`, `shieldAbsorb`,
+`shieldRegen` and `burrowedAt` in `js/rules.js` — with the engine only doing
+the bookkeeping. That kept the TDD loop fast and means the rules are testable
+without a browser.
+
+Also fixed a real bug found while wiring this up: Ema's damage aura was being
+applied twice in `_fire` (once via the cached multiplier and again directly).
+
+Tests: `tests/unit/pests.test.js` (heal targeting/self-exclusion/HP cap, shield
+absorb + overkill + regen delay, burrow cycle timing, waves 1–10 frozen) and
+`tests/browser/pests.test.js` (spawns each pest live, shoots a beetle through
+its shield, watches it regrow, watches a nurse heal a dying mouse, and watches
+a mole dive and resurface).

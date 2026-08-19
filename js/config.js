@@ -256,6 +256,19 @@ export const ENEMIES = {
     name: 'Baron Bananas', hp: 5200, speed: 2.2, bounty: 520, scale: 3.0, flying: false,
     armor: 12, leak: 4, boss: 'mini', base: 'monkey', banana: 4.0, bananaVolley: 3,
   },
+  // ------------------------------------------- counterplay pests (wave 11+)
+  nurse: {
+    name: 'Nurse Hazel', hp: 150, speed: 3.2, bounty: 26, scale: 1.3, flying: false, leak: 1,
+    base: 'mouse', heals: { radius: 5.2, amount: 30, interval: 3.4 },
+  },
+  beetle: {
+    name: 'Shield Beetle', hp: 190, speed: 2.5, bounty: 30, scale: 1.35, flying: false, leak: 2,
+    armor: 4, shield: 260, shieldRegen: 45, shieldDelay: 4,
+  },
+  mole: {
+    name: 'Mole', hp: 200, speed: 3.1, bounty: 28, scale: 1.3, flying: false, leak: 1,
+    burrow: { interval: 3.6, duration: 2.2, speed: 2.1 },
+  },
   dragon: {
     name: 'Sophie', hp: 24000, speed: 0.6, bounty: 2000, scale: 4.4, flying: true,
     armor: 18, leak: 9, boss: 'main', dragon: true,
@@ -319,49 +332,49 @@ export const WAVES = [
     name: 'Shell Wall',
     groups: [
       ['turtle', 6, 1.6, 0, 1], ['turtle', 4, 1.8, 4],
-      ['bird', 10, 0.6, 6], ['chicken', 8, 0.6, 9, 1],
+      ['beetle', 4, 1.5, 3], ['bird', 10, 0.6, 6], ['chicken', 8, 0.6, 9, 1],
     ],
   },
   {
     name: 'Hoofbeats',
     groups: [
       ['horse', 8, 1.0, 0, 1], ['horse', 6, 1.2, 4],
-      ['dog', 8, 0.9, 7], ['pig', 6, 1.1, 10, 1],
+      ['mole', 5, 1.3, 2], ['dog', 8, 0.9, 7], ['pig', 6, 1.1, 10, 1],
     ],
   },
   {
     name: 'Monkey Business',
     groups: [
       ['monkey', 7, 1.2, 0, 1], ['monkey', 5, 1.4, 4],
-      ['chicken', 10, 0.5, 6, 1], ['turtle', 5, 1.7, 9],
+      ['nurse', 4, 1.6, 3], ['chicken', 10, 0.5, 6, 1], ['turtle', 5, 1.7, 9],
     ],
   },
   {
     name: 'MINI BOSS: Baron Bananas',
     groups: [
-      ['monkeyking', 1, 1, 0, 1], ['monkey', 8, 1.1, 6],
+      ['monkeyking', 1, 1, 0, 1], ['nurse', 3, 2.0, 4], ['monkey', 8, 1.1, 6],
       ['chicken', 12, 0.5, 9, 1], ['horse', 6, 1.2, 13],
     ],
   },
   {
     name: 'Barnyard Riot',
     groups: [
-      ['chicken', 16, 0.4, 0, 1], ['horse', 8, 1.0, 3],
-      ['pig', 6, 1.0, 6, 1], ['monkey', 8, 1.1, 10],
+      ['chicken', 16, 0.4, 0, 1], ['horse', 8, 1.0, 3], ['mole', 6, 1.2, 5],
+      ['pig', 6, 1.0, 6, 1], ['monkey', 8, 1.1, 10], ['nurse', 3, 1.8, 12],
     ],
   },
   {
     name: 'Armoured Parade',
     groups: [
-      ['turtle', 10, 1.2, 0], ['turtle', 8, 1.3, 2, 1],
-      ['dog', 10, 0.8, 6, 1], ['horse', 10, 0.9, 9],
+      ['turtle', 10, 1.2, 0], ['turtle', 8, 1.3, 2, 1], ['beetle', 8, 1.1, 4],
+      ['dog', 10, 0.8, 6, 1], ['horse', 10, 0.9, 9], ['nurse', 4, 1.6, 11],
     ],
   },
   {
     name: 'Sky Bacon',
     groups: [
-      ['pig', 10, 0.9, 0, 1], ['bird', 18, 0.45, 2],
-      ['monkey', 8, 1.0, 8, 1], ['chicken', 14, 0.4, 11],
+      ['pig', 10, 0.9, 0, 1], ['bird', 18, 0.45, 2], ['mole', 8, 1.0, 5],
+      ['monkey', 8, 1.0, 8, 1], ['chicken', 14, 0.4, 11], ['beetle', 6, 1.3, 13],
     ],
   },
   {
@@ -370,6 +383,7 @@ export const WAVES = [
       ['horse', 12, 0.8, 0, 1], ['turtle', 8, 1.2, 2],
       ['pig', 8, 0.9, 5, 1], ['monkey', 10, 0.9, 8],
       ['chicken', 16, 0.35, 11, 1], ['dog', 12, 0.7, 13],
+      ['nurse', 5, 1.4, 9], ['beetle', 6, 1.2, 15], ['mole', 8, 1.0, 17],
     ],
   },
   {
@@ -377,6 +391,7 @@ export const WAVES = [
     groups: [
       ['dragon', 1, 1, 0], ['chicken', 14, 0.5, 14, 1], ['horse', 10, 0.9, 20],
       ['pig', 8, 1.0, 26, 1], ['turtle', 8, 1.2, 32], ['monkey', 10, 1.0, 38, 1],
+      ['nurse', 6, 1.3, 30], ['beetle', 8, 1.1, 35], ['mole', 10, 0.9, 42],
     ],
   },
 ];

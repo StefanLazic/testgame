@@ -15,6 +15,7 @@ import { useMap, currentMap } from './maps.js';
 import {
   previewStats, previewTile, auraMultipliers, bountyMultiplier, goldIncome, auraBonus,
   synergyMultipliers, branchesFor, branchStats,
+  healTargets, shieldAbsorb, shieldRegen, burrowedAt,
 } from './rules.js';
 import { t } from './i18n.js';
 
@@ -798,6 +799,7 @@ export class Game {
       spawnT: 0, spawnTimer: 3.5, enraged: false,
       stunT: 0, bowT: 0, stone: null,
       layT: Math.random() * 2, bananaT: Math.random(), summonIdx: 0, smashT: 0, swarmT: 0,
+      healT: 0, shield: def.shield || 0, sinceHit: 99, burrowT: Math.random() * 2, burrowed: false,
     };
     e.pos = start;
     if (e.flying) {
@@ -856,9 +858,25 @@ export class Game {
   // ---------------------------------------------------------------- combat
   damage(e, amount, { crit = false } = {}) {
     if (!e.alive) return;
+    if (e.burrowed) return;          // nothing can touch it underground
     const armor = e.def.armor || 0;
     const dealt = Math.max(amount * 0.25, amount - armor);
-    e.hp -= dealt;
+    e.sinceHit = 0;
+    if (e.shield > 0) {
+      const after = shieldAbsorb({ hp: e.hp, shield: e.shield }, dealt);
+      e.hp = after.hp;
+      e.shield = after.shield;
+      if (after.absorbed > 0) {
+        this.effects.trail(e.group.position.clone().setY(e.group.position.y + 0.8), 0x6bd8ff, 0.3);
+      }
+      if (after.broke) {
+        this.effects.ring(e.group.position, { color: 0x6bd8ff, from: 0.4, to: 3.4, life: 0.45 });
+        this.effects.burst(e.group.position.clone().setY(0.7), { count: 16, color: 0x6bd8ff, speed: 5, size: 0.4 });
+        sfx.pop();
+      }
+    } else {
+      e.hp -= dealt;
+    }
     e.hurt = 0.12;
     if (crit) this.effects.burst(e.group.position.clone().setY(e.group.position.y + 0.6), { count: 6, color: 0xffe066, speed: 4, size: 0.3, life: 0.4 });
     if (e.hp <= 0) this._kill(e);
@@ -921,7 +939,7 @@ export class Game {
     const crit = st.crit ? Math.random() < st.crit : false;
     const b = {
       mesh, from, target, speed: st.speed, lob: !!st.lob,
-      damage: st.damage * (crit ? 3 : 1) * ((tower.buff && tower.buff.damage) || 1), crit,
+      damage: st.damage * (crit ? 3 : 1), crit,
       splash: st.splash || 0, slow: st.slow || 0, slowTime: st.slowTime || 0,
       color: st.bullet === 'shard' ? 0xbdeaff : st.bullet === 'orb' ? 0xc9a7ff
         : st.bullet === 'pillow' ? 0xdfe6ff : 0xffd166,
@@ -1103,6 +1121,61 @@ export class Game {
         }
       }
 
+      // Nurse Hazel patches up whoever is worst off around her.
+      if (e.def.heals && !e.burrowed) {
+        e.healT += dt;
+        if (e.healT >= e.def.heals.interval) {
+          e.healT = 0;
+          const here = { x: e.group.position.x, z: e.group.position.z };
+          const friends = this.enemies.map((o) => ({
+            ref: o, alive: o.alive && !o.burrowed, hp: o.hp, maxHp: o.maxHp,
+            x: o.group.position.x, z: o.group.position.z,
+          }));
+          const me = friends[this.enemies.indexOf(e)];
+          const targets = healTargets(me || here, friends, e.def.heals.radius);
+          if (targets.length) {
+            this.effects.ring(e.group.position, { color: 0x6bff9a, from: 0.4, to: e.def.heals.radius * 2, life: 0.5 });
+            for (const target of targets) {
+              const o = target.ref;
+              o.hp = Math.min(o.maxHp, o.hp + e.def.heals.amount);
+              this.effects.trail(o.group.position.clone().setY(o.group.position.y + 0.8), 0x6bff9a, 0.35);
+            }
+          }
+        }
+      }
+
+      // Shield beetles rebuild their barrier if you let them breathe.
+      if (e.def.shield) {
+        e.sinceHit += dt;
+        const before = e.shield;
+        e.shield = shieldRegen({ shield: e.shield, sinceHit: e.sinceHit }, e.def, dt);
+        const bubble = e.model.group.userData.shield;
+        if (bubble) {
+          const frac = e.shield / e.def.shield;
+          bubble.visible = frac > 0.02;
+          bubble.material.opacity = 0.1 + frac * 0.22;
+          bubble.rotation.y += dt * 0.8;
+          bubble.scale.setScalar(0.9 + frac * 0.2);
+        }
+        if (before === 0 && e.shield > 0) sfx.pop();
+      }
+
+      // Moles dive under the floor, where nothing can reach them, then pop up
+      // again somewhere further along.
+      if (e.def.burrow) {
+        e.burrowT += dt;
+        const under = burrowedAt(e.burrowT, e.def.burrow);
+        if (under !== e.burrowed) {
+          e.burrowed = under;
+          this.effects.burst(e.group.position.clone().setY(0.3), { count: 14, color: 0x8a6b4a, speed: 4, size: 0.45 });
+          this.effects.ring(e.group.position, { color: 0x8a6b4a, from: 0.3, to: 2.4, life: 0.4 });
+          sfx.pop();
+        }
+        e.model.group.visible = !under;
+        e.bar.group.visible = !under;
+        if (under) speed *= e.def.burrow.speed;
+      }
+
       // Move along the route
       const route = e.route;
       let step = speed * dt;
@@ -1158,7 +1231,7 @@ export class Game {
 
       // Health bar + hurt flash
       const ratio = Math.max(0, e.hp / e.maxHp);
-      e.bar.group.visible = ratio < 0.999;
+      e.bar.group.visible = ratio < 0.999 && !e.burrowed;
       e.bar.fg.scale.x = 1.06 * ratio;
       e.bar.fg.material.color.setHex(ratio > 0.55 ? 0x6bff9a : ratio > 0.25 ? 0xffd166 : 0xff5b5b);
       if (e.hurt > 0) {
@@ -1317,7 +1390,7 @@ export class Game {
   }
 
   _cursable(e) {
-    return e.alive && !e.def.boss && !e.def.cursed && !e.stone;
+    return e.alive && !e.def.boss && !e.def.cursed && !e.stone && !e.burrowed;
   }
 
   _pickCurseTarget(t, st) {
@@ -1402,7 +1475,7 @@ export class Game {
     let best = null;
     let bestProgress = -1;
     for (const e of this.enemies) {
-      if (!e.alive || e.intro != null) continue;
+      if (!e.alive || e.intro != null || e.burrowed) continue;
       if (e.flying && !st.air) continue;
       const dx = e.group.position.x - t.pos.x;
       const dz = e.group.position.z - t.pos.z;
