@@ -5,7 +5,7 @@
 <title>Mimi-čan odbrana — Mačja odbrana kule</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#160c26" />
-<meta name="description" content="3D mobilna igra odbrane kule: sve mačke brane mleko svoje kraljice Mimi-čan. Postavljaj strelca, čarobnjaka, ledenu, nindžu, pospanu i vešticu da zaustaviš dvadeset talasa miševa, pasa, ptica, svinja, kornjača, konja, kokošaka, majmuna — i zmajicu Sofi." />
+<meta name="description" content="3D mobilna igra odbrane kule: sve mačke brane mleko svoje kraljice Mimi-čan. Postavljaj devet mačaka — strelca, čarobnjaka, ledenu, nindžu, pospanu, Emu, Sofiju, vešticu i samu kraljicu — da zaustaviš trideset talasa miševa, pasa, ptica, svinja, kornjača, konja, kokošaka, majmuna, zmajicu Sofi i leptiricu Emiliju." />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -21,7 +21,7 @@
     <div class="hud-top">
       <div class="chip lives">🥛 <span id="lives-text">9</span></div>
       <div class="chip gold">🐟 <span id="gold-text">0</span></div>
-      <div class="chip wave">🌊 <span id="wave-text">1 / 20</span></div>
+      <div class="chip wave">🌊 <span id="wave-text">1 / 30</span></div>
       <button id="btn-speed" class="chip btn" type="button" data-i18n-aria="hud.speed" aria-label="Brzina igre">▶▶ <span id="speed-text">1×</span></button>
       <button id="btn-pause" class="chip btn pause" type="button" data-i18n-aria="hud.pause" aria-label="Pauza">⏸</button>
     </div>
@@ -78,7 +78,7 @@
   <div id="title" class="screen">
     <div class="panel">
       <h1><span class="cat">👑</span> Mimi-chan <span class="w">Defense</span></h1>
-      <p class="tag" data-i18n="title.tagline">Sedam mačaka. Deset talasa. Jedna činija mleka koju treba odbraniti.</p>
+      <p class="tag" data-i18n="title.tagline">Devet mačaka. Trideset talasa. Sve mačke brane mleko svoje kraljice.</p>
       <div class="maps" id="map-picker" role="group" aria-label="Map" data-i18n-aria="title.mapPick"></div>
       <button id="btn-play" class="big" type="button" data-i18n="title.play">Igraj</button>
       <button id="btn-help" class="ghost" type="button" data-i18n="title.help">Kako se igra</button>
@@ -100,7 +100,11 @@
         <li data-i18n-html="help.queen"><b>Njeno visočanstvo:</b> 👑 Mimi-čan košta bogatstvo, ali na svakih 10 s cela tabla staje da se pokloni.</li>
         <li data-i18n-html="help.portal"><b>Talas 11:</b> u gornjem desnom uglu se otvara druga vrata i štetočine naviru iz dve staze.</li>
         <li data-i18n-html="help.barnyard"><b>Seoski svet:</b> 🐖 leteće svinje su žilave ali spore, 🐢 kornjače su oklopni zid, 🐎 konji jure, 🐔 kokoške nose jaja iz kojih se legu pilići, 🐒 majmuni bananom onesposobe mačku na 3 s.</li>
-        <li data-i18n-html="help.bosses"><b>Talasi 5, 10, 15 i 20:</b> dva mini-bosa, kralj — a onda nešto sa krilima.</li>
+        <li data-i18n-html="help.support"><b>Mačke podrške:</b> 🎀 Ema bodri sve mačke oko sebe, 💰 Sofija sama nalazi ribe i istrese još iz štetočina koje padnu blizu nje. Nijedna ne puca.</li>
+        <li data-i18n-html="help.squads"><b>Ekipe i putevi:</b> različite mačke koje stoje blizu jedna drugoj podstiču se međusobno, a na poslednjoj ogrlici svaka mačka bira jedan od dva trajna puta.</li>
+        <li data-i18n-html="help.pests"><b>Nezgodne štetočine:</b> 💉 bolničarke leče svoje, 🛡️ bube nose štit koji se obnavlja, 🕳️ krtice rone pod zemlju gde ih ništa ne dotiče.</li>
+        <li data-i18n-html="help.bosses"><b>Bosovi:</b> talasi 5, 15 i 25 nose mini-bosove (25. čak dva odjednom), talas 10 Pacovskog kralja, talas 20 zmajicu Sofi, a talas 30 leptiricu Emiliju.</li>
+        <li data-i18n-html="help.emilija"><b>Talas 30 — 🦋 Emilija:</b> nikada ne udara mačku. Na svakih 13 s premešta sve mačke na druga polja, uspava trećinu tvoje vojske ili otcepi tri mala leptira.</li>
       </ul>
       <button id="btn-help-back" class="big" type="button" data-i18n="help.back">Jasno mi je</button>
     </div>

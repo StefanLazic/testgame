@@ -168,8 +168,9 @@ const ui = {
     void el.offsetWidth;
     el.style.animation = '';
   },
-  cinematic(title, sub) {
+  cinematic(title, sub, icon = '🐉') {
     const el = $('cinematic');
+    el.querySelector('.cine-dragon').textContent = icon;
     $('cine-title').textContent = title;
     $('cine-sub').textContent = sub || '';
     el.classList.remove('hidden');

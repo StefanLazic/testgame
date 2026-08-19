@@ -198,3 +198,47 @@ export function burrowedAt(elapsed, def) {
   const cycle = def.interval + def.duration;
   return (elapsed % cycle) >= def.interval;
 }
+
+// ------------------------------------------------------------ Emilija's tricks
+// The butterfly boss never attacks a cat. She rearranges your army instead, so
+// all three of her tricks are pure list maths over the towers you have built.
+
+// Shuffle the tiles your cats stand on. Returns the new tile order: entry i is
+// the tile that tower i moves to. With two or more cats nobody keeps their own
+// tile, so the trick always *feels* like something happened.
+export function shufflePlan(tiles, rand = Math.random) {
+  const out = tiles.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  if (out.length > 1) {
+    // Rotate any cat that drew its own tile onto its neighbour's.
+    for (let i = 0; i < out.length; i++) {
+      if (out[i] !== tiles[i]) continue;
+      const j = (i + 1) % out.length;
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+  }
+  return out;
+}
+
+// Which cats fall asleep: a fraction of the army, rounded up, never everyone
+// unless there is only one cat to pick from.
+export function sleepPicks(count, fraction, rand = Math.random) {
+  if (count <= 0) return [];
+  const want = Math.max(1, Math.min(count, Math.ceil(count * fraction)));
+  const pool = Array.from({ length: count }, (_, i) => i);
+  const picked = [];
+  while (picked.length < want && pool.length) {
+    picked.push(pool.splice(Math.floor(rand() * pool.length), 1)[0]);
+  }
+  return picked.sort((a, b) => a - b);
+}
+
+// Pick the next trick, never the same one twice in a row.
+export function nextTrick(tricks, last, rand = Math.random) {
+  const pool = tricks.filter((x) => x !== last);
+  const from = pool.length ? pool : tricks;
+  return from[Math.floor(rand() * from.length)];
+}

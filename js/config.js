@@ -273,6 +273,16 @@ export const ENEMIES = {
     name: 'Sophie', hp: 24000, speed: 0.6, bounty: 2000, scale: 4.4, flying: true,
     armor: 18, leak: 9, boss: 'main', dragon: true,
   },
+
+  // ------------------------------------------------ the last ten waves (21+)
+  emilija: {
+    name: 'Emilija', hp: 52000, speed: 0.55, bounty: 3200, scale: 4.0, flying: true,
+    armor: 22, leak: 9, boss: 'main', butterfly: true,
+  },
+  flutterling: {
+    name: 'Flutterling', hp: 620, speed: 3.4, bounty: 42, scale: 1.3, flying: true, leak: 1,
+    base: 'emilija', armor: 4,
+  },
 };
 
 // How long a cat is knocked out by a banana to the head.
@@ -291,6 +301,19 @@ export const DRAGON = {
     { at: 0.25, kind: 'monkeyking' },
   ],
   summonHp: 0.45,      // summoned bosses come back at 45% of their usual health
+};
+
+// Emilija's script. She never touches the cats directly — she rearranges the
+// board underneath them, which is far ruder. Every ABILITY seconds she picks
+// one of three tricks at random (never the same one twice in a row).
+export const EMILIJA = {
+  intro: 5.2,          // seconds of cinematic entrance
+  ability: 13,         // seconds between tricks
+  firstAbility: 6,     // grace period after she lands
+  sleepFraction: 1 / 3, // how much of your army naps until the next trick
+  spawnCount: 3,       // smaller butterflies per summon
+  spawn: 'flutterling',
+  tricks: ['shuffle', 'sleep', 'spawn'],
 };
 
 // HP grows with the wave so late basic pests stay relevant.
@@ -392,6 +415,84 @@ export const WAVES = [
       ['dragon', 1, 1, 0], ['chicken', 14, 0.5, 14, 1], ['horse', 10, 0.9, 20],
       ['pig', 8, 1.0, 26, 1], ['turtle', 8, 1.2, 32], ['monkey', 10, 1.0, 38, 1],
       ['nurse', 6, 1.3, 30], ['beetle', 8, 1.1, 35], ['mole', 10, 0.9, 42],
+    ],
+  },
+
+  // ---------------------------------------------- the last ten waves (21-30)
+  {
+    name: 'After the Ashes',
+    groups: [
+      ['mouse', 30, 0.25, 0], ['snake', 20, 0.35, 3, 1], ['dog', 12, 0.7, 6],
+      ['bird', 16, 0.5, 9, 1], ['chicken', 14, 0.4, 12],
+    ],
+  },
+  {
+    name: 'Iron Hooves',
+    groups: [
+      ['horse', 16, 0.7, 0, 1], ['horse', 12, 0.8, 3], ['turtle', 10, 1.1, 5],
+      ['beetle', 8, 1.0, 8, 1], ['nurse', 6, 1.4, 11],
+    ],
+  },
+  {
+    name: 'The Nursery',
+    groups: [
+      ['nurse', 10, 1.1, 0], ['nurse', 8, 1.2, 4, 1], ['beetle', 10, 1.0, 3],
+      ['mole', 12, 0.8, 7, 1], ['monkey', 12, 0.8, 10], ['chicken', 16, 0.35, 13, 1],
+    ],
+  },
+  {
+    name: 'Sky Full of Trouble',
+    groups: [
+      ['bird', 26, 0.35, 0], ['pig', 14, 0.7, 2, 1], ['bird', 20, 0.4, 6, 1],
+      ['pig', 10, 0.8, 9], ['monkey', 12, 0.8, 12], ['horse', 12, 0.8, 15, 1],
+    ],
+  },
+  {
+    name: 'MINI BOSSES: The Terrible Two',
+    groups: [
+      ['baron', 1, 1, 0], ['monkeyking', 1, 1, 3, 1],
+      ['dog', 14, 0.6, 6], ['monkey', 12, 0.8, 8, 1], ['nurse', 6, 1.3, 10],
+      ['horse', 12, 0.8, 13], ['chicken', 16, 0.35, 16, 1],
+    ],
+  },
+  {
+    name: 'Shell Shock',
+    groups: [
+      ['turtle', 16, 0.9, 0], ['turtle', 12, 1.0, 3, 1], ['beetle', 14, 0.9, 5],
+      ['mole', 12, 0.8, 8, 1], ['dog', 14, 0.6, 12], ['nurse', 8, 1.2, 14, 1],
+    ],
+  },
+  {
+    name: 'First Flutter',
+    groups: [
+      ['flutterling', 6, 1.1, 0], ['flutterling', 5, 1.2, 5, 1],
+      ['bird', 20, 0.4, 3], ['pig', 12, 0.8, 7, 1], ['horse', 14, 0.7, 10],
+      ['monkey', 12, 0.8, 13, 1], ['beetle', 10, 1.0, 16],
+    ],
+  },
+  {
+    name: 'Barnyard Apocalypse',
+    groups: [
+      ['chicken', 24, 0.3, 0, 1], ['horse', 16, 0.6, 2], ['pig', 14, 0.7, 5, 1],
+      ['monkey', 14, 0.7, 8], ['turtle', 12, 1.0, 11, 1], ['mole', 14, 0.7, 13],
+      ['nurse', 8, 1.2, 15, 1], ['beetle', 12, 0.9, 17],
+    ],
+  },
+  {
+    name: 'The Calm Before Wings',
+    groups: [
+      ['flutterling', 10, 0.9, 0, 1], ['flutterling', 8, 1.0, 6],
+      ['snake', 26, 0.3, 3], ['dog', 16, 0.6, 7, 1], ['bird', 24, 0.35, 10],
+      ['horse', 14, 0.7, 13, 1], ['turtle', 12, 1.0, 16], ['nurse', 8, 1.2, 18, 1],
+    ],
+  },
+  {
+    name: 'FINAL BOSS: Emilija the Butterfly',
+    groups: [
+      ['emilija', 1, 1, 0],
+      ['flutterling', 10, 0.8, 16, 1], ['bird', 20, 0.4, 22],
+      ['horse', 14, 0.7, 28, 1], ['turtle', 12, 1.0, 34], ['beetle', 12, 0.9, 40, 1],
+      ['nurse', 8, 1.2, 30], ['monkey', 14, 0.7, 38], ['mole', 14, 0.7, 46, 1],
     ],
   },
 ];

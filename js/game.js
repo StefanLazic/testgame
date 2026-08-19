@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {
   TILE, COLS, ROWS, PATHS, SECOND_LANE_WAVE, THEME, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
   TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME, branchCost, BRANCHES,
-  ENEMIES, hpScale, WAVES, waveBonus, BANANA_STUN, DRAGON,
+  ENEMIES, hpScale, WAVES, waveBonus, BANANA_STUN, DRAGON, EMILIJA,
 } from './config.js';
 import {
   makeCatTower, makeEnemy, makeMap, makeMouseHole, makeMilkBowl, makeRangeRing,
@@ -16,6 +16,7 @@ import {
   previewStats, previewTile, auraMultipliers, bountyMultiplier, goldIncome, auraBonus,
   synergyMultipliers, branchesFor, branchStats,
   healTargets, shieldAbsorb, shieldRegen, burrowedAt,
+  shufflePlan, sleepPicks, nextTrick,
 } from './rules.js';
 import { t } from './i18n.js';
 
@@ -645,7 +646,7 @@ export class Game {
     const tower = {
       kind, level: 1, spent: cost, tile: tile.key,
       group: model.group, head: model.head, arm: model.arm, body: model.body,
-      cool: 0, recoil: 0, pos: new THREE.Vector3(p.x, 0.9, p.z), pop: 0, disabledT: 0,
+      cool: 0, recoil: 0, pos: new THREE.Vector3(p.x, 0.9, p.z), pop: 0, disabledT: 0, asleep: false,
       abilityCool: TOWERS[kind].ability ? TOWERS[kind].cooldown : 0,
       branch: null,
       buff: { damage: 1, rate: 1, buffed: false },
@@ -766,13 +767,19 @@ export class Game {
     const warn = {
       5: 'toast.warnMini', 10: 'toast.warnFinal', 11: 'toast.warnPortal',
       15: 'toast.warnMini2', 20: 'toast.warnDragon',
+      25: 'toast.warnMini3', 27: 'toast.warnFlutter', 30: 'toast.warnEmilija',
     }[next];
     if (warn) setTimeout(() => this.ui.toast(t(warn)), 1800);
   }
 
   // --------------------------------------------------------------- spawning
   // Sophie is far too big to skim the floor like a pigeon.
-  _flyY(e) { return e.def && e.def.dragon ? FLY_Y + 3.4 : FLY_Y; }
+  _flyY(e) {
+    if (!e.def) return FLY_Y;
+    if (e.def.dragon) return FLY_Y + 3.4;
+    if (e.def.butterfly) return FLY_Y + (e.def.boss ? 3.0 : 0.8);
+    return FLY_Y;
+  }
 
   _spawn(kind, lane = 0, opts = {}) {
     const def = ENEMIES[kind];
@@ -810,6 +817,12 @@ export class Game {
       g.position.copy(start);
     }
     if (def.dragon) { e.intro = 0; e.introDur = DRAGON.intro; }
+    if (def.butterfly && def.boss) {
+      e.intro = 0;
+      e.introDur = EMILIJA.intro;
+      e.trickT = EMILIJA.ability - EMILIJA.firstAbility;  // short grace period
+      e.lastTrick = null;
+    }
     e.bar = this._makeBar();
     g.add(e.bar.group);
     e.bar.group.position.y = (e.flying ? 1.5 : 1.5) * (def.boss ? 1.2 : 1);
@@ -819,8 +832,11 @@ export class Game {
       this.boss = e;
       this.ui.boss(1, enemyName(e.kind).toUpperCase());
       if (def.dragon) {
-        this.ui.cinematic(t('banner.dragon'), t('banner.dragonSub'));
+        this.ui.cinematic(t('banner.dragon'), t('banner.dragonSub'), '🐉');
         sfx.dragonRoar();
+      } else if (def.butterfly) {
+        this.ui.cinematic(t('banner.emilija'), t('banner.emilijaSub'), '🦋');
+        sfx.emilijaChime();
       } else {
         this.ui.banner(def.boss === 'main' ? t('banner.finalBoss') : t('banner.miniBoss'), enemyName(e.kind));
         sfx.boss();
@@ -1043,7 +1059,11 @@ export class Game {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       if (!e.alive) { this._despawn(e, i); continue; }
-      if (e.intro != null) { this._dragonEntrance(e, dt); continue; }
+      if (e.intro != null) {
+        if (e.def.butterfly) this._emilijaEntrance(e, dt);
+        else this._dragonEntrance(e, dt);
+        continue;
+      }
 
       if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slowF = 0; }
       let speed = e.speed * (1 - e.slowF);
@@ -1104,6 +1124,7 @@ export class Game {
         if (e.bananaT >= e.def.banana) { e.bananaT = 0; this._throwBanana(e); }
       }
       if (e.def.dragon) this._dragonBrain(e, dt);
+      if (e.def.butterfly && e.def.boss) this._emilijaBrain(e, dt);
       if (e.def.spawner) {
         e.spawnT += dt;
         if (e.spawnT > e.spawnTimer) {
@@ -1210,8 +1231,8 @@ export class Game {
 
       // Per-kind wiggle
       const legs = e.model.legs;
-      if (e.kind === 'bird' || e.kind === 'pig' || e.def.dragon) {
-        const rate = e.def.dragon ? 3.4 : e.kind === 'pig' ? 9 : 14;
+      if (e.kind === 'bird' || e.kind === 'pig' || e.def.dragon || e.def.butterfly) {
+        const rate = e.def.dragon ? 3.4 : e.def.butterfly ? (e.def.boss ? 2.6 : 7) : e.kind === 'pig' ? 9 : 14;
         for (const wing of legs) {
           if (wing.userData.side == null) continue;
           wing.rotation.z = wing.userData.side * (0.35 + Math.sin(this.time * rate + e.wobble) * 0.5);
@@ -1273,9 +1294,14 @@ export class Game {
       // Banana'd: the cat sits there seeing stars and does nothing at all.
       if (t.disabledT > 0) {
         t.disabledT -= dt;
-        t.group.rotation.z = Math.sin(this.time * 18) * 0.14;
-        if (Math.random() < dt * 5) this.effects.trail(t.pos.clone().setY(1.9), 0xffe066, 0.24);
-        if (t.disabledT <= 0) { t.disabledT = 0; t.group.rotation.z = 0; }
+        // Banana'd cats see stars; Emilija's cats snore little blue Zs.
+        t.group.rotation.z = t.asleep
+          ? 0.22 + Math.sin(this.time * 2.2) * 0.05
+          : Math.sin(this.time * 18) * 0.14;
+        if (Math.random() < dt * (t.asleep ? 3 : 5)) {
+          this.effects.trail(t.pos.clone().setY(1.9), t.asleep ? 0xb9c6ff : 0xffe066, t.asleep ? 0.5 : 0.24);
+        }
+        if (t.disabledT <= 0) { t.disabledT = 0; t.asleep = false; t.group.rotation.z = 0; }
         continue;
       }
       const buff = t.buff || { damage: 1, rate: 1, buffed: false };
@@ -1685,6 +1711,118 @@ export class Game {
     sfx.boss();
     this.ui.banner(t('banner.dragonSummon'), enemyName(kind));
     this.ui.toast(t('toast.dragonSummon', { name: enemyName(kind) }));
+  }
+
+  // ---------------------------------------------------------------- Emilija
+  // She glides in on a slow spiral of glitter instead of crashing down.
+  _emilijaEntrance(e, dt) {
+    e.intro += dt;
+    const k = Math.min(1, e.intro / e.introDur);
+    const ease = k * k * (3 - 2 * k);
+    const land = e.route[0];
+    const spin = (1 - ease) * Math.PI * 1.5;
+    e.group.position.set(
+      land.x + Math.sin(spin) * 20 * (1 - ease),
+      this._flyY(e) + (1 - ease) * 26,
+      land.z + Math.cos(spin) * 20 * (1 - ease)
+    );
+    e.group.rotation.y = spin;
+    e.group.rotation.z = Math.sin(this.time * 3) * 0.12 * (1 - ease);
+    for (const wing of e.model.legs) {
+      if (wing.userData.side == null) continue;
+      wing.rotation.z = wing.userData.side * (0.3 + Math.sin(this.time * 5) * 0.55);
+    }
+    if (Math.random() < dt * 40) {
+      this.effects.trail(
+        e.group.position.clone().setY(e.group.position.y - 1.2),
+        [0xff8ad8, 0xc46bff, 0xffe066][Math.floor(Math.random() * 3)], 1.0
+      );
+    }
+    if (k < 1) return;
+
+    e.intro = null;
+    e.group.rotation.z = 0;
+    this.effects.ring(e.group.position.clone().setY(0), { color: 0xc46bff, from: 1, to: 30, life: 1.2 });
+    this.effects.burst(e.group.position.clone(), { count: 48, color: 0xff8ad8, speed: 9, size: 0.8 });
+    this.effects.kick(0.9);
+    sfx.emilijaChime();
+    this.ui.toast(t('toast.emilijaLanded'));
+  }
+
+  // Every EMILIJA.ability seconds she pulls one of three tricks — never the
+  // same one twice in a row, so you always get a little surprise.
+  _emilijaBrain(e, dt) {
+    e.trickT += dt;
+    if (e.trickT < EMILIJA.ability) return;
+    e.trickT = 0;
+    // Sleeping cats wake up the moment the next trick lands.
+    for (const tw of this.towers) if (tw.asleep) { tw.asleep = false; tw.disabledT = 0; tw.group.rotation.z = 0; }
+    const trick = nextTrick(EMILIJA.tricks, e.lastTrick);
+    e.lastTrick = trick;
+    this.effects.ring(e.group.position.clone().setY(0), { color: 0xff8ad8, from: 0.6, to: 22, life: 0.8 });
+    if (trick === 'shuffle') this._emilijaShuffle(e);
+    else if (trick === 'sleep') this._emilijaSleep(e);
+    else this._emilijaSpawn(e);
+  }
+
+  // Trick 1: every cat keeps its collar — and loses its spot.
+  _emilijaShuffle(e) {
+    const cats = this.towers.filter((tw) => !TOWERS[tw.kind].global);
+    if (cats.length < 2) { this._emilijaSpawn(e); return; }
+    const tiles = cats.map((tw) => tw.tile);
+    const plan = shufflePlan(tiles);
+    for (const tw of cats) this.occupied.delete(tw.tile);
+    cats.forEach((tw, i) => {
+      const [col, row] = plan[i].split(',').map(Number);
+      const p = tileToWorld(col, row);
+      tw.tile = plan[i];
+      tw.pos.set(p.x, 0.9, p.z);
+      tw.group.position.set(p.x, 0.06, p.z);
+      tw.group.rotation.y = Math.atan2(this.goal.x - p.x, this.goal.z - p.z);
+      tw.pop = 0.4;
+      this.occupied.set(tw.tile, tw);
+      this.effects.trail(new THREE.Vector3(p.x, 1.4, p.z), 0xc46bff, 0.5);
+      this.effects.ring(new THREE.Vector3(p.x, 0.05, p.z), { color: 0xff8ad8, from: 0.2, to: 2.2, life: 0.4 });
+    });
+    this._refreshSupports();
+    if (this.selected) this.selectTower(this.selected);
+    sfx.emilijaChime();
+    this.ui.banner(t('banner.emilijaTrick'), t('trick.shuffle'));
+    this.ui.toast(t('toast.emilijaShuffle'));
+  }
+
+  // Trick 2: a third of the army curls up until her next trick.
+  _emilijaSleep(e) {
+    const awake = this.towers.filter((tw) => tw.disabledT <= 0);
+    if (!awake.length) { this._emilijaSpawn(e); return; }
+    const picks = sleepPicks(awake.length, EMILIJA.sleepFraction);
+    for (const i of picks) {
+      const tw = awake[i];
+      tw.asleep = true;
+      tw.disabledT = EMILIJA.ability;
+      this.effects.trail(tw.pos.clone().setY(1.9), 0xb9c6ff, 0.6);
+      this.effects.ring(tw.group.position, { color: 0xb9c6ff, from: 0.3, to: 2.6, life: 0.45 });
+    }
+    sfx.emilijaSleep();
+    this.ui.banner(t('banner.emilijaTrick'), t('trick.sleep'));
+    this.ui.toast(t('toast.emilijaSleep', { count: picks.length }));
+  }
+
+  // Trick 3: three smaller, weaker copies of herself peel off her wings.
+  _emilijaSpawn(e) {
+    for (let i = 0; i < EMILIJA.spawnCount; i++) {
+      const minion = this._spawn(EMILIJA.spawn, e.lane, { summoned: true });
+      minion.seg = e.seg;
+      minion.progress = e.progress;
+      minion.pos.copy(e.pos);
+      minion.group.position.copy(e.group.position);
+      minion.group.position.x += (i - 1) * 2.2;
+      minion.wobble = Math.random() * 6;
+    }
+    this.effects.burst(e.group.position.clone(), { count: 26, color: 0x8fe6ff, speed: 7, size: 0.5 });
+    sfx.emilijaChime();
+    this.ui.banner(t('banner.emilijaTrick'), t('trick.spawn'));
+    this.ui.toast(t('toast.emilijaSpawn', { count: EMILIJA.spawnCount }));
   }
 
   // Drop a freshly summoned pest onto the closest point of its own lane, so it
