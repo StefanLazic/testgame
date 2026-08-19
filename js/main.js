@@ -58,7 +58,14 @@ const ui = {
     }
     this.refreshShop();
   },
-  setLives(v) { $('lives-text').textContent = String(v); },
+  setLives(v, flash = false) {
+    $('lives-text').textContent = String(v);
+    if (!flash) return;
+    const chip = $('lives-text').parentElement;
+    chip.classList.remove('flash');
+    void chip.offsetWidth;
+    chip.classList.add('flash');
+  },
   setWave(n) { $('wave-text').textContent = t('hud.wave', { n, total: WAVES.length }); },
   setSpeed(mult) { $('speed-text').textContent = `${mult}×`; },
   setPhase(phase, timeLeft) {
@@ -160,12 +167,33 @@ const ui = {
     $('btn-sound').classList.toggle('off', !settings.get('sound'));
     $('btn-shake').classList.toggle('off', !settings.get('shake'));
   },
+  // Toasts share one slot, and a single dramatic moment can fire several at
+  // once — a boss kill announces the kill, the life it hands back and the
+  // catnip it drops in the same frame. Queue them so none is swallowed.
+  toastQueue: [],
+  toastTimer: null,
   toast(text) {
+    if (!text) return;
+    if (this.toastTimer) { this.toastQueue.push(text); return; }
+    this._showToast(text);
+  },
+  clearToasts() {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastTimer = null;
+    this.toastQueue.length = 0;
+    $('toast').classList.remove('show');
+  },
+  _showToast(text) {
     const el = $('toast');
     el.textContent = text;
     el.classList.remove('show');
     void el.offsetWidth;
     el.classList.add('show');
+    this.toastTimer = setTimeout(() => {
+      this.toastTimer = null;
+      const next = this.toastQueue.shift();
+      if (next) this._showToast(next);
+    }, 1500);
   },
   banner(big, sub) {
     const el = $('wave-banner');
@@ -202,6 +230,13 @@ const ui = {
     void document.body.offsetWidth;
     document.body.classList.add('hit');
     setTimeout(() => document.body.classList.remove('hit'), 340);
+  },
+  // The opposite of hitFlash: a soft mint pulse when the milk bowl is refilled.
+  lifeFlash() {
+    document.body.classList.remove('healed');
+    void document.body.offsetWidth;
+    document.body.classList.add('healed');
+    setTimeout(() => document.body.classList.remove('healed'), 700);
   },
   gameOver(won, wave, kills) {
     const best = Math.max(wave, Number(localStorage.getItem('cd-best') || 0));

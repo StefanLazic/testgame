@@ -327,6 +327,13 @@ body.hit::after {
 }
 @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
 
+/* Healing glow when a fallen boss hands a life back */
+body.healed::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 8;
+  background: radial-gradient(ellipse at center, rgba(120,255,205,0) 45%, rgba(120,255,205,0.4) 100%);
+  animation: flash 0.68s ease-out forwards;
+}
+
 /* Landscape / short screens: compact the shop */
 @media (max-height: 480px) {
   #shop { flex-direction: row; align-items: flex-end; }

@@ -5,7 +5,29 @@
 
 import {
   TOWERS, towerStats, SUPPORT, SYNERGIES, SYNERGY_RANGE, BRANCHES, branchCost, maxLevel,
+  bountyScale, BOSS_LIFE_REWARD, START_LIVES,
 } from './config.js';
+
+// ------------------------------------------------------------- the economy
+// What a fallen pest is worth: its base bounty, nudged up by the wave it died
+// on, multiplied by any Sofija purse it fell inside.
+export function bountyFor(def, wave, purse = 1) {
+  if (!def) return 0;
+  return Math.round((def.bounty || 0) * bountyScale(wave) * purse);
+}
+
+// --------------------------------------------------------------- the lives
+// Main bosses are the only pests that give something back: drop one and the
+// milk bowl is topped up by a life, never above the nine you started with. A
+// run that is already over stays over.
+export function lifeReward(def) {
+  return def && def.boss === 'main' ? BOSS_LIFE_REWARD : 0;
+}
+
+export function livesAfterKill(lives, def, max = START_LIVES) {
+  if (lives <= 0) return lives;
+  return Math.min(max, lives + lifeReward(def));
+}
 
 // ------------------------------------------------------------ tower limits
 // Some cats are one of a kind. There is exactly one Mimi-chan in the world, so
