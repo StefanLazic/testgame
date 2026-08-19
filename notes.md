@@ -398,3 +398,30 @@ no zero-length segments, starts on an edge, all lanes end at the bowl, at least
 60 buildable tiles) and that `useMap()` really swaps the live bindings.
 `tests/browser/maps.test.js` taps through the picker, checks persistence across
 a reload, and plays a wave on the garden.
+
+## 2026-08-19 — Support cats: Ema and Sofija
+
+Two cats that never fire a shot.
+
+* **🎀 Ema** (🐟 190) buffs every cat inside her ribbon: +18% damage / +12% fire
+  rate at level 1, up to +38% / +28% at level 3. Ribbons never stack (only the
+  strongest Ema in reach counts) and she never cheers for herself, so spamming
+  Emas is a trap. A buffed cat says "🎀 cheered on by Ema" in its panel and
+  gets a little pink ring when the ribbon first reaches it.
+* **💰 Sofija** (🐟 200) digs up fish on her own — 🐟 12 every 8 s, 🐟 28 every
+  5 s at level 3 — and every pest that dies inside her purse is worth 25–60%
+  more. Purses do not stack either. She speeds up during the queen's frenzy.
+
+The maths lives in `js/rules.js` (`auraBonus`, `auraMultipliers`, `goldIncome`,
+`bountyMultiplier`) over a `SUPPORT` table in `config.js`, so it is all unit
+tested. The engine caches the result on each tower (`tower.buff`) and only
+recomputes it when a cat is built, upgraded or sold — no per-frame distance
+scans.
+
+Both cats got hand-built models: Ema has a giant bow, pompoms and a floating
+heart; Sofija wears a merchant's visor and flips a fish coin over a coin purse.
+
+Tests: `tests/unit/support.test.js` (aura/purse maths, no stacking, no
+self-buff, clamping) and `tests/browser/support.test.js` (shop entries, a
+neighbour really gets buffed, the panel badge, selling removes the buff, gold
+ticks up on its own, kills near Sofija pay more).

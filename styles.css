@@ -365,3 +365,5 @@ body.hit::after {
 .map-icon { font-size: 26px; line-height: 1.1; }
 .map-name { font-weight: 700; font-size: 14px; }
 .map-blurb { font-size: 11px; opacity: .72; text-align: center; line-height: 1.25; }
+
+.buffed { color: #ff9ec9; }

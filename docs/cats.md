@@ -7,7 +7,7 @@ lives in [`js/config.js`](../js/config.js) (`TOWERS`, `TOWER_ORDER`,
 > Keep this file in sync with `TOWERS` whenever a cat is added, removed or
 > rebalanced — see [`docs/AGENTS.md`](AGENTS.md).
 
-## The seven cats
+## The nine cats
 
 | Cat | Cost 🐟 | Damage | Range | Rate (shots/s) | Targets | Special |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -16,6 +16,8 @@ lives in [`js/config.js`](../js/config.js) (`TOWERS`, `TOWER_ORDER`,
 | ❄️ Frost | 95 | 9 | 5.4 | 1.0 | ground + air | single target, slows 45% for 2.0 s |
 | 🥷 Ninja | 150 | 10 | 4.4 | 3.6 | ground only | 22% chance of a 3× crit |
 | 😴 Sleepy | 210 | 58 | 7.2 | 0.34 | ground only | lobbed pillow, splash 3.4 |
+| 🎀 Ema | 190 | — | 5.6 | — | support | ribbon aura: +18/27/38% damage, +12/19/28% fire rate |
+| 💰 Sofija | 200 | — | 5.2 | — | support | purse: 🐟 12/19/28 every 8/6.5/5 s, +25/40/60% bounty nearby |
 | 🧙 Witch | 300 | — | 7.0 | — | ground + air | curse, once every 60 s |
 | 👑 Mimi-chan | 3000 | — | whole board | — | ground + air | royal bow, once every 10 s |
 
@@ -42,6 +44,19 @@ Lobs a fluffy pillow in a lazy arc for 58 damage with a 3.4 splash radius.
 Ground only, and by far the slowest fire rate in the game (0.34 shots/s — about
 one pillow every three seconds). Expensive, but devastating against crowds; the
 pests never see it coming because neither does she.
+
+### 🎀 Ema
+A support cat. She never attacks; instead every cat inside her 5.6 radius fires
+harder and faster (+18% damage / +12% rate at level 1, up to +38% / +28% at
+level 3). **Ribbons do not stack** — only the strongest Ema in reach counts —
+and she does not cheer for herself, so two Emas side by side are a waste. The
+tower panel of a cheered cat says so.
+
+### 💰 Sofija
+The other support cat. She digs up 🐟 12 every 8 seconds all on her own
+(🐟 28 every 5 s at level 3) and every pest that dies inside her 5.2 radius is
+worth 25% more (60% at level 3). Purses do not stack either. During the queen's
+frenzy she counts down at double speed.
 
 ### 🧙 Witch
 Does no damage at all. Every **60 seconds** she hexes the highest-HP pest in
@@ -127,5 +142,7 @@ languages when a cat is added or renamed.
 | `frost` | Frost | Ledena |
 | `ninja` | Ninja | Nindža |
 | `sleepy` | Sleepy | Pospana |
+| `ema` | Ema | Ema |
+| `sofija` | Sofija | Sofija |
 | `witch` | Witch | Veštica |
 | `queen` | Mimi-chan | Mimi-čan |

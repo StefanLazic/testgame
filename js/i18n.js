@@ -126,6 +126,9 @@ export const STRINGS = {
 
     'ability.curse': '{icon} Curse: {text} · every {cooldown}s · {left}s left',
     'ability.bow': '🙇 Bow: every pest stops for {stun}s · every {cooldown}s',
+    'ability.aura': '🎀 Ribbon: +{damage}% damage, +{rate}% speed to cats within {range}',
+    'ability.gold': '💰 Purse: 🐟 {coin} every {interval}s · +{bounty}% from pests dying within {range}',
+    'hud.buffed': '🎀 cheered on by Ema',
 
     'tower.archer.name': 'Archer',
     'tower.archer.blurb': 'Reliable single-target shots. Hits air.',
@@ -137,6 +140,10 @@ export const STRINGS = {
     'tower.ninja.blurb': 'Blinding fast shuriken, ground only. Crits hurt.',
     'tower.sleepy.name': 'Sleepy',
     'tower.sleepy.blurb': 'Yawns, then lobs a pillow. Huge splash, very slow, ground only.',
+    'tower.ema.name': 'Ema',
+    'tower.ema.blurb': 'Cheers on every cat around her: more damage, faster paws. Ribbons do not stack.',
+    'tower.sofija.name': 'Sofija',
+    'tower.sofija.blurb': 'Finds a fish all by herself, and shakes extra out of pests that fall nearby.',
     'tower.witch.name': 'Witch',
     'tower.witch.blurb': 'Curses one pest every 60 s. Bosses are immune.',
     'tower.queen.name': 'Mimi-chan',
@@ -304,6 +311,9 @@ export const STRINGS = {
 
     'ability.curse': '{icon} Kletva: {text} · na svakih {cooldown}s · još {left}s',
     'ability.bow': '🙇 Naklon: svaka štetočina staje {stun}s · na svakih {cooldown}s',
+    'ability.aura': '🎀 Mašna: +{damage}% štete i +{rate}% brzine mačkama u krugu {range}',
+    'ability.gold': '💰 Novčanik: 🐟 {coin} na {interval}s · +{bounty}% od štetočina koje padnu u krugu {range}',
+    'hud.buffed': '🎀 Ema je bodri',
 
     'tower.archer.name': 'Strelac',
     'tower.archer.blurb': 'Pouzdani pojedinačni pogoci. Gađa i vazduh.',
@@ -315,6 +325,10 @@ export const STRINGS = {
     'tower.ninja.blurb': 'Munjevite zvezdice, samo po zemlji. Kritični pogoci bole.',
     'tower.sleepy.name': 'Pospana',
     'tower.sleepy.blurb': 'Zevne, pa baci jastuk. Ogroman domet eksplozije, vrlo sporo, samo zemlja.',
+    'tower.ema.name': 'Ema',
+    'tower.ema.blurb': 'Bodri sve mačke oko sebe: jači udarci, brže šape. Mašne se ne sabiraju.',
+    'tower.sofija.name': 'Sofija',
+    'tower.sofija.blurb': 'Sama pronalazi ribe, a iz štetočina koje padnu blizu istrese još koju.',
     'tower.witch.name': 'Veštica',
     'tower.witch.blurb': 'Ureče jednu štetočinu na svakih 60 s. Bosovi su imuni.',
     'tower.queen.name': 'Mimi-čan',

@@ -80,6 +80,16 @@ export const TOWERS = {
     damage: 0, range: 7.0, rate: 0, air: true, ability: 'curse', cooldown: 60,
     blurb: 'Curses one pest every 60 s. Bosses are immune.',
   },
+  ema: {
+    name: 'Ema', icon: '🎀', cost: 190, color: 0xffc7e6, accent: 0xff4f9a,
+    damage: 0, range: 5.6, rate: 0, air: true, ability: 'aura', support: 'buff',
+    blurb: 'Cheers on every cat around her: more damage, faster paws.',
+  },
+  sofija: {
+    name: 'Sofija', icon: '💰', cost: 200, color: 0xffe08a, accent: 0xb8860b,
+    damage: 0, range: 5.2, rate: 0, air: true, ability: 'gold', support: 'gold',
+    blurb: 'Finds fish on her own, and shakes extra out of pests that fall nearby.',
+  },
   queen: {
     name: 'Mimi-chan', icon: '👑', cost: 0, color: 0xffd9ef, accent: 0xd41f6b,
     damage: 0, range: 0, rate: 0, air: true, ability: 'bow', cooldown: 10, stun: 1,
@@ -91,7 +101,23 @@ export const TOWERS = {
 TOWERS.queen.cost = 10 * Math.max(...Object.entries(TOWERS)
   .filter(([k]) => k !== 'queen').map(([, t]) => t.cost));
 
-export const TOWER_ORDER = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'witch', 'queen'];
+export const TOWER_ORDER = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'ema', 'sofija', 'witch', 'queen'];
+
+// Support cats, per collar (level 1 / 2 / 3).
+//   ema    — how much extra damage / fire rate her ribbon gives nearby cats.
+//   sofija — how often she finds a fish, how big it is, and how much more
+//            every pest that dies inside her purse is worth.
+export const SUPPORT = {
+  ema: {
+    damage: [0.18, 0.27, 0.38],
+    rate: [0.12, 0.19, 0.28],
+  },
+  sofija: {
+    interval: [8, 6.5, 5],
+    coin: [12, 19, 28],
+    bounty: [0.25, 0.4, 0.6],
+  },
+};
 
 export const MAX_LEVEL = 3;
 export function maxLevel(kind) { return TOWERS[kind].maxLevel || MAX_LEVEL; }

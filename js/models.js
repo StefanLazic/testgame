@@ -148,6 +148,33 @@ export function makeCatTower(kind, palette) {
     const wisp = part(SPHERE, new THREE.MeshBasicMaterial({ color: 0xc07bff }), { pos: [0.36, 0.4, 0.16], scale: [0.22, 0.22, 0.22] });
     arm.add(wisp);
     g.userData.glow = wisp;
+  } else if (kind === 'ema') {
+    // A big bow, pompoms and a floating heart: pure encouragement.
+    const bow = new THREE.Group();
+    bow.position.set(0, 0.4, 0.06);
+    for (const sx of [-1, 1]) {
+      bow.add(part(SPHERE, accM, { pos: [0.26 * sx, 0.06, 0], scale: [0.26, 0.2, 0.14], rot: [0, 0, 0.5 * sx] }));
+    }
+    bow.add(part(SPHERE, mat(0xfff2dd), { scale: [0.13, 0.13, 0.13] }));
+    head.add(bow);
+    for (const sx of [-1, 1]) {
+      const pom = part(SPHERE, accM, { pos: [0.34 * sx, 0.34, 0.16], scale: [0.24, 0.24, 0.24] });
+      arm.add(pom);
+    }
+    const heart = part(SPHERE, new THREE.MeshBasicMaterial({ color: 0xff6fae }), { pos: [0, 1.85, 0.1], scale: [0.2, 0.2, 0.2] });
+    g.add(heart);
+    g.userData.glow = heart;
+  } else if (kind === 'sofija') {
+    // Merchant's visor, a coin purse and a fish coin she keeps flipping.
+    head.add(part(new THREE.CylinderGeometry(0.34, 0.34, 0.06, 12), mat(0x8a6b1f), { pos: [0, 0.3, 0] }));
+    head.add(part(new THREE.CircleGeometry(0.3, 12, 0, Math.PI), mat(0x3fd0a0, { side: THREE.DoubleSide }), { pos: [0, 0.28, 0.18], rot: [-1.1, 0, 0] }));
+    const purse = part(SPHERE, accM, { pos: [-0.34, 0.12, 0.1], scale: [0.26, 0.28, 0.24] });
+    g.add(purse);
+    g.add(part(new THREE.TorusGeometry(0.12, 0.03, 6, 10), mat(0x6b4a2a), { pos: [-0.34, 0.32, 0.1], rot: [Math.PI / 2, 0, 0] }));
+    const coin = part(new THREE.CylinderGeometry(0.19, 0.19, 0.05, 12), mat(0xffd166, { emissive: 0x6b5200 }), { pos: [0.3, 0.36, 0.16], rot: [Math.PI / 2, 0, 0] });
+    arm.add(coin);
+    g.userData.spin = coin;
+    g.userData.glow = coin;
   } else if (kind === 'queen') {
     // Mimi-chan: crown, cape, pearls, and an expression of total authority.
     const crown = new THREE.Group();

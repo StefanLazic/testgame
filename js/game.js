@@ -12,7 +12,7 @@ import {
 import { Effects } from './fx.js';
 import { settings } from './settings.js';
 import { useMap, currentMap } from './maps.js';
-import { previewStats, previewTile } from './rules.js';
+import { previewStats, previewTile, auraMultipliers, bountyMultiplier, goldIncome, auraBonus } from './rules.js';
 import { t } from './i18n.js';
 
 // Enemy display names live in i18n; ENEMIES keeps the English fallback name.
@@ -51,6 +51,7 @@ export class Game {
     this.drops = [];
     this.eggs = [];
     this.hazards = [];
+    this.supports = [];
     this.enemyPool = {};
 
     this.placing = null;       // tower kind selected in the shop
@@ -355,7 +356,7 @@ export class Game {
         if (adj) spots.push({ col: c, row: r, key });
       }
     }
-    const kinds = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'witch', 'queen'];
+    const kinds = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'ema', 'sofija', 'witch', 'queen'];
     for (const kind of kinds) {
       const spot = spots.splice(Math.floor(Math.random() * spots.length), 1)[0];
       if (!spot) break;
@@ -363,6 +364,27 @@ export class Game {
       this.placeTower(kind, spot);
     }
     this.gold = 0;
+  }
+
+  // ------------------------------------------------------------- support cats
+  // Ema's ribbon and Sofija's purse only change when a cat is built, upgraded
+  // or sold, so the maths is done then and cached on every tower.
+  _refreshSupports() {
+    this.supports = this.towers
+      .filter((tw) => TOWERS[tw.kind].support)
+      .map((tw) => ({
+        kind: tw.kind, level: tw.level, tower: tw,
+        x: tw.pos.x, z: tw.pos.z, range: towerStats(tw.kind, tw.level).range,
+      }));
+    for (const tw of this.towers) {
+      const self = this.supports.find((s) => s.tower === tw);
+      const buff = auraMultipliers(self || { x: tw.pos.x, z: tw.pos.z }, this.supports);
+      const was = tw.buff && tw.buff.buffed;
+      tw.buff = buff;
+      if (buff.buffed && !was && this.phase !== 'demo') {
+        this.effects.ring(tw.pos.clone().setY(0.1), { color: 0xff6fae, from: 0.3, to: 2.2, life: 0.45 });
+      }
+    }
   }
 
   // Everything that lives on the board, swept off it.
@@ -376,6 +398,7 @@ export class Game {
     this.towers = []; this.enemies = []; this.bullets = []; this.drops = [];
     this.eggs = []; this.hazards = [];
     this.occupied.clear();
+    this.supports = [];
   }
 
   // Pick another board. Only makes sense from the title screen: the diorama is
@@ -504,6 +527,18 @@ export class Game {
       });
     } else if (base.ability === 'bow') {
       ability = t('ability.bow', { stun: base.stun, cooldown: base.cooldown });
+    } else if (base.ability === 'aura') {
+      const bonus = auraBonus('ema', tower.level);
+      ability = t('ability.aura', {
+        damage: Math.round(bonus.damage * 100), rate: Math.round(bonus.rate * 100),
+        range: st.range.toFixed(1),
+      });
+    } else if (base.ability === 'gold') {
+      const income = goldIncome(tower.level);
+      const purse = Math.round((bountyMultiplier({ x: 0, z: 0 }, [{ kind: 'sofija', level: tower.level, x: 0, z: 0, range: 1 }]) - 1) * 100);
+      ability = t('ability.gold', {
+        coin: income.coin, interval: income.interval, bounty: purse, range: st.range.toFixed(1),
+      });
     }
     return {
       kind: tower.kind, icon: base.icon, name: t(`tower.${tower.kind}.name`), level: tower.level, maxed, ability,
@@ -513,6 +548,7 @@ export class Game {
       sellValue: Math.floor(tower.spent * 0.7),
       canAfford: !maxed && this.gold >= upgradeCost(tower.kind, tower.level),
       global: !!base.global,
+      buffed: !!(tower.buff && tower.buff.buffed),
     };
   }
 
@@ -533,9 +569,12 @@ export class Game {
       group: model.group, head: model.head, arm: model.arm, body: model.body,
       cool: 0, recoil: 0, pos: new THREE.Vector3(p.x, 0.9, p.z), pop: 0, disabledT: 0,
       abilityCool: TOWERS[kind].ability ? TOWERS[kind].cooldown : 0,
+      buff: { damage: 1, rate: 1, buffed: false },
+      incomeT: TOWERS[kind].support === 'gold' ? goldIncome(1).interval : 0,
     };
     this.towers.push(tower);
     this.occupied.set(tile.key, tower);
+    this._refreshSupports();
     this.effects.ring(p, { color: 0x9dffd8, from: 0.3, to: 2.4, life: 0.4 });
     this.effects.burst(new THREE.Vector3(p.x, 0.6, p.z), { count: 10, color: 0xfff0d8, speed: 3, size: 0.35 });
     sfx.place();
@@ -568,6 +607,7 @@ export class Game {
     this.effects.ring(tw.group.position, { color: 0xffd166, from: 0.3, to: 2.6, life: 0.45 });
     this.effects.burst(tw.pos, { count: 14, color: 0xffd166, speed: 4, size: 0.4 });
     sfx.upgrade();
+    this._refreshSupports();
     this.ui.setGold(this.gold);
     this.selectTower(tw);
   }
@@ -580,6 +620,7 @@ export class Game {
     this.occupied.delete(tw.tile);
     this.towers.splice(this.towers.indexOf(tw), 1);
     this.scene.remove(tw.group);
+    this._refreshSupports();
     this.effects.burst(tw.pos, { count: 12, color: 0xff9ec4, speed: 3.4, size: 0.4 });
     sfx.sell();
     this.ui.setGold(this.gold);
@@ -751,7 +792,8 @@ export class Game {
       sfx.pop();
       return;
     }
-    const bounty = Math.round(e.def.bounty * (1 + 0.02 * this.wave));
+    const purse = bountyMultiplier(e.group.position, this.supports);
+    const bounty = Math.round(e.def.bounty * (1 + 0.02 * this.wave) * purse);
     this.gold += bounty;
     this.kills++;
     this.ui.setGold(this.gold, true);
@@ -799,7 +841,7 @@ export class Game {
     const crit = st.crit ? Math.random() < st.crit : false;
     const b = {
       mesh, from, target, speed: st.speed, lob: !!st.lob,
-      damage: st.damage * (crit ? 3 : 1), crit,
+      damage: st.damage * (crit ? 3 : 1) * ((tower.buff && tower.buff.damage) || 1), crit,
       splash: st.splash || 0, slow: st.slow || 0, slowTime: st.slowTime || 0,
       color: st.bullet === 'shard' ? 0xbdeaff : st.bullet === 'orb' ? 0xc9a7ff
         : st.bullet === 'pillow' ? 0xdfe6ff : 0xffd166,
@@ -1083,8 +1125,10 @@ export class Game {
         if (t.disabledT <= 0) { t.disabledT = 0; t.group.rotation.z = 0; }
         continue;
       }
+      const buff = t.buff || { damage: 1, rate: 1, buffed: false };
+      if (TOWERS[t.kind].support) { this._updateSupport(t, st, dt, frenzy); continue; }
       if (st.ability) { this._updateAbility(t, st, dt, frenzy); continue; }
-      t.cool -= dt * st.rate * frenzy;
+      t.cool -= dt * st.rate * buff.rate * frenzy;
       const target = this._pickTarget(t, st);
 
       if (target) {
@@ -1114,6 +1158,47 @@ export class Game {
     }
   }
 
+
+  // Support cats never shoot. Ema pulses her ribbon over the cats she is
+  // helping; Sofija counts down to the next fish she digs up.
+  _updateSupport(tower, st, dt, frenzy) {
+    if (tower.pop > 0) tower.pop = Math.max(0, tower.pop - dt);
+    const breathe = 1 + Math.sin(this.time * 3.2 + tower.pos.x) * 0.03;
+    const s = (TOWER_SCALE + (tower.level - 1) * 0.1) * breathe * (1 + tower.pop * 0.5);
+    tower.group.scale.setScalar(s);
+    tower.group.rotation.y += dt * 0.6;
+    const spin = tower.group.userData.spin;
+    if (spin) spin.rotation.y += dt * 6;
+
+    if (tower.kind === 'ema') {
+      const glow = tower.group.userData.glow;
+      const pulse = 0.5 + Math.sin(this.time * 3) * 0.5;
+      if (glow) glow.scale.setScalar(0.18 + pulse * 0.08);
+      if (Math.random() < dt * 3) {
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.random() * st.range;
+        this.effects.trail(
+          new THREE.Vector3(tower.pos.x + Math.cos(a) * r, 0.4 + Math.random() * 1.2, tower.pos.z + Math.sin(a) * r),
+          0xff6fae, 0.3
+        );
+      }
+      return;
+    }
+
+    // Sofija: a fish every few seconds, faster while the queen has the board
+    // in a frenzy.
+    const income = goldIncome(tower.level);
+    tower.incomeT -= dt * frenzy;
+    if (tower.incomeT > 0) return;
+    tower.incomeT = income.interval;
+    tower.pop = 0.4;
+    if (this.phase === 'demo') return;
+    this.gold += income.coin;
+    this.ui.setGold(this.gold, true);
+    this.effects.ring(tower.pos.clone().setY(0.1), { color: 0xffd166, from: 0.3, to: 2.4, life: 0.5 });
+    this.effects.burst(tower.pos.clone().setY(1.4), { count: 10, color: 0xffd166, speed: 3.4, size: 0.4 });
+    sfx.coin();
+  }
 
   // Ability cats (witch, queen) don't shoot — they charge a timer and then do
   // something dramatic to the whole board.

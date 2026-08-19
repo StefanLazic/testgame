@@ -108,7 +108,8 @@ const ui = {
     const stats = info.ability
       ? info.ability
       : t('hud.stats', { damage: info.damage, range: info.range, rate: info.rate });
-    $('tp-stats').innerHTML = `${escapeHtml(stats)}<br><i>${escapeHtml(info.blurb)}</i>`;
+    const cheer = info.buffed ? `<br><b class="buffed">${escapeHtml(t('hud.buffed'))}</b>` : '';
+    $('tp-stats').innerHTML = `${escapeHtml(stats)}${cheer}<br><i>${escapeHtml(info.blurb)}</i>`;
     const up = $('btn-upgrade');
     up.classList.toggle('maxed', info.maxed);
     up.classList.toggle('poor', !info.canAfford);
