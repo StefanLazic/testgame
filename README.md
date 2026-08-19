@@ -1,9 +1,9 @@
 # 🐱 Mimi-chan Defense
 
 A 3D mobile **tower defense** game: place cat towers around the kitchen and stop
-twenty waves of mice, snakes, dogs, birds and barnyard invaders before they
+thirty waves of mice, snakes, dogs, birds and barnyard invaders before they
 reach the milk bowl. Every cat here defends the milk of their queen,
-👑 **Mimi-chan** — and on the last wave a dragon comes for it.
+👑 **Mimi-chan** — and the last two chapters end with a dragon and a butterfly.
 
 Built with [three.js](https://threejs.org/) as **plain static files** — no build
 step, no bundler, no CDN. Open `index.html` (or serve the folder) and play.
@@ -43,7 +43,7 @@ there when you add UI text, a cat, an enemy or a wave.
 | See a cat's range before buying | select it in the shop — the preview card shows its stats and paints its range on the board |
 
 Every pest that reaches the milk costs lives (dogs cost 2, bosses far more).
-Nine lives, twenty waves. From **wave 11** a second door tears open in the
+Nine lives, thirty waves. From **wave 11** a second door tears open in the
 top-right corner of the kitchen and pests pour in down *two* lanes at once.
 
 ## Two kitchens
@@ -86,6 +86,11 @@ that are gone before you aim, chickens that lay eggs which hatch into more
 chickens, and monkeys that throw bananas — a cat hit by one is knocked out for
 three seconds. Wave 15 has a mini-boss with a very good throwing arm. And on
 wave 20, **Sophie has descended**.
+
+Then it keeps going. Wave 25 sends *two* mini-bosses at once, one through each
+door, and somewhere around wave 27 strange butterflies start scouting the
+kitchen. On wave 30 you find out why: 🦋 **Emilija** never touches a cat — she
+just refuses to let your board stay the way you built it.
 
 Something in there heals its friends. Something else wears a shield that grows
 back if you leave it alone. And something keeps disappearing underground just as

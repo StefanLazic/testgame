@@ -4,7 +4,7 @@ The pests walk from an entrance to the milk bowl. There are two lanes: `PATH`
 (the mouse hole, top-left) is open from wave 1, and `PATH2` (the rift in the
 top-right corner) tears open at wave 11 (`SECOND_LANE_WAVE`). All of their
 balance data lives in [`js/config.js`](../js/config.js) (`ENEMIES`, `WAVES`,
-`PATHS`, `hpScale`, `BANANA_STUN`, `DRAGON`).
+`PATHS`, `hpScale`, `BANANA_STUN`, `DRAGON`, `EMILIJA`).
 
 > Keep this file in sync with `ENEMIES` and `WAVES` whenever an enemy is added,
 > removed or rebalanced — see [`docs/AGENTS.md`](AGENTS.md).
@@ -32,6 +32,8 @@ balance data lives in [`js/config.js`](../js/config.js) (`ENEMIES`, `WAVES`,
 | 👑 The Rat King (boss, wave 10) | 6000 | 1.5 | 600 | 10 | 9 | no |
 | 🍌 Baron Bananas (mini boss, wave 15) | 5200 | 2.2 | 520 | 12 | 4 | no |
 | 🐉 Sophie (final boss, wave 20) | 24000 | 0.6 | 2000 | 18 | 9 | **yes** |
+| 🦋 Flutterling | 620 | 3.4 | 42 | 4 | 1 | **yes** |
+| 🦋 Emilija (final boss, wave 30) | 52000 | 0.55 | 3200 | 22 | 9 | **yes** |
 
 ### 🐭 Mouse
 The basic pest. Cheap, plentiful and slow enough that almost anything kills it.
@@ -149,12 +151,39 @@ she levels out above the kitchen. She has three abilities (`DRAGON` in
 Summoned pests are dropped onto the nearest point of their lane, clamped to the
 first 55% of the route, so Sophie can never teleport a boss next to the bowl.
 
+### 🦋 Flutterling
+A small butterfly, and the only hint that something is coming: a handful scout
+the kitchen in waves 27 and 29 before their mother arrives. 620 HP, 4 armour and
+**flying**, so ground-only cats never touch them. Emilija also splits three off
+her own wings during the wave-30 fight.
+
+### 🦋 Emilija — final boss (wave 30)
+An enormous butterfly with 52000 HP and 22 armour who **flies** straight for the
+bowl. She arrives in her own cinematic — *"EMILIJA UNFOLDS"* — gliding down a
+spiral of glitter. She never damages a cat. Instead, **every 13 seconds**
+(`EMILIJA.ability`) she plays one of three tricks, chosen at random but never
+the same one twice in a row:
+
+- **🌪️ Shuffle** — every cat swaps tiles with another cat. Nobody keeps their
+  own tile, nothing is sold, nothing is lost — but squads, Ema's ribbon and
+  Sofija's purse are all recalculated around the new layout.
+- **💤 Sleep** — a third of your cats (rounded up, never the whole army) fall
+  asleep and stop shooting **until her next trick**, i.e. 13 seconds. Sleeping
+  cats snore blue Zs; the two disruptive tricks can never stack.
+- **🦋 Children** — three 🦋 Flutterlings peel off her wings next to her and fly
+  for the milk.
+
+*Counter:* build redundancy instead of one perfect corner. A single stacked kill
+zone is worthless the moment it is shuffled somewhere else, and 👑 Mimi-chan
+works on the whole board no matter where she wakes up.
+
 ## Shared mechanics
 
 - **Wave HP scaling** — every enemy's HP is multiplied by `hpScale(wave)`:
   `1 + 0.17 × (wave - 1)` for waves 1–10 (unchanged), then a gentler
-  `1 + 0.17 × 9 + 0.09 × (wave - 10)` for waves 11–20, because the barnyard
-  pests already arrive with far more health and armour of their own.
+  `1 + 0.17 × 9 + 0.09 × (wave - 10)` for waves 11–30, because the barnyard
+  pests already arrive with far more health and armour of their own. Bosses
+  ignore the scale entirely and use their flat HP.
 - **Bounty scaling** — the payout is `bounty × (1 + 0.02 × wave)`.
 - **Armour** — armour is subtracted from every hit, with a floor of 25% of the
   raw damage.
@@ -177,7 +206,8 @@ first 55% of the route, so Sophie can never teleport a boss next to the bowl.
   regenerates after `shieldDelay` seconds without a hit.
 - **Burrowing** — a burrowed Mole cannot be targeted, damaged or cursed.
 - **Cats can be attacked** — bananas disable a cat for 3 seconds; Sophie's fire
-  destroys one outright. These are the only two ways the pests fight back.
+  destroys one outright; Emilija shuffles cats around the board and puts a third
+  of them to sleep for 13 seconds. These are the only ways the pests fight back.
 
 ## Waves
 
@@ -203,8 +233,19 @@ first 55% of the route, so Sophie can never teleport a boss next to the bowl.
 | 18 | Sky Bacon | flying pigs, birds, **moles**, monkeys, chickens, **shield beetles** |
 | 19 | Everything, Twice | horses, turtles, pigs, monkeys, chickens, dogs, **all three pests** |
 | 20 | FINAL BOSS: Sophie the Dragon | Sophie, chickens, horses, pigs, turtles, monkeys, **all three pests** |
+| 21 | After the Ashes | mice, snakes, dogs, birds, chickens |
+| 22 | Iron Hooves | horses, turtles, **shield beetles**, **nurses** |
+| 23 | The Nursery | **nurses**, **shield beetles**, **moles**, monkeys, chickens |
+| 24 | Sky Full of Trouble | birds, flying pigs, monkeys, horses |
+| 25 | MINI BOSSES: The Terrible Two | Sir Barksalot **and** Baron Bananas, dogs, monkeys, nurses, horses, chickens |
+| 26 | Shell Shock | turtles, **shield beetles**, **moles**, dogs, **nurses** |
+| 27 | First Flutter | **flutterlings**, birds, pigs, horses, monkeys, beetles |
+| 28 | Barnyard Apocalypse | the whole barnyard from both lanes |
+| 29 | The Calm Before Wings | **flutterlings**, snakes, dogs, birds, horses, turtles, nurses |
+| 30 | FINAL BOSS: Emilija the Butterfly | Emilija, flutterlings, birds, horses, turtles, beetles, nurses, monkeys, moles |
 
-Waves 1–10 are unchanged; waves 11–20 use both lanes.
+Waves 1–20 are unchanged; waves 11–30 use both lanes. Wave 25 is the only wave
+with two mini-bosses at once — one through each door.
 
 You start with 9 lives (`START_LIVES`) and 260 🐟 (`START_GOLD`).
 
@@ -235,3 +276,5 @@ languages when an enemy or wave is added or renamed.
 | `beetle` | Shield Beetle | Buba sa štitom |
 | `mole` | Mole | Krtica |
 | `dragon` | Sophie | Sofi |
+| `emilija` | Emilija | Emilija |
+| `flutterling` | Flutterling | Leptirić |

@@ -550,3 +550,11 @@ palette was brightened (`0xd89bff` / `0xffa8e0` wings, gold spots) so she reads
 against the dark board. Checked with a scripted screenshot at three camera
 distances. The flutterlings inherit the shape and are recoloured cyan/mint so
 nobody mistakes a child for the boss.
+
+**Docs.** `docs/enemies.md` gained Emilija, the flutterlings, the 21–30 wave
+table and the new "cats can be attacked" rule; `docs/cats.md` explains what a
+shuffle and a nap do to a cat (and that Mimi-chan is not immune to either, but
+does not care because she is global); `README.md` now says thirty waves and
+hints at wave 25 and wave 30 without spoiling them. Checked the help screen on a
+360×640 phone: it scrolls and the "Got it" button stays tappable with the five
+new bullets.

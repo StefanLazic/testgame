@@ -127,7 +127,15 @@ Tap a placed cat to inspect, upgrade or sell it.
   - 🐉 **Sophie** burns one random cat to ash every 10 seconds on wave 20. The
     cat is destroyed with no refund. **👑 Mimi-chan is immune** — Sophie will
     not aim at the queen — which makes the most expensive cat the only one
-    guaranteed to survive the final wave.
+    guaranteed to survive that wave.
+  - 🦋 **Emilija** never damages a cat on wave 30, but every 13 seconds she
+    either **shuffles every cat onto a different tile** (squads, Ema's ribbon
+    and Sofija's purse are all recalculated around the new layout, and no cat is
+    ever moved onto a lane) or **puts a third of your cats to sleep** until her
+    next trick. A sleeping cat behaves exactly like a banana'd one — no shots,
+    no ability charge — and wakes up the moment she plays her next trick.
+    👑 Mimi-chan can be shuffled and can nap like anyone else, but she works on
+    the whole board, so her position never matters.
 
 ## Squads (synergies)
 
