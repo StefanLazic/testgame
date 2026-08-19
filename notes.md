@@ -700,3 +700,12 @@ wake-up test was quietly flaky — she picks her next trick at random and can
 re-nap the cats on the same beat — so it now pins `lastTrick` first.
 
 Full suite after all four proposals: **104 unit tests, 81 browser tests, green.**
+
+### Mobile check
+
+Re-checked at 390×844 with touch emulation (the same viewport the browser suite
+runs in): the HUD chips, the horizontally scrolling shop row, the preview card
+and the start-wave button all fit with nothing clipped or overlapping, and the
+new range rings still read clearly on a phone-sized board. The HUD's pre-boot
+placeholder still said `1 / 30` from back when the game ended at wave 30 — it
+now says `1 / 50`, so the very first frame no longer lies.
