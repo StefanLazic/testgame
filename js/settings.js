@@ -9,6 +9,7 @@ const STORE_KEY = 'cd-settings';
 export const DEFAULTS = Object.freeze({
   sound: true,      // WebAudio sound effects
   shake: true,      // camera kicks — off is gentler on motion sickness
+  map: 'kitchen',   // the board picked on the title screen
 });
 
 export function createSettings(storage = globalThis.localStorage) {

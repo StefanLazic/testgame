@@ -1,6 +1,7 @@
 import { Game } from './game.js';
 import { initAudio } from './audio.js';
 import { settings } from './settings.js';
+import { MAPS, currentMap } from './maps.js';
 import { TOWERS, TOWER_ORDER, WAVES } from './config.js';
 import { t, toggleLang, onLangChange, applyStatic } from './i18n.js';
 
@@ -216,6 +217,47 @@ function setPaused(on) {
   ui.setPaused(paused);
 }
 
+// ------------------------------------------------------------ map picker --
+// Two buttons on the title screen. Picking one rebuilds the diorama behind the
+// panel straight away, so you can see the board you are choosing.
+function buildMapPicker() {
+  const host = $('map-picker');
+  host.innerHTML = '';
+  for (const map of MAPS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'map-card';
+    b.dataset.map = map.id;
+    b.innerHTML = `<span class="map-icon">${escapeHtml(map.icon)}</span>`
+      + `<span class="map-name"></span><span class="map-blurb"></span>`;
+    b.addEventListener('click', () => {
+      game.setMap(map.id);
+      refreshMapPicker();
+      sfxTapFeedback();
+    });
+    host.appendChild(b);
+  }
+  refreshMapPicker();
+}
+
+function refreshMapPicker() {
+  const active = currentMap().id;
+  for (const b of $('map-picker').children) {
+    const id = b.dataset.map;
+    b.classList.toggle('on', id === active);
+    b.setAttribute('aria-pressed', id === active ? 'true' : 'false');
+    b.querySelector('.map-name').textContent = t(`map.${id}.name`);
+    b.querySelector('.map-blurb').textContent = t(`map.${id}.blurb`);
+  }
+}
+
+// A tiny haptic nudge on phones that support it.
+function sfxTapFeedback() {
+  if (navigator.vibrate) navigator.vibrate(8);
+}
+
+buildMapPicker();
+
 $('btn-lang').addEventListener('click', toggleLang);
 $('btn-play').addEventListener('click', startGame);
 $('btn-again').addEventListener('click', startGame);
@@ -235,7 +277,7 @@ $('btn-quit').addEventListener('click', () => {
   game.startDemo();
   show('title');
 });
-onLangChange(() => ui.refreshSettings());
+onLangChange(() => { ui.refreshSettings(); refreshMapPicker(); });
 
 // Escape pauses on a desktop keyboard; switching apps or tabs pauses on a
 // phone, so nobody comes back to a lost run.

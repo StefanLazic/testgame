@@ -1,10 +1,13 @@
 // ---------------------------------------------------------------------------
 // All balance data for Claw Defense lives here so it is easy to tweak.
+//
+// The board itself (size, lanes, theme) belongs to the *map* — see js/maps.js.
+// The exports below are live bindings that `setBoard()` swaps when the player
+// picks a different map, so every module that imports COLS/ROWS/PATHS sees the
+// change without any wiring.
 // ---------------------------------------------------------------------------
 
 export const TILE = 2;
-export const COLS = 9;
-export const ROWS = 19;
 
 // Path through the kitchen, in [col, row] tile coordinates. Pests walk the
 // centre of these tiles from the mouse hole to the milk bowl.
@@ -20,9 +23,24 @@ export const PATH2 = [
   [8, 0], [8, 3], [6, 3], [6, 6], [8, 6], [8, 9], [6, 9], [6, 12], [8, 12], [8, 16], [4, 16],
 ];
 
-// Lane 0 is the mouse hole, lane 1 is the top-right portal.
-export const PATHS = [PATH, PATH2];
-export const SECOND_LANE_WAVE = 11;
+// The kitchen is the default board; js/maps.js owns the full list.
+export let COLS = 9;
+export let ROWS = 19;
+export let PATHS = [PATH, PATH2];
+export let SECOND_LANE_WAVE = 11;
+export let THEME = {
+  floor: 0x3a2360, tileLight: 0x53377f, tileDark: 0x472e6f, path: 0x8f6a3e,
+  wall: 0x2a1a46, fog: 0x140a24, arrow: 0xffd9a0, decor: null,
+};
+
+// Swap the board. Called by js/maps.js; everything else just reads the exports.
+export function setBoard(map) {
+  COLS = map.cols;
+  ROWS = map.rows;
+  PATHS = map.paths;
+  SECOND_LANE_WAVE = map.secondLaneWave;
+  THEME = map.theme;
+}
 
 export const START_LIVES = 9;
 export const START_GOLD = 260;

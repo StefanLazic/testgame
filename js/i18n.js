@@ -19,6 +19,11 @@ export const STRINGS = {
 
     'title.tagline': 'Seven cats. Twenty waves. Every cat defends the milk of their queen.',
     'title.play': 'Play',
+    'title.mapPick': 'Choose a battlefield',
+    'map.kitchen.name': 'The Kitchen',
+    'map.kitchen.blurb': 'Long winding lane, tight corners.',
+    'map.garden.name': 'The Garden',
+    'map.garden.blurb': 'Wide and sunny — shorter route, more room to build.',
     'title.help': 'How to play',
     'title.hint': 'Built for phones — tap a cat, tap the floor, watch the mice regret everything.',
 
@@ -192,6 +197,11 @@ export const STRINGS = {
 
     'title.tagline': 'Sedam mačaka. Dvadeset talasa. Sve mačke brane mleko svoje kraljice.',
     'title.play': 'Igraj',
+    'title.mapPick': 'Izaberi bojište',
+    'map.kitchen.name': 'Kuhinja',
+    'map.kitchen.blurb': 'Duga vijugava staza, oštri uglovi.',
+    'map.garden.name': 'Bašta',
+    'map.garden.blurb': 'Široka i sunčana — kraća staza, više mesta za gradnju.',
     'title.help': 'Kako se igra',
     'title.hint': 'Pravljeno za telefone — dodirni mačku, dodirni pod i gledaj kako se miševi kaju.',
 

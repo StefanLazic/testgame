@@ -370,3 +370,31 @@ else.
 - The CDP helper learned to `scrollIntoView` before tapping and to fail loudly
   if something covers the target — the seven-cat shop row scrolls horizontally,
   so a naive tap on the queen used to land on the kitchen floor instead.
+
+## 2026-08-19 — A second battlefield: The Garden
+
+The board is no longer baked into `config.js`. `js/maps.js` owns the list of
+maps (size, lanes, theme, scenery) and `setBoard()` swaps the live bindings
+`COLS`, `ROWS`, `PATHS`, `SECOND_LANE_WAVE` and `THEME` that everything else
+imports — ES module live bindings mean no wiring had to change.
+
+* **The Kitchen** — unchanged, so waves 1–10 still play exactly as before (a
+  unit test asserts the lanes byte-for-byte).
+* **The Garden** — 11×17 instead of 9×19: wider, shorter, sunnier. Grass
+  checkerboard, a dirt path, a fence, and little flowers sprouting on the free
+  tiles. The route is shorter, so leaks arrive sooner, but there is much more
+  room to build.
+
+A map picker sits on the title screen. Tapping a card rebuilds the diorama
+immediately — the choice previews itself — and the pick is remembered in
+settings (`map`), so a reload drops you back on your board.
+
+Engine changes: lights moved to `_buildLights()` (built once) and the board
+into a `this.world` group that `setMap()` throws away and rebuilds;
+`_clearEntities()` is now shared by `start()` and `setMap()`.
+
+Tests: `tests/unit/maps.test.js` validates every lane (in bounds, axis-aligned,
+no zero-length segments, starts on an edge, all lanes end at the bowl, at least
+60 buildable tiles) and that `useMap()` really swaps the live bindings.
+`tests/browser/maps.test.js` taps through the picker, checks persistence across
+a reload, and plays a wave on the garden.

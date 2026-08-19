@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {
-  TILE, COLS, ROWS, PATHS, SECOND_LANE_WAVE, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
+  TILE, COLS, ROWS, PATHS, SECOND_LANE_WAVE, THEME, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
   TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME,
   ENEMIES, hpScale, WAVES, waveBonus, BANANA_STUN, DRAGON,
 } from './config.js';
@@ -11,6 +11,7 @@ import {
 } from './models.js';
 import { Effects } from './fx.js';
 import { settings } from './settings.js';
+import { useMap, currentMap } from './maps.js';
 import { previewStats, previewTile } from './rules.js';
 import { t } from './i18n.js';
 
@@ -37,6 +38,7 @@ export class Game {
     this.scene.fog = new THREE.Fog(0x140a24, 46, 96);
     this.camera = new THREE.PerspectiveCamera(52, 1, 0.1, 300);
 
+    this._buildLights();
     this._buildWorld();
 
     this.raycaster = new THREE.Raycaster();
@@ -68,7 +70,9 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ world
-  _buildWorld() {
+  // Lights never change; they live straight on the scene so swapping maps only
+  // has to throw away `this.world`.
+  _buildLights() {
     const scene = this.scene;
 
     scene.add(new THREE.HemisphereLight(0xffd9f5, 0x2a1a46, 1.15));
@@ -84,6 +88,13 @@ export class Game {
     const rim = new THREE.DirectionalLight(0x9a7bff, 0.7);
     rim.position.set(-16, 12, -14);
     scene.add(rim);
+  }
+
+  _buildWorld() {
+    const scene = this.world = new THREE.Group();
+    this.scene.add(scene);
+    this.scene.fog = new THREE.Fog(THEME.fog, 46, 96);
+    this.renderer.setClearColor(THEME.fog, 1);
 
     // Path tiles + world-space waypoints, one lane per entrance.
     this.pathTiles = new Set();
@@ -107,7 +118,7 @@ export class Game {
     }
     this.waypoints = this.lanes[0].waypoints;
 
-    scene.add(makeMap(this.pathTiles));
+    scene.add(makeMap(this.pathTiles, THEME));
     scene.add(makeStars());
     for (const lane of this.lanes) {
       lane.arrows = makePathArrows(lane.waypoints);
@@ -354,8 +365,8 @@ export class Game {
     this.gold = 0;
   }
 
-  start() {
-    // Reset everything for a fresh run.
+  // Everything that lives on the board, swept off it.
+  _clearEntities() {
     for (const t of this.towers) this.scene.remove(t.group);
     for (const e of this.enemies) this.scene.remove(e.group);
     for (const b of this.bullets) this.scene.remove(b.mesh);
@@ -365,6 +376,26 @@ export class Game {
     this.towers = []; this.enemies = []; this.bullets = []; this.drops = [];
     this.eggs = []; this.hazards = [];
     this.occupied.clear();
+  }
+
+  // Pick another board. Only makes sense from the title screen: the diorama is
+  // rebuilt straight away so the choice is its own preview.
+  setMap(id) {
+    if (currentMap().id === id) return currentMap();
+    const map = useMap(id);
+    this._clearEntities();
+    this.selectTower(null);
+    this.setPlacing(null);
+    this.scene.remove(this.world);
+    this._buildWorld();
+    this.resize();
+    this.startDemo();
+    return map;
+  }
+
+  start() {
+    // Reset everything for a fresh run.
+    this._clearEntities();
     this.setLaneOpen(1, false);
 
     this.paused = false;

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TILE, COLS, ROWS } from './config.js';
+import { TILE, COLS, ROWS, THEME } from './config.js';
 
 // ---------------------------------------------------------------------------
 // Procedural low-poly models. No external assets — every mesh is built from
@@ -514,21 +514,21 @@ export function tileToWorld(col, row) {
   return new THREE.Vector3((col - (COLS - 1) / 2) * TILE, 0, (row - (ROWS - 1) / 2) * TILE);
 }
 
-export function makeMap(pathTiles) {
+export function makeMap(pathTiles, theme = THEME) {
   const g = new THREE.Group();
   const w = COLS * TILE;
   const h = ROWS * TILE;
 
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(w + TILE * 2, h + TILE * 2), mat(0x3a2360));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(w + TILE * 2, h + TILE * 2), mat(theme.floor));
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   g.add(floor);
 
-  // Checkerboard kitchen tiles (merged into two instanced-ish groups of meshes).
+  // Checkerboard floor (kitchen tiles, garden turf, …).
   const tileGeo = new THREE.PlaneGeometry(TILE * 0.96, TILE * 0.96);
-  const lightM = mat(0x53377f);
-  const darkM = mat(0x472e6f);
-  const pathM = mat(0x8f6a3e);
+  const lightM = mat(theme.tileLight);
+  const darkM = mat(theme.tileDark);
+  const pathM = mat(theme.path);
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const onPath = pathTiles.has(`${c},${r}`);
@@ -541,8 +541,8 @@ export function makeMap(pathTiles) {
     }
   }
 
-  // Skirting board around the room
-  const wallM = mat(0x2a1a46);
+  // Skirting board / garden fence around the room
+  const wallM = mat(theme.wall);
   for (const [sx, sz, px, pz] of [
     [w + TILE * 2, 0.6, 0, -h / 2 - TILE * 0.6],
     [w + TILE * 2, 0.6, 0, h / 2 + TILE * 0.6],
@@ -554,6 +554,36 @@ export function makeMap(pathTiles) {
     g.add(wall);
   }
 
+  if (theme.decor === 'flowers') g.add(makeFlowers(pathTiles));
+
+  return g;
+}
+
+// Little sprouts of colour on the free tiles of the garden. Deterministic-ish
+// scatter so the board reads as "planted" rather than noisy.
+function makeFlowers(pathTiles) {
+  const g = new THREE.Group();
+  const stemGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 5);
+  const headGeo = new THREE.SphereGeometry(0.22, 8, 6);
+  const stemM = mat(0x3f7a37);
+  const heads = [0xffd24a, 0xff7fbf, 0xfff0a0, 0xc07bff].map((c) => mat(c, { emissive: c, emissiveIntensity: 0.25 }));
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (pathTiles.has(`${c},${r}`)) continue;
+      if ((c * 7 + r * 5) % 6 !== 0) continue;
+      const p = tileToWorld(c, r);
+      const jx = ((c * 13 + r * 29) % 7) / 14 - 0.25;
+      const jz = ((c * 31 + r * 17) % 7) / 14 - 0.25;
+      const flower = new THREE.Group();
+      flower.add(part(stemGeo, stemM, { pos: [0, 0.25, 0] }));
+      const head = part(headGeo, heads[(c + r) % heads.length], { pos: [0, 0.56, 0], scale: [1, 0.7, 1] });
+      head.castShadow = true;
+      flower.add(head);
+      flower.position.set(p.x + jx * TILE, 0, p.z + jz * TILE);
+      flower.scale.setScalar(0.8);
+      g.add(flower);
+    }
+  }
   return g;
 }
 
@@ -562,7 +592,7 @@ export function makeMap(pathTiles) {
 export function makePathArrows(waypoints) {
   const g = new THREE.Group();
   const geo = new THREE.ConeGeometry(0.3, 0.55, 4);
-  const material = new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0.4 });
+  const material = new THREE.MeshBasicMaterial({ color: THEME.arrow, transparent: true, opacity: 0.4 });
   const arrows = [];
   for (let i = 1; i < waypoints.length; i++) {
     const a = waypoints[i - 1];
