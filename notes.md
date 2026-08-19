@@ -709,3 +709,86 @@ and the start-wave button all fit with nothing clipped or overlapping, and the
 new range rings still read clearly on a phone-sized board. The HUD's pre-boot
 placeholder still said `1 / 30` from back when the game ended at wave 30 — it
 now says `1 / 50`, so the very first frame no longer lies.
+
+## v1.2.0 — Fixing the gold economy and the one-way life counter
+
+An audit of the economy turned up two problems that were really the same
+problem: **gold inflated without limit while lives could only ever go down.**
+
+Cumulative earnings used to reach ~12,000 🐟 by wave 15 — enough to buy one of
+every cat, fully maxed and branched, plus Mimi-chan — and ~262,000 🐟 by wave
+50, which is **2.6× more than the 100 buildable tiles can physically absorb**.
+Meanwhile the nine lives never moved once the board was solid, so "lives"
+degenerated into a yes/no flag: a defence that leaks at all dies inside one late
+wave, and one that doesn't never touches the counter. A four-life mistake on
+wave 8 silently doomed a run that then played on, richly, for thirty more waves.
+
+Three changes, all written test-first:
+
+**1. A gentler bounty ramp.** `bounty × (1 + 0.02 × wave)` became
+`bounty × bountyScale(wave)` = `1 + 0.012 × wave` (`BOUNTY_WAVE` in
+`js/config.js`). The old ramp paid double at wave 50; the new one stops around
+1.6×. Late waves already pay far more by sending far more pests — the per-pest
+multiplier was double-counting the difficulty curve.
+
+**2. A wave-clear bonus that plateaus.** `waveBonus()` is now
+`45 + 18 × min(wave, 25)` (`BONUS_CAP_WAVE`). Past wave 25 the bonus was
+rounding error next to the bounties anyway, so it now holds flat instead of
+quietly compounding. `tests/unit/config.test.js` used to assert the bonus rises
+*strictly* forever; it now asserts it never goes *backwards*, and the exact
+plateau is pinned in `tests/unit/economy.test.js`.
+
+**3. Lives you can win back.** Killing a **main boss** refills the milk bowl by
+one life (`BOSS_LIFE_REWARD`), capped at `START_LIVES` and never resurrecting a
+run that already hit zero. That is the wave 10 / 20 / 30 / 40 / 50 beats — and
+wave 40 pays twice, because Stefo checks in off the bench when Simona falls.
+Mini-bosses and ordinary pests give nothing, so the reward stays a *moment*
+rather than a trickle.
+
+Together the two economy changes cut lifetime earnings by **5% at wave 15, 11%
+at wave 30 and 17% by wave 50** — deliberately a trim rather than a cliff. The
+early game, which was already tight (waves 5, 10, 17 and 20 all sit near the
+edge of what the player can afford to answer), barely moves; the late-game
+surplus is what shrinks. Closing the remaining gap needs a real *sink*, not a
+smaller faucet, which is a separate change.
+
+It also gives the boss fights a second stake. Before, a boss was pure downside:
+survive it or lose. Now a player limping in on three lives has something to win,
+which is exactly when the fight is most interesting.
+
+### Making the reward land
+
+A number quietly ticking up is not a reward, so the refill is staged like the
+damage flash it mirrors: the 🥛 chip pops (`setLives(v, true)` reuses the shop's
+`chipflash`), the screen gets a soft mint `body.healed` bloom — the exact
+inverse of the red `body.hit` vignette — a mint ring blooms out of the milk bowl
+itself, the upgrade chime plays, and a toast says so. Both new strings are in
+`js/i18n.js` in English and Serbian (`toast.lifeBack`).
+
+### Where the rules live
+
+The two new pure helpers went into `js/rules.js` next to the rest of the plain
+maths — `bountyFor(def, wave, purse)` and `livesAfterKill(lives, def, max)` —
+so the payout and the cap are testable without a browser. `js/game.js` now
+calls `bountyFor()` in `_kill()` instead of inlining the multiplier, and routes
+the reward through a new `_gainLives()`, the mirror of the existing
+`_loseLives()`. Every way the milk can be lost already funnelled through one
+method; now every way it can be regained does too.
+
+### Tests
+
+TDD throughout: `tests/unit/economy.test.js` (7 tests) was written red first and
+pins the ramp constants, the plateau, the cap, the "a dead run stays dead" rule,
+and — as a regression guard — that a full 50-wave run now earns materially less
+than it used to. `tests/browser/economy.test.js` (8 tests) drives the same rules
+through a real browser: spawn a boss, kill it, watch the HUD chip change.
+
+Full suite: **114 unit tests, 89 browser tests, green.**
+
+### Mobile check
+
+Re-checked at 390×780 with touch emulation. The 🥛 chip is asserted on-screen
+and inside the viewport by the new browser test, so the refill can never push
+the HUD off a phone. The `body.healed` bloom is a fixed-position overlay with
+`pointer-events: none`, so it cannot swallow a tap mid-boss — the moment when
+missing a tap would hurt most.

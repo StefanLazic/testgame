@@ -58,7 +58,14 @@ const ui = {
     }
     this.refreshShop();
   },
-  setLives(v) { $('lives-text').textContent = String(v); },
+  setLives(v, flash = false) {
+    $('lives-text').textContent = String(v);
+    if (!flash) return;
+    const chip = $('lives-text').parentElement;
+    chip.classList.remove('flash');
+    void chip.offsetWidth;
+    chip.classList.add('flash');
+  },
   setWave(n) { $('wave-text').textContent = t('hud.wave', { n, total: WAVES.length }); },
   setSpeed(mult) { $('speed-text').textContent = `${mult}×`; },
   setPhase(phase, timeLeft) {
@@ -202,6 +209,13 @@ const ui = {
     void document.body.offsetWidth;
     document.body.classList.add('hit');
     setTimeout(() => document.body.classList.remove('hit'), 340);
+  },
+  // The opposite of hitFlash: a soft mint pulse when the milk bowl is refilled.
+  lifeFlash() {
+    document.body.classList.remove('healed');
+    void document.body.offsetWidth;
+    document.body.classList.add('healed');
+    setTimeout(() => document.body.classList.remove('healed'), 700);
   },
   gameOver(won, wave, kills) {
     const best = Math.max(wave, Number(localStorage.getItem('cd-best') || 0));

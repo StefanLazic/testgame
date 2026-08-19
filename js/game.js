@@ -18,7 +18,7 @@ import {
   healTargets, shieldAbsorb, shieldRegen, burrowedAt,
   shufflePlan, sleepPicks, nextTrick,
   canPlaceTower, towerLimit, cloneStats, guardedDamage, starLeap, destroyPicks,
-  reviveFraction, nextTeleportSpot, slowFrom,
+  reviveFraction, nextTeleportSpot, slowFrom, bountyFor, lifeReward,
 } from './rules.js';
 import { t } from './i18n.js';
 
@@ -960,7 +960,7 @@ export class Game {
       return;
     }
     const purse = bountyMultiplier(e.group.position, this.supports);
-    const bounty = Math.round(e.def.bounty * (1 + 0.02 * this.wave) * purse);
+    const bounty = bountyFor(e.def, this.wave, purse);
     this.gold += bounty;
     this.kills++;
     this.ui.setGold(this.gold, true);
@@ -978,6 +978,8 @@ export class Game {
       sfx.pop();
     }
     if (e.def.golden) { this.ui.toast(t('toast.golden', { gold: bounty })); sfx.coin(); }
+    // Main bosses are the only pests that hand the milk bowl a life back.
+    this._gainLives(lifeReward(e.def));
     // Catnip drops: guaranteed from bosses, rare otherwise.
     if (e.def.boss || Math.random() < 0.035) this._dropCatnip(p);
     // Simona goes down and her brother checks in off the bench.
@@ -1362,6 +1364,20 @@ export class Game {
       this.ui.gameOver(false, this.wave, this.kills);
       sfx.gameover();
     }
+  }
+
+  // Dropping a main boss tops the milk bowl back up — never past the nine you
+  // started with, and never a resurrection.
+  _gainLives(amount) {
+    if (amount <= 0 || this.lives <= 0 || this.phase === 'demo') return;
+    const before = this.lives;
+    this.lives = Math.min(START_LIVES, this.lives + amount);
+    if (this.lives === before) return;
+    this.ui.setLives(this.lives, true);
+    if (this.ui.lifeFlash) this.ui.lifeFlash();
+    this.effects.ring(this.goal, { color: 0x9dffd8, from: 0.5, to: 6, life: 0.7 });
+    this.ui.toast(t('toast.lifeBack', { lives: this.lives - before }));
+    sfx.upgrade();
   }
 
   _updateTowers(dt) {

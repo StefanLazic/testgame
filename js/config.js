@@ -44,6 +44,11 @@ export function setBoard(map) {
 
 export const START_LIVES = 9;
 export const START_GOLD = 260;
+
+// Killing a main boss (the wave 10 / 20 / 30 / 40 / 50 beats) hands a life back,
+// never above START_LIVES. Lives used to be a one-way trip, which meant a single
+// bad wave quietly doomed a run that then played on for another half hour.
+export const BOSS_LIFE_REWARD = 1;
 export const PREP_TIME = 18;      // seconds between waves
 export const FIRST_PREP = 26;     // a little longer before wave 1
 
@@ -757,4 +762,15 @@ export const WAVES = [
   },
 ];
 
-export function waveBonus(wave) { return 45 + wave * 18; }
+// ---------------------------------------------------------------- economy ---
+// Every pest is worth a little more on later waves, but only a little: the
+// board holds ~100 cats and there is nothing else to spend fish on, so a steep
+// ramp just buries the player in gold they can never use. Late waves already
+// pay more simply by sending far more pests.
+export const BOUNTY_WAVE = 0.012;
+export function bountyScale(wave) { return 1 + BOUNTY_WAVE * wave; }
+
+// The wave-clear bonus climbs until the board can be filled, then holds. Past
+// wave 25 the bonus is rounding error next to the bounties anyway.
+export const BONUS_CAP_WAVE = 25;
+export function waveBonus(wave) { return 45 + Math.min(wave, BONUS_CAP_WAVE) * 18; }

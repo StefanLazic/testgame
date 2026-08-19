@@ -250,7 +250,11 @@ in the bank, rebuild after the crash, and rebuild again after the revive.
   pests already arrive with far more health and armour of their own, and a
   steeper `+0.16` per wave from wave 31 on, where the family's pests take over. Bosses
   ignore the scale entirely and use their flat HP.
-- **Bounty scaling** — the payout is `bounty × (1 + 0.02 × wave)`.
+- **Bounty scaling** — the payout is `bounty × bountyScale(wave)`, i.e.
+  `1 + 0.012 × wave` (`BOUNTY_WAVE`). Late waves already pay far more simply by
+  sending far more pests, so the per-pest ramp is deliberately gentle.
+- **Wave-clear bonus** — `waveBonus(wave)` is `45 + 18 × min(wave, 25)`: it
+  climbs until the board can be filled (`BONUS_CAP_WAVE`), then holds flat.
 - **Armour** — armour is subtracted from every hit, with a floor of 25% of the
   raw damage.
 - **Slows** — Frost applies a temporary speed reduction to a single target; Sir
@@ -336,6 +340,13 @@ with two main bosses: Stefo only appears once Simona has fallen. Wave 50 is the
 last wave in the game.
 
 You start with 9 lives (`START_LIVES`) and 260 🐟 (`START_GOLD`).
+
+**Lives come back.** Killing a **main boss** — the Rat King (10), Sophie (20),
+Emilija (30), Simona and Stefo (40) and Father (50) — refills the milk bowl by
+`BOSS_LIFE_REWARD` (1 life), never above the nine you started with. Mini-bosses
+and ordinary pests give nothing back, and a run that has already hit zero stays
+lost. This is the only way to regain a life, so a bad wave in the middle of a
+run is a setback instead of a silent death sentence.
 
 ## Serbian names
 
