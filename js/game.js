@@ -10,6 +10,7 @@ import {
   makeStoneShell, makePortal, makeBanana, makeEgg,
 } from './models.js';
 import { Effects } from './fx.js';
+import { settings } from './settings.js';
 import { t } from './i18n.js';
 
 // Enemy display names live in i18n; ENEMIES keeps the English fallback name.
@@ -54,6 +55,7 @@ export class Game {
     this.speed = 1;
     this.phase = 'idle';
     this.frenzy = 0;
+    this.paused = false;
 
     this._bindPointer();
     window.addEventListener('resize', () => this.resize());
@@ -364,6 +366,8 @@ export class Game {
     this.occupied.clear();
     this.setLaneOpen(1, false);
 
+    this.paused = false;
+    if (this.ui.setPaused) this.ui.setPaused(false);
     this.lives = START_LIVES;
     this.gold = START_GOLD;
     this.wave = 0;
@@ -390,6 +394,21 @@ export class Game {
     this.speed = mult;
     this.ui.setSpeed(mult);
   }
+
+  // Pausing freezes the simulation but keeps rendering, so the board stays on
+  // screen behind the settings sheet. Only a live run can be paused.
+  setPaused(on) {
+    const canPause = this.phase === 'prep' || this.phase === 'running';
+    const next = !!on && canPause;
+    if (next === this.paused) return this.paused;
+    this.paused = next;
+    // Dropping the accumulated clock stops the game lurching forward on resume.
+    this.clock.getDelta();
+    if (this.ui.setPaused) this.ui.setPaused(this.paused);
+    return this.paused;
+  }
+
+  togglePause() { return this.setPaused(!this.paused); }
 
   setPlacing(kind) {
     this.placing = kind;
@@ -762,6 +781,7 @@ export class Game {
   // ----------------------------------------------------------------- frame
   _frame() {
     const raw = Math.min(this.clock.getDelta(), 0.05);
+    if (this.paused) { this.renderer.render(this.scene, this.camera); return; }
     if (this.phase === 'prep' || this.phase === 'running' || this.phase === 'demo') {
       const dt = raw * (this.phase === 'demo' ? 1 : this.speed);
       this.update(dt, raw);
@@ -773,7 +793,7 @@ export class Game {
   }
 
   _shakeCamera(dt) {
-    const s = this.effects.shake;
+    const s = settings.get('shake') ? this.effects.shake : 0;
     if (s > 0.001) {
       this.camera.position.set(
         this.camBase.x + (Math.random() - 0.5) * s,

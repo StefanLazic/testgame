@@ -1,5 +1,6 @@
 import { Game } from './game.js';
 import { initAudio } from './audio.js';
+import { settings } from './settings.js';
 import { TOWERS, TOWER_ORDER, WAVES } from './config.js';
 import { t, toggleLang, onLangChange, applyStatic } from './i18n.js';
 
@@ -94,6 +95,17 @@ const ui = {
     $('tp-upcost').textContent = info.maxed ? '' : `🐟 ${info.upCost}`;
     $('tp-sell').textContent = `🐟 ${info.sellValue}`;
   },
+  setPaused(on) {
+    $('pause').classList.toggle('hidden', !on);
+    $('btn-pause').textContent = on ? '▶' : '⏸';
+    if (on) this.refreshSettings();
+  },
+  refreshSettings() {
+    $('sound-state').textContent = t(settings.get('sound') ? 'pause.on' : 'pause.off');
+    $('shake-state').textContent = t(settings.get('shake') ? 'pause.on' : 'pause.off');
+    $('btn-sound').classList.toggle('off', !settings.get('sound'));
+    $('btn-shake').classList.toggle('off', !settings.get('shake'));
+  },
   toast(text) {
     const el = $('toast');
     el.textContent = text;
@@ -154,7 +166,7 @@ const pickTaunt = (wave) => (wave >= 8
   : t(`over.taunt.${Math.floor(Math.random() * TAUNT_COUNT)}`));
 
 // ---------------------------------------------------------------- screens --
-const screens = ['title', 'help', 'gameover', 'loading'];
+const screens = ['title', 'help', 'gameover', 'loading', 'pause'];
 function show(name) {
   for (const s of screens) $(s).classList.toggle('hidden', s !== name);
   $('cinematic').classList.add('hidden');
@@ -179,6 +191,12 @@ function startGame() {
   game.start();
 }
 
+// ------------------------------------------------------------ pause sheet --
+function setPaused(on) {
+  const paused = game.setPaused(on);
+  ui.setPaused(paused);
+}
+
 $('btn-lang').addEventListener('click', toggleLang);
 $('btn-play').addEventListener('click', startGame);
 $('btn-again').addEventListener('click', startGame);
@@ -188,6 +206,26 @@ $('btn-next').addEventListener('click', () => game.startWaveNow());
 $('btn-upgrade').addEventListener('click', () => game.upgradeSelected());
 $('btn-sell').addEventListener('click', () => game.sellSelected());
 $('btn-close-panel').addEventListener('click', () => game.selectTower(null));
+$('btn-pause').addEventListener('click', () => setPaused(!game.paused));
+$('btn-resume').addEventListener('click', () => setPaused(false));
+$('btn-sound').addEventListener('click', () => { settings.toggle('sound'); ui.refreshSettings(); });
+$('btn-shake').addEventListener('click', () => { settings.toggle('shake'); ui.refreshSettings(); });
+$('btn-restart').addEventListener('click', () => { setPaused(false); startGame(); });
+$('btn-quit').addEventListener('click', () => {
+  setPaused(false);
+  game.startDemo();
+  show('title');
+});
+onLangChange(() => ui.refreshSettings());
+
+// Escape pauses on a desktop keyboard; switching apps or tabs pauses on a
+// phone, so nobody comes back to a lost run.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') setPaused(!game.paused);
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden) setPaused(true); });
+window.addEventListener('blur', () => setPaused(true));
+
 $('btn-speed').addEventListener('click', () => {
   const next = { 1: 2, 2: 3, 3: 1 }[game.speed] || 1;
   game.setSpeed(next);

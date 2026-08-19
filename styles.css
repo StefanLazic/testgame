@@ -274,6 +274,23 @@ button.lang:active { background: rgba(255,255,255,0.16); }
 .score-box span { font-size: clamp(22px, 7vw, 32px); font-weight: 900; color: var(--gold); }
 .score-box small { opacity: 0.65; font-size: clamp(10px, 3vw, 12px); }
 
+/* ----------------------------------------------------- Pause & settings */
+.chip.btn.pause { min-width: 44px; min-height: 34px; text-align: center; }
+#pause .panel { max-width: 420px; }
+.settings { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 14px; }
+.toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; min-height: 48px; padding: 10px 16px;
+  border-radius: 14px; border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.09); color: var(--ink);
+  font-family: inherit; font-size: clamp(13px, 4vw, 16px); font-weight: 700;
+  cursor: pointer;
+}
+.toggle b { color: var(--mint); letter-spacing: 0.5px; }
+.toggle.off { opacity: 0.62; }
+.toggle.off b { color: var(--danger); }
+.toggle:active { transform: scale(0.98); }
+
 /* Damage flash when a pest reaches the milk */
 body.hit::after {
   content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 8;

@@ -23,6 +23,7 @@
       <div class="chip gold">🐟 <span id="gold-text">0</span></div>
       <div class="chip wave">🌊 <span id="wave-text">1 / 20</span></div>
       <button id="btn-speed" class="chip btn" type="button" data-i18n-aria="hud.speed" aria-label="Brzina igre">▶▶ <span id="speed-text">1×</span></button>
+      <button id="btn-pause" class="chip btn pause" type="button" data-i18n-aria="hud.pause" aria-label="Pauza">⏸</button>
     </div>
 
     <div id="boss-bar" class="hidden">
@@ -87,6 +88,25 @@
         <li data-i18n-html="help.bosses"><b>Talasi 5, 10, 15 i 20:</b> dva mini-bosa, kralj — a onda nešto sa krilima.</li>
       </ul>
       <button id="btn-help-back" class="big" type="button" data-i18n="help.back">Jasno mi je</button>
+    </div>
+  </div>
+
+  <!-- Pause + settings sheet -->
+  <div id="pause" class="screen hidden">
+    <div class="panel">
+      <h2 data-i18n="pause.title">Pauza</h2>
+      <p class="tag" data-i18n="pause.sub">Mleko je bezbedno dok razmišljaš.</p>
+      <div class="settings">
+        <button id="btn-sound" class="toggle" type="button">
+          <span data-i18n="pause.sound">🔊 Zvuk</span><b id="sound-state">Uklj.</b>
+        </button>
+        <button id="btn-shake" class="toggle" type="button">
+          <span data-i18n="pause.shake">〰️ Trešenje ekrana</span><b id="shake-state">Uklj.</b>
+        </button>
+      </div>
+      <button id="btn-resume" class="big" type="button" data-i18n="pause.resume">Nastavi</button>
+      <button id="btn-restart" class="ghost" type="button" data-i18n="pause.restart">Počni ispočetka</button>
+      <button id="btn-quit" class="ghost" type="button" data-i18n="pause.quit">Izađi na naslovnu</button>
     </div>
   </div>
 

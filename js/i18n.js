@@ -36,6 +36,7 @@ export const STRINGS = {
     'help.back': 'Got it',
 
     'hud.speed': 'Game speed',
+    'hud.pause': 'Pause',
     'hud.boss': 'BOSS',
     'hud.upgrade': 'Upgrade',
     'hud.sell': 'Sell',
@@ -48,6 +49,16 @@ export const STRINGS = {
     'hud.max': 'MAX',
     'hud.catSuffix': '{name} Cat',
     'hud.stats': '⚔️ {damage} dmg · 🎯 {range} range · ⏱ {rate}/s',
+
+    'pause.title': '⏸ Paused',
+    'pause.sub': 'The milk is safe while you think.',
+    'pause.sound': '🔊 Sound',
+    'pause.shake': '〰️ Screen shake',
+    'pause.on': 'On',
+    'pause.off': 'Off',
+    'pause.resume': 'Resume',
+    'pause.restart': 'Restart run',
+    'pause.quit': 'Quit to title',
 
     'loading.text': 'Waking the cats…',
     'error.webgl.title': 'WebGL unavailable',
@@ -194,6 +205,7 @@ export const STRINGS = {
     'help.back': 'Jasno mi je',
 
     'hud.speed': 'Brzina igre',
+    'hud.pause': 'Pauza',
     'hud.boss': 'BOS',
     'hud.upgrade': 'Unapredi',
     'hud.sell': 'Prodaj',
@@ -206,6 +218,16 @@ export const STRINGS = {
     'hud.max': 'MAKS',
     'hud.catSuffix': '{name} 🐱',
     'hud.stats': '⚔️ {damage} štete · 🎯 {range} domet · ⏱ {rate}/s',
+
+    'pause.title': '⏸ Pauza',
+    'pause.sub': 'Mleko je bezbedno dok razmišljaš.',
+    'pause.sound': '🔊 Zvuk',
+    'pause.shake': '〰️ Trešenje ekrana',
+    'pause.on': 'Uklj.',
+    'pause.off': 'Isklj.',
+    'pause.resume': 'Nastavi',
+    'pause.restart': 'Počni ispočetka',
+    'pause.quit': 'Izađi na naslovnu',
 
     'loading.text': 'Budimo mačke…',
     'error.webgl.title': 'WebGL nije dostupan',

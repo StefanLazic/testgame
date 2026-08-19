@@ -1,6 +1,9 @@
 // Tiny WebAudio synth: no audio files to download, works offline.
+import { settings } from './settings.js';
+
 let ctx = null;
 let master = null;
+const VOLUME = 0.28;
 
 export function initAudio() {
   if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
@@ -8,9 +11,16 @@ export function initAudio() {
   if (!AC) return;
   ctx = new AC();
   master = ctx.createGain();
-  master.gain.value = 0.28;
+  master.gain.value = settings.get('sound') ? VOLUME : 0;
   master.connect(ctx.destination);
 }
+
+// Muting keeps the graph alive (so nothing has to be rebuilt) and just closes
+// the master tap.
+export function applyVolume() {
+  if (master) master.gain.value = settings.get('sound') ? VOLUME : 0;
+}
+settings.onChange((key) => { if (key === 'sound') applyVolume(); });
 
 function tone({ freq = 440, type = 'sine', dur = 0.18, vol = 0.6, slide = 0, delay = 0 }) {
   if (!ctx) return;

@@ -323,3 +323,26 @@ headless playtest that nobody could repeat later. That is now a committed,
 - Two tiny production tweaks were needed to make `js/i18n.js` importable in
   node: `STRINGS` is exported (so parity can be asserted) and `applyStatic()`
   returns early when there is no DOM.
+
+## 2026-08-19 — pause, and a place to put settings ⏸
+
+The game had a fast-forward chip but no way to stop, and no way to turn the
+sound off — awkward on a phone, where a run could be lost to an incoming call.
+
+- **`js/settings.js` (new)** is a tiny store: defaults, JSON in `localStorage`
+  under `cd-settings`, change listeners, and a hard rule that it must never
+  throw. Private mode, blocked cookies, hand-edited garbage, no storage object
+  at all — every case falls back to the defaults, and all of them are unit
+  tested (`tests/unit/settings.test.js`).
+- **Pause** (`game.setPaused`) freezes the simulation but keeps rendering, so
+  the board stays visible behind the sheet. It also drops the accumulated
+  `Clock` delta on both edges — without that, resuming after ten seconds in
+  another app would lurch the whole wave forward in one frame. The test asserts
+  the prep timer doesn't move while paused and doesn't jump on resume.
+- **The sheet** offers Resume, Restart run, Quit to title and two settings:
+  🔊 sound and 〰️ screen shake. Muting keeps the WebAudio graph alive and just
+  closes the master gain, so nothing has to be rebuilt when it comes back.
+  Screen shake off makes `_shakeCamera` a no-op for anyone who finds the camera
+  kicks unpleasant.
+- **Auto-pause** on `visibilitychange` and `blur`, plus Escape/P on a desktop
+  keyboard. The ⏸ chip is a 44 px touch target next to the speed chip.
