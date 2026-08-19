@@ -458,11 +458,11 @@ export function makeEnemy(kind) {
     },
     // Emilija: an enormous, unreasonably pretty butterfly.
     emilija: () => {
-      const bodyM = mat(0x4b2a6b);
-      const glowM = mat(0xff8ad8, { emissive: 0x6b1046 });
-      const wingM = mat(0xc46bff, { emissive: 0x3a0a5c, side: THREE.DoubleSide });
-      const wingM2 = mat(0xff7ad0, { emissive: 0x5c0a3a, side: THREE.DoubleSide });
-      const dotM = mat(0xffe066, { emissive: 0x6b5200, side: THREE.DoubleSide });
+      const bodyM = mat(0x7a4fb0, { emissive: 0x2a1046 });
+      const glowM = mat(0xffb0e8, { emissive: 0x8a2a6b });
+      const wingM = mat(0xd89bff, { emissive: 0x6a2ab0, side: THREE.DoubleSide });
+      const wingM2 = mat(0xffa8e0, { emissive: 0xa0286b, side: THREE.DoubleSide });
+      const dotM = mat(0xfff0a0, { emissive: 0xb08a00, side: THREE.DoubleSide });
       // Segmented abdomen.
       for (let i = 0; i < 5; i++) {
         g.add(part(SPHERE, i % 2 ? bodyM : glowM, {
@@ -484,12 +484,15 @@ export function makeEnemy(kind) {
         const wing = new THREE.Group();
         wing.position.set(0.3 * s, 1.2, 0.1);
         wing.userData.side = s;
-        const upper = part(CIRCLE, wingM, { pos: [1.9 * s, 0.9, -0.1], scale: [4.4, 3.6, 1], rot: [0, Math.PI / 2 * (s > 0 ? -1 : 1), 0] });
-        const lower = part(CIRCLE, wingM2, { pos: [1.5 * s, -0.8, -0.5], scale: [3.0, 2.6, 1], rot: [0, Math.PI / 2 * (s > 0 ? -1 : 1), 0] });
+        // Wings lie flat, like a butterfly seen from above, and flap by
+        // tilting around the body — the camera looks down, so this reads.
+        const flat = [-Math.PI / 2, 0, 0];
+        const upper = part(CIRCLE, wingM, { pos: [2.0 * s, 0.02, 0.9], scale: [4.2, 3.4, 1], rot: flat });
+        const lower = part(CIRCLE, wingM2, { pos: [1.5 * s, 0, -1.5], scale: [3.0, 2.6, 1], rot: flat });
         wing.add(upper, lower);
-        for (const [y, z, r] of [[1.5, 0.4, 0.5], [0.6, -0.9, 0.36], [-0.9, -0.3, 0.3]]) {
+        for (const [x, z, r] of [[2.4, 1.6, 0.55], [1.6, 0.4, 0.4], [1.5, -1.9, 0.36]]) {
           wing.add(part(CIRCLE, dotM, {
-            pos: [1.94 * s, y, z], scale: [r, r, 1], rot: [0, Math.PI / 2 * (s > 0 ? -1 : 1), 0],
+            pos: [x * s, 0.06, z], scale: [r, r, 1], rot: flat,
           }));
         }
         g.add(wing); legs.push(wing);
@@ -596,9 +599,9 @@ export function makeEnemy(kind) {
     g.traverse((o) => {
       if (!o.isMesh || !o.material.color) return;
       const hex = o.material.color.getHex();
-      if (hex === 0xc46bff) o.material = mat(0x8fe6ff, { emissive: 0x0a3a5c, side: THREE.DoubleSide });
-      else if (hex === 0xff7ad0) o.material = mat(0xa8ffd8, { emissive: 0x0a5c3a, side: THREE.DoubleSide });
-      else if (hex === 0x4b2a6b) o.material = mat(0x2f4a6b);
+      if (hex === 0xd89bff) o.material = mat(0x8fe6ff, { emissive: 0x0a3a5c, side: THREE.DoubleSide });
+      else if (hex === 0xffa8e0) o.material = mat(0xa8ffd8, { emissive: 0x0a5c3a, side: THREE.DoubleSide });
+      else if (hex === 0x7a4fb0) o.material = mat(0x4a6f9b, { emissive: 0x0a2036 });
     });
   }
   if (kind === 'monkeyking') {

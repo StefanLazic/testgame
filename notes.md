@@ -542,3 +542,11 @@ Tests: `tests/unit/emilija.test.js` (seeded PRNG: shuffle keeps the same tiles
 and never leaves a cat in place, sleep picks a third and never the whole army,
 tricks never repeat) plus new assertions in `tests/unit/config.test.js` for the
 30-wave table, the double mini-boss and waves 1–20 being untouched.
+
+**Model pass.** Emilija's wings started life as vertical planes, which looked
+like a paper blade from the game's high camera. They now lie flat — like a
+butterfly pinned in a case — and flap by tilting around the body, and her
+palette was brightened (`0xd89bff` / `0xffa8e0` wings, gold spots) so she reads
+against the dark board. Checked with a scripted screenshot at three camera
+distances. The flutterlings inherit the shape and are recoloured cyan/mint so
+nobody mistakes a child for the boss.
