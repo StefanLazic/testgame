@@ -1,9 +1,10 @@
 # 🐱 Mimi-chan Defense
 
 A 3D mobile **tower defense** game: place cat towers around the kitchen and stop
-thirty waves of mice, snakes, dogs, birds and barnyard invaders before they
+fifty waves of mice, snakes, dogs, birds and barnyard invaders before they
 reach the milk bowl. Every cat here defends the milk of their queen,
-👑 **Mimi-chan** — and the last two chapters end with a dragon and a butterfly.
+👑 **Mimi-chan** — and the last chapters end with a dragon, a butterfly and a
+whole family of humans who want their kitchen back.
 
 Built with [three.js](https://threejs.org/) as **plain static files** — no build
 step, no bundler, no CDN. Open `index.html` (or serve the folder) and play.
@@ -43,7 +44,7 @@ there when you add UI text, a cat, an enemy or a wave.
 | See a cat's range before buying | select it in the shop — the preview card shows its stats and paints its range on the board |
 
 Every pest that reaches the milk costs lives (dogs cost 2, bosses far more).
-Nine lives, thirty waves. From **wave 11** a second door tears open in the
+Nine lives, fifty waves. From **wave 11** a second door tears open in the
 top-right corner of the kitchen and pests pour in down *two* lanes at once.
 
 ## Two kitchens
@@ -52,7 +53,7 @@ Pick your battlefield on the title screen: **The Kitchen** (9×19, the original
 tiled floor) or **The Garden** (11×17, a wider grassy lawn with a longer,
 loopier path and flowers everywhere). The choice is remembered.
 
-## The nine cats
+## The ten cats
 
 | Cat | Cost | Role |
 | --- | --- | --- |
@@ -63,8 +64,11 @@ loopier path and flowers everywhere). The choice is remembered.
 | 😴 Sleepy | 210 | lobs a pillow for huge splash damage, very slowly — ground only |
 | 🎀 Ema | 180 | fires nothing: buffs every cat around her (damage + fire rate) |
 | 💰 Sofija | 200 | fires nothing: pays a wage every few seconds and raises nearby bounties |
+| 🗡️ Simba-kun | 260 | samurai: a cleaving katana, and every 14 s an unsheathe that cuts and stuns everything around him — ground only |
 | 🧙 Witch | 300 | curses one pest a minute: frog ➜ stone ➜ dust (bosses are immune) |
 | 👑 Mimi-chan | 3000 | the queen: every 10 s the whole board stops to bow for 1 s |
+
+👑 Mimi-chan is **one of a kind** — only one may ever stand on the table.
 
 Each cat upgrades twice for more damage, range and fire rate — the Witch's
 upgrades change *which* curse she casts, and Mimi-chan needs no upgrades.
@@ -91,6 +95,15 @@ Then it keeps going. Wave 25 sends *two* mini-bosses at once, one through each
 door, and somewhere around wave 27 strange butterflies start scouting the
 kitchen. On wave 30 you find out why: 🦋 **Emilija** never touches a cat — she
 just refuses to let your board stay the way you built it.
+
+And then the family comes home. Wave 35 brings 🧶 **Grandma Vera** and her
+knitting. On wave 40 🤸 **Simona the gymnast** takes the floor: she copies
+herself every few seconds — and every copy is hurt exactly as badly as she is —
+cartwheels past your best cats and does a handstand that shrugs off almost
+everything. Beat her and her brother 🏀 **Stefo** checks in: he never walks
+anywhere, he just teleports around the kitchen and shoots baskets at the milk.
+Wave 45 fields three mini-bosses at once. And on wave 50, 💥 **Father** lands on
+half your army — and does not accept the first defeat.
 
 Something in there heals its friends. Something else wears a shield that grows
 back if you leave it alone. And something keeps disappearing underground just as

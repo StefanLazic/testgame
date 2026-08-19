@@ -2,12 +2,12 @@ import * as THREE from 'three';
 import {
   TILE, COLS, ROWS, PATHS, SECOND_LANE_WAVE, THEME, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
   TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME, branchCost, BRANCHES,
-  ENEMIES, hpScale, WAVES, waveBonus, BANANA_STUN, DRAGON, EMILIJA,
+  ENEMIES, hpScale, WAVES, waveBonus, BANANA_STUN, DRAGON, EMILIJA, SIMONA, STEFO, FATHER,
 } from './config.js';
 import {
   makeCatTower, makeEnemy, makeMap, makeMouseHole, makeMilkBowl, makeRangeRing,
   makeGhostTile, makeBullet, makeCatnipDrop, makeStars, tileToWorld, makePathArrows,
-  makeStoneShell, makePortal, makeBanana, makeEgg,
+  makeStoneShell, makePortal, makeBanana, makeEgg, makeBasketball,
 } from './models.js';
 import { Effects } from './fx.js';
 import { settings } from './settings.js';
@@ -17,6 +17,8 @@ import {
   synergyMultipliers, branchesFor, branchStats,
   healTargets, shieldAbsorb, shieldRegen, burrowedAt,
   shufflePlan, sleepPicks, nextTrick,
+  canPlaceTower, towerLimit, cloneStats, guardedDamage, starLeap, destroyPicks,
+  reviveFraction, nextTeleportSpot,
 } from './rules.js';
 import { t } from './i18n.js';
 
@@ -299,6 +301,11 @@ export class Game {
     return !!tile && !this.pathTiles.has(tile.key) && !this.occupied.has(tile.key);
   }
 
+  // Some cats are one of a kind: there is only ever one Mimi-chan.
+  _allowed(kind) {
+    return canPlaceTower(kind, this.towers);
+  }
+
   _updateGhost() {
     const tile = this._tileAt(this._groundPoint());
     const def = TOWERS[this.placing];
@@ -320,6 +327,12 @@ export class Game {
     const tile = this._tileAt(p);
 
     if (this.placing) {
+      if (!this._allowed(this.placing)) {
+        sfx.deny();
+        this.ui.toast(t('toast.limit', { name: t(`tower.${this.placing}.name`) }));
+        this.setPlacing(null);
+        return;
+      }
       if (this._buildable(tile)) { this.placeTower(this.placing, tile); return; }
       // Tapping a cat you already own inspects it instead of nagging you.
       const existing = tile && this.occupied.get(tile.key);
@@ -567,6 +580,11 @@ export class Game {
         damage: Math.round(bonus.damage * 100), rate: Math.round(bonus.rate * 100),
         range: st.range.toFixed(1),
       });
+    } else if (base.bushido) {
+      ability = t('ability.bushido', {
+        damage: Math.round(st.damage * st.bushido.damage),
+        stun: st.bushido.stun.toFixed(1), cooldown: Math.round(st.bushido.cooldown),
+      });
     } else if (base.ability === 'gold') {
       const income = goldIncome(tower.level, tower.branch);
       const purse = Math.round((bountyMultiplier({ x: 0, z: 0 }, [{
@@ -633,6 +651,11 @@ export class Game {
 
   placeTower(kind, tile) {
     const cost = TOWERS[kind].cost;
+    if (!this._allowed(kind)) {
+      sfx.deny();
+      this.ui.toast(t('toast.limit', { name: t(`tower.${kind}.name`) }));
+      return;
+    }
     if (this.gold < cost) { sfx.deny(); this.ui.toast(t('toast.poor')); return; }
     this.gold -= cost;
     this.ui.setGold(this.gold);
@@ -648,6 +671,7 @@ export class Game {
       group: model.group, head: model.head, arm: model.arm, body: model.body,
       cool: 0, recoil: 0, pos: new THREE.Vector3(p.x, 0.9, p.z), pop: 0, disabledT: 0, asleep: false,
       abilityCool: TOWERS[kind].ability ? TOWERS[kind].cooldown : 0,
+      bushidoT: TOWERS[kind].bushido ? TOWERS[kind].bushido.cooldown : 0,
       branch: null,
       buff: { damage: 1, rate: 1, buffed: false },
       syn: { damage: 1, rate: 1, range: 1, ids: [] },
@@ -663,7 +687,7 @@ export class Game {
 
     this.ghost.visible = false;
     this.ghostRing.visible = false;
-    if (this.gold < cost) this.setPlacing(null);
+    if (this.gold < cost || !this._allowed(kind)) this.setPlacing(null);
     else this._previewGhost(kind);
     this.ui.setGold(this.gold);
   }
@@ -768,6 +792,8 @@ export class Game {
       5: 'toast.warnMini', 10: 'toast.warnFinal', 11: 'toast.warnPortal',
       15: 'toast.warnMini2', 20: 'toast.warnDragon',
       25: 'toast.warnMini3', 27: 'toast.warnFlutter', 30: 'toast.warnEmilija',
+      35: 'toast.warnGranny', 40: 'toast.warnSimona',
+      45: 'toast.warnFamily', 50: 'toast.warnFather',
     }[next];
     if (warn) setTimeout(() => this.ui.toast(t(warn)), 1800);
   }
@@ -817,6 +843,19 @@ export class Game {
       g.position.copy(start);
     }
     if (def.dragon) { e.intro = 0; e.introDur = DRAGON.intro; }
+    // The family. Simona's copies skip the entrance — they are already here.
+    if (def.gymnast) {
+      if (def.boss) { e.intro = 0; e.introDur = SIMONA.intro; }
+      e.cloneT = 0; e.starT = SIMONA.starEvery * 0.5; e.handT = 0; e.guardT = 0;
+    }
+    if (def.baller) {
+      e.intro = 0; e.introDur = STEFO.intro;
+      e.tpT = 0; e.shootT = -STEFO.shootEvery * 0.5; e.spot = null;
+    }
+    if (def.father) {
+      e.intro = 0; e.introDur = FATHER.intro;
+      e.revivesLeft = FATHER.revives; e.stompT = 0;
+    }
     if (def.butterfly && def.boss) {
       e.intro = 0;
       e.introDur = EMILIJA.intro;
@@ -837,6 +876,15 @@ export class Game {
       } else if (def.butterfly) {
         this.ui.cinematic(t('banner.emilija'), t('banner.emilijaSub'), '🦋');
         sfx.emilijaChime();
+      } else if (def.gymnast) {
+        this.ui.cinematic(t('banner.simona'), t('banner.simonaSub'), '🤸');
+        sfx.whistle();
+      } else if (def.baller) {
+        this.ui.cinematic(t('banner.stefo'), t('banner.stefoSub'), '🏀');
+        sfx.whistle();
+      } else if (def.father) {
+        this.ui.cinematic(t('banner.father'), t('banner.fatherSub'), '💥');
+        sfx.roar();
       } else {
         this.ui.banner(def.boss === 'main' ? t('banner.finalBoss') : t('banner.miniBoss'), enemyName(e.kind));
         sfx.boss();
@@ -876,7 +924,9 @@ export class Game {
     if (!e.alive) return;
     if (e.burrowed) return;          // nothing can touch it underground
     const armor = e.def.armor || 0;
-    const dealt = Math.max(amount * 0.25, amount - armor);
+    let dealt = Math.max(amount * 0.25, amount - armor);
+    // Upside down, Simona barely feels it.
+    if (e.guardT > 0) dealt = guardedDamage(dealt, SIMONA.handstandResist);
     e.sinceHit = 0;
     if (e.shield > 0) {
       const after = shieldAbsorb({ hp: e.hp, shield: e.shield }, dealt);
@@ -895,7 +945,10 @@ export class Game {
     }
     e.hurt = 0.12;
     if (crit) this.effects.burst(e.group.position.clone().setY(e.group.position.y + 0.6), { count: 6, color: 0xffe066, speed: 4, size: 0.3, life: 0.4 });
-    if (e.hp <= 0) this._kill(e);
+    if (e.hp <= 0) {
+      if (e.def.father && e.revivesLeft > 0) { this._fatherRevive(e); return; }
+      this._kill(e);
+    }
   }
 
   _kill(e) {
@@ -927,6 +980,14 @@ export class Game {
     if (e.def.golden) { this.ui.toast(t('toast.golden', { gold: bounty })); sfx.coin(); }
     // Catnip drops: guaranteed from bosses, rare otherwise.
     if (e.def.boss || Math.random() < 0.035) this._dropCatnip(p);
+    // Simona goes down and her brother checks in off the bench.
+    if (e.def.successor && e.def.boss && this.phase === 'running') {
+      const next = this._spawn(e.def.successor, e.lane);
+      next.pos.copy(e.pos);
+      next.seg = e.seg;
+      next.progress = e.progress;
+      this.ui.toast(t('toast.stefoArrives'));
+    }
   }
 
   _dropCatnip(pos) {
@@ -1061,6 +1122,9 @@ export class Game {
       if (!e.alive) { this._despawn(e, i); continue; }
       if (e.intro != null) {
         if (e.def.butterfly) this._emilijaEntrance(e, dt);
+        else if (e.def.gymnast) this._simonaEntrance(e, dt);
+        else if (e.def.baller) this._stefoEntrance(e, dt);
+        else if (e.def.father) this._fatherEntrance(e, dt);
         else this._dragonEntrance(e, dt);
         continue;
       }
@@ -1125,6 +1189,11 @@ export class Game {
       }
       if (e.def.dragon) this._dragonBrain(e, dt);
       if (e.def.butterfly && e.def.boss) this._emilijaBrain(e, dt);
+      if (e.def.gymnast) this._simonaBrain(e, dt);
+      if (e.def.baller) this._stefoBrain(e, dt);
+      if (e.def.father) this._fatherBrain(e, dt);
+      // A handstand goes nowhere, and Stefo never walks anywhere at all.
+      if (e.guardT > 0 || e.def.stationary) speed = 0;
       if (e.def.spawner) {
         e.spawnT += dt;
         if (e.spawnT > e.spawnTimer) {
@@ -1273,12 +1342,18 @@ export class Game {
     this._despawn(e, i);
     if (this.phase === 'demo') return;
     if (cost <= 0) { this.ui.toast(t('toast.goldenGone')); return; }
-    this.lives = Math.max(0, this.lives - cost);
-    this.ui.setLives(this.lives);
-    this.ui.hitFlash();
     this.effects.ring(this.goal, { color: 0xff3b6b, from: 0.5, to: 5, life: 0.5 });
     this.effects.kick(0.5);
     sfx.leak();
+    this._loseLives(cost);
+  }
+
+  // Every way the milk can be lost funnels through here.
+  _loseLives(cost) {
+    if (cost <= 0) return;
+    this.lives = Math.max(0, this.lives - cost);
+    this.ui.setLives(this.lives);
+    this.ui.hitFlash();
     if (this.lives <= 0 && this.phase !== 'over') {
       this.phase = 'over';
       this.ui.boss(null);
@@ -1307,6 +1382,7 @@ export class Game {
       const buff = t.buff || { damage: 1, rate: 1, buffed: false };
       if (TOWERS[t.kind].support) { this._updateSupport(t, st, dt, frenzy); continue; }
       if (st.ability) { this._updateAbility(t, st, dt, frenzy); continue; }
+      if (st.bushido) this._updateBushido(t, st, dt, frenzy);
       t.cool -= dt * st.rate * buff.rate * frenzy;
       const target = this._pickTarget(t, st);
 
@@ -1339,6 +1415,31 @@ export class Game {
     }
   }
 
+
+  // Simba-kun keeps his katana half-drawn. Every cooldown, if anything at all
+  // is in reach, he unsheathes it: a ring of moonlight that cuts and staggers
+  // every pest around him.
+  _updateBushido(tower, st, dt, frenzy) {
+    tower.bushidoT -= dt * frenzy;
+    if (tower.bushidoT > 0) return;
+    const reach = st.range * 1.15;
+    const caught = this.enemies.filter((e) => e.alive && e.intro == null && !e.burrowed
+      && !e.flying && e.group.position.distanceTo(tower.pos) <= reach);
+    if (!caught.length) { tower.bushidoT = 0.4; return; }
+    tower.bushidoT = st.bushido.cooldown;
+    tower.pop = 0.5;
+    this.effects.ring(tower.pos.clone().setY(0.12), { color: 0xeef3ff, from: 0.4, to: reach * 2, life: 0.5 });
+    this.effects.burst(tower.pos.clone().setY(1.2), { count: 20, color: 0xfff0c0, speed: 7, size: 0.5 });
+    this.effects.kick(0.35);
+    sfx.bushido();
+    for (const e of caught) {
+      this.damage(e, st.damage * st.bushido.damage);
+      if (e.alive) {
+        e.stunT = Math.max(e.stunT, st.bushido.stun);
+        this.effects.trail(e.group.position.clone().setY(e.group.position.y + 0.6), 0xeef3ff, 0.3);
+      }
+    }
+  }
 
   // Support cats never shoot. Ema pulses her ribbon over the cats she is
   // helping; Sofija counts down to the next fish she digs up.
@@ -1596,7 +1697,13 @@ export class Game {
       mesh.position.copy(from);
       this.scene.add(mesh);
       const to = tw.pos.clone().setY(1.15);
-      this.hazards.push({ mesh, from, to, t: 0, dur: Math.max(0.4, from.distanceTo(to) / 9), tower: tw });
+      // Grandma Vera doesn't throw bananas, she throws balls of wool.
+      const knit = !!source.def.knits;
+      if (knit) mesh.traverse((o) => { if (o.isMesh && o.material.color) o.material.color.setHex(0xff8ad8); });
+      this.hazards.push({
+        mesh, from, to, t: 0, knit,
+        dur: Math.max(0.4, from.distanceTo(to) / 9), tower: tw,
+      });
     }
     sfx.banana();
   }
@@ -1607,7 +1714,7 @@ export class Game {
       h.t += dt;
       const k = Math.min(1, h.t / h.dur);
       const p = h.from.clone().lerp(h.to, k);
-      p.y += Math.sin(k * Math.PI) * 3.2;
+      p.y += Math.sin(k * Math.PI) * (h.basket ? 4.4 : 3.2);
       h.mesh.position.copy(p);
       h.mesh.rotation.z += dt * 12;
       h.mesh.rotation.x += dt * 6;
@@ -1615,12 +1722,25 @@ export class Game {
 
       this.scene.remove(h.mesh);
       this.hazards.splice(i, 1);
+      // Nothing but net: a basket costs a life.
+      if (h.basket) {
+        this.effects.ring(this.goal, { color: 0xff8a1f, from: 0.4, to: 7, life: 0.6 });
+        this.effects.burst(h.to.clone(), { count: 20, color: 0xff8a1f, speed: 6, size: 0.5 });
+        this.effects.kick(0.6);
+        sfx.swish();
+        this.ui.toast(t('toast.stefoBasket', { lives: STEFO.livesPerBasket }));
+        this._loseLives(STEFO.livesPerBasket);
+        continue;
+      }
       if (!this.towers.includes(h.tower)) continue;
       h.tower.disabledT = BANANA_STUN;
       this.effects.burst(h.to.clone(), { count: 12, color: 0xffe066, speed: 4, size: 0.4 });
       this.effects.ring(h.tower.group.position, { color: 0xffe066, from: 0.3, to: 2.6, life: 0.4 });
       sfx.bonk();
-      this.ui.toast(t('toast.banana', { name: t(`tower.${h.tower.kind}.name`), sec: BANANA_STUN }));
+      const catName = t(`tower.${h.tower.kind}.name`);
+      this.ui.toast(h.knit
+        ? t('toast.grannyKnit', { name: catName })
+        : t('toast.banana', { name: catName, sec: BANANA_STUN }));
     }
   }
 
@@ -1823,6 +1943,256 @@ export class Game {
     sfx.emilijaChime();
     this.ui.banner(t('banner.emilijaTrick'), t('trick.spawn'));
     this.ui.toast(t('toast.emilijaSpawn', { count: EMILIJA.spawnCount }));
+  }
+
+  // ----------------------------------------------------------- the family
+  // Simona cartwheels in from the wings like the floor is hers.
+  _simonaEntrance(e, dt) {
+    e.intro += dt;
+    const k = Math.min(1, e.intro / e.introDur);
+    const ease = k * k * (3 - 2 * k);
+    const land = e.route[0];
+    e.group.position.set(
+      land.x - (1 - ease) * 18,
+      Math.abs(Math.sin(k * Math.PI * 3)) * 3.2 * (1 - ease * 0.6),
+      land.z
+    );
+    e.group.rotation.z = (1 - ease) * Math.PI * 6;
+    if (Math.random() < dt * 26) {
+      this.effects.trail(e.group.position.clone().setY(e.group.position.y + 0.8), 0xffd166, 0.5);
+    }
+    if (k < 1) return;
+    e.intro = null;
+    e.group.rotation.z = 0;
+    e.pos.copy(new THREE.Vector3(land.x, 0, land.z));
+    e.group.position.copy(e.pos);
+    this.effects.ring(e.pos.clone(), { color: 0xffd166, from: 1, to: 24, life: 1 });
+    this.effects.burst(e.pos.clone().setY(1.4), { count: 40, color: 0xff8ad8, speed: 8, size: 0.7 });
+    this.effects.kick(0.8);
+    sfx.whistle();
+    this.ui.toast(t('toast.simonaLanded'));
+  }
+
+  _simonaBrain(e, dt) {
+    // Mid-handstand she is a statue: no tricks, no copies, almost no damage.
+    if (e.guardT > 0) {
+      e.guardT -= dt;
+      e.group.rotation.z = Math.PI;
+      e.group.position.y = 0.35;
+      if (Math.random() < dt * 8) this.effects.trail(e.group.position.clone().setY(1.2), 0x8fe6ff, 0.4);
+      if (e.guardT <= 0) { e.group.rotation.z = 0; e.group.position.y = 0; }
+      return;
+    }
+    e.handT += dt;
+    if (e.handT >= SIMONA.handstandEvery) { e.handT = 0; this._simonaHandstand(e); return; }
+    e.starT += dt;
+    if (e.starT >= SIMONA.starEvery) { e.starT = 0; this._simonaStar(e); }
+    e.cloneT += dt;
+    if (e.cloneT >= SIMONA.cloneEvery) { e.cloneT = 0; this._simonaClone(e); }
+  }
+
+  _simonaHandstand(e) {
+    e.guardT = SIMONA.handstandTime;
+    this.effects.ring(e.group.position.clone().setY(0.1), { color: 0x8fe6ff, from: 0.6, to: 8, life: 0.6 });
+    sfx.whistle();
+    if (this.boss === e) this.ui.toast(t('toast.simonaHands', { sec: SIMONA.handstandTime.toFixed(1) }));
+  }
+
+  // A running star jump flings her a few tiles further down the lane, but
+  // never all the way into the bowl.
+  _simonaStar(e) {
+    const route = e.route;
+    let total = 0;
+    for (let i = 1; i < route.length; i++) total += route[i].distanceTo(route[i - 1]);
+    const limit = Math.max(0, total - TILE * 1.2);
+    const want = starLeap(e.progress, SIMONA.starTiles * TILE, limit);
+    const gain = want - e.progress;
+    if (gain <= 0.01) return;
+    const before = e.group.position.clone();
+    this._advanceAlong(e, gain);
+    this.effects.trail(before.setY(1), 0xffd166, 0.6);
+    this.effects.burst(e.group.position.clone().setY(1), { count: 16, color: 0xffd166, speed: 6, size: 0.5 });
+    sfx.whistle();
+    if (this.boss === e) this.ui.toast(t('toast.simonaStar', { tiles: SIMONA.starTiles }));
+  }
+
+  // Walk an enemy forward along its own lane without letting it finish.
+  _advanceAlong(e, dist) {
+    const route = e.route;
+    let left = dist;
+    while (left > 0 && e.seg < route.length) {
+      const target = route[e.seg];
+      const dx = target.x - e.pos.x;
+      const dz = target.z - e.pos.z;
+      const d = Math.hypot(dx, dz);
+      if (d <= left) {
+        e.pos.set(target.x, 0, target.z);
+        e.progress += d;
+        left -= d;
+        e.seg++;
+      } else {
+        e.pos.set(e.pos.x + (dx / d) * left, 0, e.pos.z + (dz / d) * left);
+        e.progress += left;
+        e.facing = Math.atan2(dx, dz);
+        left = 0;
+      }
+    }
+    e.group.position.set(e.pos.x, e.group.position.y, e.pos.z);
+  }
+
+  // Every few seconds she splits off a copy that shares her exact condition.
+  _simonaClone(e) {
+    const alive = this.enemies.filter((o) => o.alive && o.kind === SIMONA.clone).length;
+    if (alive >= SIMONA.maxClones) return;
+    const clone = this._spawn(SIMONA.clone, e.lane, { summoned: true });
+    const st = cloneStats(e, SIMONA.cloneHp);
+    clone.maxHp = st.maxHp;
+    clone.hp = st.hp;
+    clone.seg = e.seg;
+    clone.progress = e.progress;
+    clone.pos.copy(e.pos);
+    clone.group.position.copy(e.group.position);
+    clone.group.position.y = 0;
+    this.effects.ring(e.group.position.clone().setY(0.1), { color: 0xffa8e0, from: 0.5, to: 9, life: 0.6 });
+    this.effects.burst(clone.group.position.clone().setY(1.2), { count: 18, color: 0xffa8e0, speed: 6, size: 0.5 });
+    sfx.portal();
+    if (this.boss === e) this.ui.toast(t('toast.simonaClone', { count: alive + 1 }));
+  }
+
+  // ------------------------------------------------------------------ Stefo
+  _stefoEntrance(e, dt) {
+    e.intro += dt;
+    const k = Math.min(1, e.intro / e.introDur);
+    const ease = k * k * (3 - 2 * k);
+    const spot = e.spot || (e.spot = this._stefoSpot(e));
+    e.group.position.set(spot.x, 8 * (1 - ease) + Math.abs(Math.sin(k * Math.PI * 4)) * 1.5, spot.z);
+    e.group.rotation.y = (1 - ease) * Math.PI * 4;
+    if (k < 1) return;
+    e.intro = null;
+    e.pos.set(spot.x, 0, spot.z);
+    e.group.position.set(spot.x, 0, spot.z);
+    e.group.rotation.y = Math.atan2(this.goal.x - spot.x, this.goal.z - spot.z);
+    this.effects.ring(e.pos.clone(), { color: 0xff8a1f, from: 1, to: 20, life: 0.9 });
+    this.effects.kick(0.8);
+    sfx.bounce();
+  }
+
+  // A free tile anywhere on the board, never the one he is already on.
+  _stefoSpot(e) {
+    const spots = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const key = `${c},${r}`;
+        if (this.pathTiles.has(key) || this.occupied.has(key)) continue;
+        spots.push(key);
+      }
+    }
+    if (!spots.length) return this.goal.clone();
+    const key = nextTeleportSpot(spots, e.spotKey);
+    e.spotKey = key;
+    const [col, row] = key.split(',').map(Number);
+    return tileToWorld(col, row);
+  }
+
+  // He never walks: he teleports around the kitchen and shoots at the milk.
+  _stefoBrain(e, dt) {
+    e.group.position.y = Math.abs(Math.sin(this.time * 4)) * 0.16;
+    e.tpT += dt;
+    e.shootT += dt;
+    if (e.tpT >= STEFO.teleportEvery) { e.tpT = 0; this._stefoTeleport(e); }
+    if (e.shootT >= STEFO.shootEvery) { e.shootT = 0; this._stefoShoot(e); }
+  }
+
+  _stefoTeleport(e) {
+    this.effects.burst(e.group.position.clone().setY(1.2), { count: 20, color: 0xff8a1f, speed: 6, size: 0.5 });
+    const spot = this._stefoSpot(e);
+    e.pos.set(spot.x, 0, spot.z);
+    e.group.position.set(spot.x, 0, spot.z);
+    e.group.rotation.y = Math.atan2(this.goal.x - spot.x, this.goal.z - spot.z);
+    e.spot = spot;
+    if (this.boss === e) this.ui.toast(t('toast.stefoTeleport'));
+    this.effects.ring(e.pos.clone(), { color: 0xff8a1f, from: 0.4, to: 10, life: 0.6 });
+    this.effects.burst(e.group.position.clone().setY(1.2), { count: 20, color: 0xffd166, speed: 6, size: 0.5 });
+    sfx.portal();
+  }
+
+  _stefoShoot(e) {
+    const mesh = makeBasketball(0.3);
+    const from = e.group.position.clone().setY(2.6);
+    mesh.position.copy(from);
+    this.scene.add(mesh);
+    const to = this.goal.clone().setY(0.8);
+    this.hazards.push({
+      mesh, from, to, t: 0, basket: true,
+      dur: Math.max(0.7, from.distanceTo(to) / STEFO.shotSpeed),
+    });
+    this.effects.trail(from.clone(), 0xff8a1f, 0.4);
+    sfx.bounce();
+  }
+
+  // ----------------------------------------------------------------- Father
+  _fatherEntrance(e, dt) {
+    e.intro += dt;
+    const k = Math.min(1, e.intro / e.introDur);
+    const ease = k * k * (3 - 2 * k);
+    const land = e.route[0];
+    e.group.position.set(land.x, (1 - ease) * 40, land.z);
+    e.group.rotation.y = (1 - ease) * Math.PI * 2;
+    if (Math.random() < dt * 20) this.effects.trail(e.group.position.clone(), 0xff3b6b, 0.6);
+    if (k < 1) return;
+    e.intro = null;
+    e.pos.set(land.x, 0, land.z);
+    e.group.position.copy(e.pos);
+    this.effects.ring(e.pos.clone(), { color: 0xff3b6b, from: 1, to: 40, life: 1.3 });
+    this.effects.burst(e.pos.clone().setY(1.6), { count: 60, color: 0xff3b6b, speed: 11, size: 0.9 });
+    this.effects.kick(1.2);
+    sfx.stomp();
+    sfx.roar();
+    const gone = this._fatherCrush(FATHER.destroyOnArrival);
+    this.ui.toast(t('toast.fatherArrives', { count: gone }));
+  }
+
+  // Flattens a share of the cats currently on the table.
+  _fatherCrush(fraction) {
+    const picks = destroyPicks(this.towers.length, fraction);
+    const doomed = picks.map((i) => this.towers[i]).filter(Boolean);
+    for (const tw of doomed) {
+      this.effects.burst(tw.pos.clone().setY(0.8), { count: 20, color: 0xff3b6b, speed: 6, size: 0.6 });
+      this._destroyTower(tw);
+    }
+    if (doomed.length) sfx.boom();
+    this.ui.refreshShop();
+    return doomed.length;
+  }
+
+  _fatherBrain(e, dt) {
+    e.stompT += dt;
+    if (e.stompT < FATHER.stompEvery) return;
+    e.stompT = 0;
+    if (!this.towers.length) return;
+    const victim = this.towers[Math.floor(Math.random() * this.towers.length)];
+    const name = t(`tower.${victim.kind}.name`);
+    this.effects.burst(victim.pos.clone().setY(0.8), { count: 20, color: 0xff3b6b, speed: 6, size: 0.6 });
+    this._destroyTower(victim);
+    this.ui.refreshShop();
+    this.effects.ring(e.group.position.clone().setY(0.05), { color: 0xff3b6b, from: 0.6, to: 14, life: 0.7 });
+    this.effects.kick(0.7);
+    sfx.stomp();
+    this.ui.toast(t('toast.fatherStomp', { name }));
+  }
+
+  // "I AM THE BOSS": he refuses to go down the first time.
+  _fatherRevive(e) {
+    e.revivesLeft -= 1;
+    e.hp = e.maxHp;
+    this.ui.boss(1, enemyName(e.kind).toUpperCase());
+    this.effects.ring(e.group.position.clone().setY(0.05), { color: 0xffd166, from: 1, to: 34, life: 1.2 });
+    this.effects.burst(e.group.position.clone().setY(1.6), { count: 60, color: 0xffd166, speed: 10, size: 0.9 });
+    this.effects.kick(1.1);
+    sfx.roar();
+    const gone = this._fatherCrush(reviveFraction(FATHER.destroyOnArrival));
+    this.ui.banner(t('banner.fatherRevive'), t('toast.fatherRevive', { count: gone }));
+    this.ui.toast(t('toast.fatherRevive', { count: gone }));
   }
 
   // Drop a freshly summoned pest onto the closest point of its own lane, so it

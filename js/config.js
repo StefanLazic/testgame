@@ -90,10 +90,17 @@ export const TOWERS = {
     damage: 0, range: 5.2, rate: 0, air: true, ability: 'gold', support: 'gold',
     blurb: 'Finds fish on her own, and shakes extra out of pests that fall nearby.',
   },
+  simba: {
+    name: 'Simba-kun', icon: '🗡️', cost: 260, color: 0xf2b96b, accent: 0x8b1f2e,
+    damage: 34, range: 4.6, rate: 1.05, air: false, bullet: 'slash', speed: 40,
+    splash: 1.9, crit: 0.18,
+    bushido: { cooldown: 14, damage: 2.6, stun: 1.2 },
+    blurb: 'Samurai. His katana cleaves everything it touches, and every 14 s he unsheathes it.',
+  },
   queen: {
     name: 'Mimi-chan', icon: '👑', cost: 0, color: 0xffd9ef, accent: 0xd41f6b,
     damage: 0, range: 0, rate: 0, air: true, ability: 'bow', cooldown: 10, stun: 1,
-    global: true, maxLevel: 1,
+    global: true, maxLevel: 1, limit: 1,
     blurb: 'Her Majesty. Every 10 s every pest on the board stops to bow.',
   },
 };
@@ -101,7 +108,7 @@ export const TOWERS = {
 TOWERS.queen.cost = 10 * Math.max(...Object.entries(TOWERS)
   .filter(([k]) => k !== 'queen').map(([, t]) => t.cost));
 
-export const TOWER_ORDER = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'ema', 'sofija', 'witch', 'queen'];
+export const TOWER_ORDER = ['archer', 'wizard', 'frost', 'ninja', 'sleepy', 'ema', 'sofija', 'witch', 'simba', 'queen'];
 
 // Support cats, per collar (level 1 / 2 / 3).
 //   ema    — how much extra damage / fire rate her ribbon gives nearby cats.
@@ -132,6 +139,9 @@ export const SYNERGIES = [
   { id: 'coven', a: 'witch', b: 'wizard', icon: '🔮', range: 0.2, damage: 0.1 },
   { id: 'charm', a: 'ema', b: 'sofija', icon: '💞', range: 0.25 },
   { id: 'court', a: 'queen', b: 'ema', icon: '👑', rate: 0.2, damage: 0.1 },
+  { id: 'dojo', a: 'simba', b: 'ninja', icon: '🎋', damage: 0.2, rate: 0.15 },
+  { id: 'honour', a: 'simba', b: 'queen', icon: '🗡️', damage: 0.18 },
+  { id: 'kata', a: 'simba', b: 'frost', icon: '🌸', range: 0.2, damage: 0.12 },
 ];
 
 // ------------------------------------------------ hybrid (branch) upgrades --
@@ -166,6 +176,10 @@ export const BRANCHES = {
     banker: { icon: '🏦', coin: 1.7, interval: 0.85 },
     pirate: { icon: '🏴‍☠️', bounty: 1.9, range: 1.2 },
   },
+  simba: {
+    ronin: { icon: '🌪️', damage: 1.55, range: 1.25, rate: 0.85, bushidoDamage: 1.3 },
+    sensei: { icon: '🎋', rate: 1.35, splash: 1.5, damage: 0.9, bushidoCooldown: 0.6 },
+  },
   witch: {
     hex: { icon: '🪄', cooldown: 0.55 },
     doom: { icon: '💀', range: 1.6, cooldown: 0.85 },
@@ -196,6 +210,14 @@ export function towerStats(kind, level, branch = null) {
     slowTime: b.slowTime ? b.slowTime * (1 + 0.2 * l) : 0,
     branch: null,
   };
+  // Simba-kun's unsheathing strike hits harder with every collar.
+  if (b.bushido) {
+    st.bushido = {
+      ...b.bushido,
+      damage: b.bushido.damage * (1 + 0.25 * l),
+      stun: b.bushido.stun * (1 + 0.15 * l),
+    };
+  }
   const mods = branch && BRANCHES[kind] && BRANCHES[kind][branch];
   if (!mods) return st;
   st.branch = branch;
@@ -204,6 +226,13 @@ export function towerStats(kind, level, branch = null) {
   }
   // Sleepy's dream path adds a slow it never had; Frost's glacier deepens one.
   if (mods.slow != null) st.slow = st.slow ? Math.min(0.8, st.slow * mods.slow) : mods.slow;
+  if (st.bushido) {
+    st.bushido = {
+      ...st.bushido,
+      cooldown: st.bushido.cooldown * (mods.bushidoCooldown || 1),
+      damage: st.bushido.damage * (mods.bushidoDamage || 1),
+    };
+  }
   return st;
 }
 
@@ -283,6 +312,34 @@ export const ENEMIES = {
     name: 'Flutterling', hp: 620, speed: 3.4, bounty: 42, scale: 1.3, flying: true, leak: 1,
     base: 'emilija', armor: 4,
   },
+
+  // ------------------------------------------------- the family (waves 31+)
+  gymrat: {
+    name: 'Gym Rat', hp: 900, speed: 3.6, bounty: 46, scale: 1.5, flying: false, leak: 2,
+    base: 'mouse', armor: 10,
+  },
+  granny: {
+    name: 'Grandma Vera', hp: 14000, speed: 1.9, bounty: 900, scale: 2.6, flying: false,
+    armor: 14, leak: 4, boss: 'mini', base: 'mouse', knits: true,
+    banana: 5.0, bananaVolley: 2,
+    heals: { radius: 6.4, amount: 260, interval: 3.6 },
+  },
+  simona: {
+    name: 'Simona the Gymnast', hp: 96000, speed: 2.0, bounty: 4200, scale: 1.7, flying: false,
+    armor: 20, leak: 9, boss: 'main', gymnast: true, successor: 'stefo',
+  },
+  simonaclone: {
+    name: 'Simona (clone)', hp: 40000, speed: 2.2, bounty: 320, scale: 1.35, flying: false,
+    armor: 12, leak: 3, base: 'simona', gymnast: true, clone: true,
+  },
+  stefo: {
+    name: 'Stefo the Baller', hp: 120000, speed: 2.0, bounty: 6000, scale: 1.8, flying: false,
+    armor: 24, leak: 9, boss: 'main', baller: true, stationary: true,
+  },
+  father: {
+    name: 'Father', hp: 260000, speed: 1.1, bounty: 12000, scale: 2.4, flying: false,
+    armor: 30, leak: 9, boss: 'main', father: true,
+  },
 };
 
 // How long a cat is knocked out by a banana to the head.
@@ -316,12 +373,50 @@ export const EMILIJA = {
   tricks: ['shuffle', 'sleep', 'spawn'],
 };
 
+// Simona's script. She cartwheels down the lane, copies herself, and stands on
+// her hands whenever the cats start to win. Every clone plays by the same rules
+// — including making clones of its own, up to `maxClones` at a time.
+export const SIMONA = {
+  intro: 4.6,            // seconds of cinematic entrance
+  clone: 'simonaclone',
+  cloneEvery: 14,        // C: seconds between copies
+  cloneHp: 0.55,         // a copy is a little smaller than the original…
+  maxClones: 4,          // …and there are never more than this many at once
+  starEvery: 9,          // seconds between cartwheels
+  starTiles: 3,          // Y: tiles she flips forward
+  handstandEvery: 12,    // seconds between handstands
+  handstandTime: 3.2,    // how long she stands there
+  handstandResist: 0.9,  // 90% less damage while upside down
+};
+
+// Stefo's script. He never walks: he teleports around the kitchen and lobs
+// three-pointers at the milk bowl, and every basket costs a life.
+export const STEFO = {
+  intro: 3.4,
+  teleportEvery: 6.5,    // seconds between teleports
+  shootEvery: 4.5,       // seconds between shots
+  shotSpeed: 13,         // world units per second
+  livesPerBasket: 1,     // lives lost per basket scored
+};
+
+// Father's script. He arrives by flattening half of your army and refuses to
+// die the first time you drop him.
+export const FATHER = {
+  intro: 5.6,
+  destroyOnArrival: 0.5, // half of every cat on the board, gone
+  revives: 1,            // "I AM THE BOSS", exactly once
+  reviveExtra: 0.5,      // and he takes 50% more cats with him when he does
+  stompEvery: 12,        // he keeps swatting a cat now and then
+};
+
 // HP grows with the wave so late basic pests stay relevant.
 export function hpScale(wave) {
   // Waves 1-10 keep the original ramp; the barnyard waves bring their own bulk,
-  // so the multiplier grows more gently after the second door opens.
+  // so the multiplier grows more gently after the second door opens. From wave
+  // 31 the family arrives and the ramp steepens again.
   if (wave <= 10) return 1 + 0.17 * (wave - 1);
-  return 1 + 0.17 * 9 + 0.09 * (wave - 10);
+  if (wave <= 30) return 1 + 0.17 * 9 + 0.09 * (wave - 10);
+  return 1 + 0.17 * 9 + 0.09 * 20 + 0.14 * (wave - 30);
 }
 
 // ---------------------------------------------------------------- waves ---
@@ -493,6 +588,157 @@ export const WAVES = [
       ['flutterling', 10, 0.8, 16, 1], ['bird', 20, 0.4, 22],
       ['horse', 14, 0.7, 28, 1], ['turtle', 12, 1.0, 34], ['beetle', 12, 0.9, 40, 1],
       ['nurse', 8, 1.2, 30], ['monkey', 14, 0.7, 38], ['mole', 14, 0.7, 46, 1],
+    ],
+  },
+
+  // ------------------------------------------------ the family (waves 31-40)
+  {
+    name: 'Training Day',
+    groups: [
+      ['gymrat', 10, 0.7, 0], ['gymrat', 8, 0.8, 4, 1], ['horse', 14, 0.7, 3],
+      ['bird', 20, 0.4, 7, 1], ['beetle', 10, 1.0, 10],
+    ],
+  },
+  {
+    name: 'The Gym Opens',
+    groups: [
+      ['gymrat', 16, 0.5, 0, 1], ['turtle', 14, 0.9, 2], ['monkey', 14, 0.7, 5, 1],
+      ['nurse', 8, 1.2, 8], ['mole', 14, 0.7, 11, 1],
+    ],
+  },
+  {
+    name: 'Wool and Fangs',
+    groups: [
+      ['dog', 20, 0.5, 0], ['gymrat', 12, 0.6, 3, 1], ['flutterling', 10, 0.9, 6],
+      ['pig', 14, 0.7, 9, 1], ['chicken', 22, 0.3, 12],
+    ],
+  },
+  {
+    name: 'Chalk Dust',
+    groups: [
+      ['horse', 18, 0.6, 0, 1], ['gymrat', 14, 0.6, 2], ['beetle', 14, 0.9, 5, 1],
+      ['nurse', 10, 1.1, 8], ['bird', 24, 0.35, 11, 1], ['turtle', 12, 1.0, 14],
+    ],
+  },
+  {
+    name: 'MINI BOSS: Grandma Vera',
+    groups: [
+      ['granny', 1, 1, 0], ['gymrat', 14, 0.6, 4, 1], ['nurse', 8, 1.2, 6],
+      ['dog', 16, 0.6, 9, 1], ['monkey', 12, 0.8, 12], ['chicken', 20, 0.35, 15, 1],
+    ],
+  },
+  {
+    name: 'Knitting Circle',
+    groups: [
+      ['nurse', 12, 1.0, 0], ['gymrat', 16, 0.5, 3, 1], ['beetle', 14, 0.9, 6],
+      ['mole', 16, 0.6, 9, 1], ['turtle', 14, 0.9, 12], ['flutterling', 10, 0.9, 15, 1],
+    ],
+  },
+  {
+    name: 'Sprint Drills',
+    groups: [
+      ['horse', 22, 0.5, 0], ['snake', 30, 0.25, 2, 1], ['gymrat', 18, 0.45, 5],
+      ['chicken', 24, 0.3, 8, 1], ['monkey', 14, 0.7, 12],
+    ],
+  },
+  {
+    name: 'Feathers in the Rafters',
+    groups: [
+      ['bird', 30, 0.3, 0, 1], ['pig', 18, 0.6, 3], ['flutterling', 14, 0.7, 6, 1],
+      ['gymrat', 16, 0.5, 9], ['nurse', 10, 1.1, 12, 1], ['beetle', 14, 0.9, 15],
+    ],
+  },
+  {
+    name: 'The Bench Press',
+    groups: [
+      ['turtle', 20, 0.8, 0], ['beetle', 18, 0.8, 3, 1], ['gymrat', 20, 0.45, 6],
+      ['dog', 20, 0.5, 9, 1], ['horse', 18, 0.6, 12], ['nurse', 10, 1.1, 15, 1],
+    ],
+  },
+  {
+    name: 'FINAL BOSS: Simona the Gymnast',
+    groups: [
+      ['simona', 1, 1, 0],
+      ['gymrat', 16, 0.5, 16, 1], ['horse', 16, 0.6, 22], ['flutterling', 12, 0.8, 28, 1],
+      ['nurse', 10, 1.1, 26], ['beetle', 14, 0.9, 34], ['turtle', 14, 0.9, 40, 1],
+      ['bird', 24, 0.35, 46], ['monkey', 14, 0.7, 52, 1],
+    ],
+  },
+
+  // -------------------------------------------- the last ten waves (41-50)
+  {
+    name: 'Overtime',
+    groups: [
+      ['gymrat', 22, 0.4, 0], ['horse', 20, 0.5, 3, 1], ['dog', 22, 0.45, 6],
+      ['bird', 26, 0.3, 9, 1], ['chicken', 26, 0.3, 12], ['nurse', 10, 1.1, 15, 1],
+    ],
+  },
+  {
+    name: 'Full-Court Press',
+    groups: [
+      ['beetle', 20, 0.8, 0, 1], ['turtle', 18, 0.8, 3], ['gymrat', 20, 0.45, 6, 1],
+      ['mole', 18, 0.6, 9], ['monkey', 16, 0.6, 12, 1], ['pig', 18, 0.6, 15],
+    ],
+  },
+  {
+    name: 'Family Reunion',
+    groups: [
+      ['flutterling', 16, 0.7, 0], ['gymrat', 20, 0.45, 3, 1], ['horse', 20, 0.5, 6],
+      ['nurse', 12, 1.0, 9, 1], ['dog', 22, 0.45, 12], ['bird', 28, 0.3, 15, 1],
+    ],
+  },
+  {
+    name: 'The Long Bench',
+    groups: [
+      ['turtle', 22, 0.7, 0, 1], ['beetle', 20, 0.8, 3], ['gymrat', 22, 0.4, 6, 1],
+      ['monkey', 18, 0.6, 9], ['mole', 20, 0.55, 12, 1], ['nurse', 12, 1.0, 15],
+    ],
+  },
+  {
+    name: 'MINI BOSSES: The Family Gathers',
+    groups: [
+      ['granny', 1, 1, 0], ['baron', 1, 1, 4, 1], ['monkeyking', 1, 1, 8],
+      ['gymrat', 20, 0.45, 6, 1], ['horse', 18, 0.6, 10], ['nurse', 12, 1.0, 13, 1],
+      ['beetle', 16, 0.8, 16], ['chicken', 24, 0.3, 19, 1],
+    ],
+  },
+  {
+    name: 'House Rules',
+    groups: [
+      ['gymrat', 24, 0.4, 0], ['dog', 24, 0.4, 3, 1], ['flutterling', 16, 0.7, 6],
+      ['pig', 20, 0.55, 9, 1], ['turtle', 18, 0.8, 12], ['nurse', 12, 1.0, 15, 1],
+    ],
+  },
+  {
+    name: 'Whistle Drill',
+    groups: [
+      ['horse', 24, 0.45, 0, 1], ['snake', 34, 0.22, 3], ['gymrat', 24, 0.4, 6, 1],
+      ['chicken', 28, 0.28, 9], ['bird', 30, 0.28, 12, 1], ['monkey', 18, 0.6, 15],
+    ],
+  },
+  {
+    name: 'The Last Barnyard',
+    groups: [
+      ['chicken', 30, 0.25, 0, 1], ['pig', 20, 0.55, 3], ['monkey', 20, 0.55, 6, 1],
+      ['turtle', 20, 0.8, 9], ['mole', 20, 0.55, 12, 1], ['beetle', 20, 0.8, 15],
+      ['gymrat', 24, 0.4, 18, 1],
+    ],
+  },
+  {
+    name: 'Silence Before Father',
+    groups: [
+      ['flutterling', 20, 0.6, 0, 1], ['gymrat', 26, 0.35, 3], ['horse', 22, 0.5, 6, 1],
+      ['dog', 24, 0.4, 9], ['nurse', 14, 0.9, 12, 1], ['beetle', 20, 0.8, 15],
+      ['turtle', 20, 0.8, 18, 1], ['bird', 30, 0.28, 21],
+    ],
+  },
+  {
+    name: 'FINAL BOSS: Father',
+    groups: [
+      ['father', 1, 1, 0],
+      ['gymrat', 20, 0.45, 18, 1], ['horse', 20, 0.5, 24], ['beetle', 18, 0.8, 30, 1],
+      ['nurse', 14, 0.9, 28], ['turtle', 18, 0.8, 36], ['flutterling', 16, 0.7, 42, 1],
+      ['monkey', 18, 0.6, 48], ['chicken', 26, 0.3, 54, 1], ['dog', 22, 0.45, 60],
     ],
   },
 ];

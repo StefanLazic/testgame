@@ -558,3 +558,47 @@ does not care because she is global); `README.md` now says thirty waves and
 hints at wave 25 and wave 30 without spoiling them. Checked the help screen on a
 360×640 phone: it scrolls and the "Got it" button stays tappable with the five
 new bullets.
+
+## The family, Simba-kun and waves 31–50
+
+Big late-game expansion, built test-first as always.
+
+**One of a kind.** `TOWERS.queen.limit = 1` plus `canPlaceTower()` in `rules.js`.
+The engine refuses the placement (toast + deny sound) and the shop button greys
+out with a ✓ once Mimi-chan is on the table — and unlocks again if she is lost.
+
+**🗡️ Simba-kun**, the samurai cat: a cleaving katana (splash + crit, ground
+only) and *bushido* — every 14 s he unsheathes and cuts **and stuns** everything
+around him. Two paths: 🏯 Sensei (faster, wider strike) and 🌾 Ronin (slower but
+brutal). Three new squad bonuses: Dojo, Honour, Kata.
+
+**Waves 31–50.** Steeper HP curve past 30, gym rats and knitting grannies as new
+pests, and:
+
+* **35 — 🧶 Grandma Vera** (mini boss): knits your cats up and heals her friends.
+* **40 — 🤸 Simona the gymnast**: clones herself every 14 s, and every copy keeps
+  her *exact* health fraction (90% hurt original → 90% hurt copy). Star jumps
+  fling her 3 tiles down the lane (never into the bowl), and a handstand freezes
+  her in place with 90% damage resistance.
+* **40 — 🏀 Stefo**, her brother, appears the moment she falls. He never walks:
+  he teleports around the kitchen and shoots baskets at the milk, one life each.
+* **45 —** three mini bosses at once: Grandma Vera, Baron Bananas, Monkey King.
+* **50 — 💥 Father.** He lands on half your cats. When he hits zero health he
+  shouts *"I AM THE BOSS"*, heals to full and flattens 50% more. Beat him and the
+  game is over — for good.
+
+Tests: `tests/unit/family.test.js`, `tests/unit/simba.test.js` and a live
+browser run in `tests/browser/family.test.js` (limit, katana, clones, handstand,
+star jump, teleports, baskets, the revive). 110 unit + 81 browser checks green.
+
+Docs updated in the same change (`docs/cats.md`, `docs/enemies.md`, `README.md`,
+help screen, meta description and the victory line — the game now ends with
+Father, not Emilija). Grandma Vera throws pink balls of wool instead of bananas.
+Full suite: 95 unit + 81 browser checks green.
+
+Mobile pass on a 390×780 phone screen: the shop row still scrolls with all ten
+cats (601px of buttons in a 378px row, fade hint intact), and the new humans
+were rescaled after a screenshot review — Father at 4.6× dwarfed the kitchen, so
+the family now sits between the Rat King and Sophie in size. Stefo's basketball
+was shrunk to a 0.3 radius and its arc lowered so it reads as a shot, not an
+eclipse.

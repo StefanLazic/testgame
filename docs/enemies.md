@@ -34,6 +34,12 @@ balance data lives in [`js/config.js`](../js/config.js) (`ENEMIES`, `WAVES`,
 | 🐉 Sophie (final boss, wave 20) | 24000 | 0.6 | 2000 | 18 | 9 | **yes** |
 | 🦋 Flutterling | 620 | 3.4 | 42 | 4 | 1 | **yes** |
 | 🦋 Emilija (final boss, wave 30) | 52000 | 0.55 | 3200 | 22 | 9 | **yes** |
+| 💪 Gym Rat | 900 | 3.6 | 46 | 10 | 2 | no |
+| 🧶 Grandma Vera (mini boss, waves 35 & 45) | 14000 | 1.9 | 900 | 14 | 4 | no |
+| 🤸 Simona the Gymnast (boss, wave 40) | 96000 | 2.0 | 4200 | 20 | 9 | no |
+| 🤸 Simona (clone) | 40000 | 2.2 | 320 | 12 | 3 | no |
+| 🏀 Stefo the Baller (boss, wave 40) | 120000 | — (never walks) | 6000 | 24 | 9 | no |
+| 💥 Father (final boss, wave 50) | 260000 | 1.1 | 12000 | 30 | 9 | no |
 
 ### 🐭 Mouse
 The basic pest. Cheap, plentiful and slow enough that almost anything kills it.
@@ -177,12 +183,68 @@ the same one twice in a row:
 zone is worthless the moment it is shuffled somewhere else, and 👑 Mimi-chan
 works on the whole board no matter where she wakes up.
 
+### 💪 Gym Rat
+A mouse that never skipped leg day: 900 HP, 10 armour and speed 3.6, and it
+costs **2 lives** if it gets through. It shows up from wave 31 onwards in
+growing packs and is the workhorse pest of the last twenty waves.
+
+### 🧶 Grandma Vera — mini boss (waves 35 and 45)
+14000 HP, 14 armour, and two jobs at once. Every **3.6 s** she heals every pest
+within 6.4 units for 260 HP (never herself), and every **5 s** she throws
+**two balls of wool** at two different cats, tangling each one for 3 seconds —
+exactly like a monkey's banana, but pink. Leaks 4 lives, always drops catnip.
+
+### 🤸 Simona the Gymnast — boss (wave 40)
+96000 HP and 20 armour, and she cartwheels in for her own cinematic —
+*"SIMONA TAKES THE FLOOR"*. Her script lives in `SIMONA` in `js/config.js`:
+
+- **Clones (every 14 s)** — she splits off a copy of herself with 55% of her
+  maximum health, and the copy starts at **exactly her current health
+  fraction**: a Simona at 90% health makes a copy at 90% health. Copies do
+  everything she does, including cloning themselves, up to **4 at a time**.
+- **⭐ Star jump (every 9 s)** — she flips **3 tiles** further down her lane in
+  an instant. It is clamped so a star jump can never carry her into the bowl.
+- **🤾 Handstand (every 12 s)** — she stops dead for 3.2 s and takes **90% less
+  damage** while she is upside down. Do not waste your burst on it.
+
+*Counter:* kill the copies fast — the longer a healthy Simona lives, the
+healthier the next generation is. Save Simba-kun's bushido and Sleepy's pillow
+for the moment she comes down off her hands.
+
+### 🏀 Stefo the Baller — boss (wave 40)
+Simona's brother. He does not spawn from a door: he **checks in the moment
+Simona dies** (`ENEMIES.simona.successor`). 120000 HP and 24 armour, and he
+completely ignores the rules of the lane — he is `stationary: true` and never
+walks anywhere:
+
+- **Teleport (every 6.5 s)** — he blinks to a different free tile anywhere on
+  the board, and never twice to the same one in a row.
+- **🏀 Baskets (every 4.5 s)** — he lobs a basketball straight at the milk bowl.
+  Every ball that lands costs **1 life**, no matter what your maze looks like.
+
+*Counter:* he is a clock, not a race. Your cats must reach him wherever he lands,
+so spread out coverage instead of one deep kill corner.
+
+### 💥 Father — final boss (wave 50)
+The head of the family: 260000 HP, 30 armour and speed 1.1. He crashes down out
+of the sky, and **the landing destroys 50% of every cat on the board** — the
+queen included. From then on he flattens one more cat every **12 seconds**.
+
+**"I AM THE BOSS."** The first time his health hits zero he does not die: he
+**heals back to full** and destroys **75% of the cats that are left**
+(50% × 1.5, `reviveFraction`). The second time he goes down, he stays down —
+and the game is over.
+
+*Counter:* do not put your whole fortune on the board before he lands. Keep 🐟
+in the bank, rebuild after the crash, and rebuild again after the revive.
+
 ## Shared mechanics
 
 - **Wave HP scaling** — every enemy's HP is multiplied by `hpScale(wave)`:
   `1 + 0.17 × (wave - 1)` for waves 1–10 (unchanged), then a gentler
   `1 + 0.17 × 9 + 0.09 × (wave - 10)` for waves 11–30, because the barnyard
-  pests already arrive with far more health and armour of their own. Bosses
+  pests already arrive with far more health and armour of their own, and a
+  steeper `+0.16` per wave from wave 31 on, where the family's pests take over. Bosses
   ignore the scale entirely and use their flat HP.
 - **Bounty scaling** — the payout is `bounty × (1 + 0.02 × wave)`.
 - **Armour** — armour is subtracted from every hit, with a floor of 25% of the
@@ -243,9 +305,31 @@ works on the whole board no matter where she wakes up.
 | 28 | Barnyard Apocalypse | the whole barnyard from both lanes |
 | 29 | The Calm Before Wings | **flutterlings**, snakes, dogs, birds, horses, turtles, nurses |
 | 30 | FINAL BOSS: Emilija the Butterfly | Emilija, flutterlings, birds, horses, turtles, beetles, nurses, monkeys, moles |
+| 31 | Training Day | **gym rats**, dogs, horses, chickens |
+| 32 | The Gym Opens | gym rats (both lanes), turtles, beetles |
+| 33 | Wool and Fangs | gym rats, monkeys, nurses, snakes, birds |
+| 34 | Chalk Dust | horses, pigs, gym rats, moles, flutterlings |
+| 35 | MINI BOSS: Grandma Vera | **Grandma Vera**, gym rats, nurses, turtles, monkeys |
+| 36 | Knitting Circle | nurses, beetles, gym rats, monkeys, moles |
+| 37 | Sprint Drills | horses, snakes, gym rats, chickens |
+| 38 | Feathers in the Rafters | birds, pigs, flutterlings, gym rats |
+| 39 | The Bench Press | turtles, beetles, gym rats, dogs, nurses |
+| 40 | FINAL BOSS: Simona the Gymnast | **Simona** (➜ **Stefo**), gym rats, horses, beetles, nurses, monkeys |
+| 41 | Overtime | gym rats, horses, monkeys, moles, birds |
+| 42 | Full-Court Press | turtles, beetles, gym rats, nurses, pigs |
+| 43 | Family Reunion | gym rats, dogs, chickens, flutterlings, monkeys |
+| 44 | The Long Bench | horses, snakes, gym rats, moles, beetles |
+| 45 | MINI BOSSES: The Family Gathers | **Grandma Vera + Baron Bananas + Sir Barksalot**, gym rats, nurses, monkeys, turtles |
+| 46 | House Rules | pigs, birds, flutterlings, gym rats, horses |
+| 47 | Whistle Drill | gym rats, beetles, moles, nurses, chickens |
+| 48 | The Last Barnyard | the whole barnyard from both lanes |
+| 49 | Silence Before Father | gym rats, turtles, beetles, nurses, monkeys, horses |
+| 50 | FINAL BOSS: Father | **Father**, gym rats, turtles, beetles, nurses, monkeys, horses, flutterlings |
 
-Waves 1–20 are unchanged; waves 11–30 use both lanes. Wave 25 is the only wave
-with two mini-bosses at once — one through each door.
+Waves 1–20 are unchanged; every wave from 11 on uses both lanes. Wave 25 sends
+two mini-bosses at once and wave 45 sends **three**. Wave 40 is the only wave
+with two main bosses: Stefo only appears once Simona has fallen. Wave 50 is the
+last wave in the game.
 
 You start with 9 lives (`START_LIVES`) and 260 🐟 (`START_GOLD`).
 
@@ -278,3 +362,9 @@ languages when an enemy or wave is added or renamed.
 | `dragon` | Sophie | Sofi |
 | `emilija` | Emilija | Emilija |
 | `flutterling` | Flutterling | Leptirić |
+| `gymrat` | Gym Rat | Teretanski pacov |
+| `granny` | Grandma Vera | Baka Vera |
+| `simona` | Simona the Gymnast | Simona gimnastičarka |
+| `simonaclone` | Simona (copy) | Simona (kopija) |
+| `stefo` | Stefo the Baller | Stefo košarkaš |
+| `father` | Father | Tata |

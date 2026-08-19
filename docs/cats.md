@@ -7,7 +7,7 @@ lives in [`js/config.js`](../js/config.js) (`TOWERS`, `TOWER_ORDER`,
 > Keep this file in sync with `TOWERS` whenever a cat is added, removed or
 > rebalanced — see [`docs/AGENTS.md`](AGENTS.md).
 
-## The nine cats
+## The ten cats
 
 | Cat | Cost 🐟 | Damage | Range | Rate (shots/s) | Targets | Special |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -18,6 +18,7 @@ lives in [`js/config.js`](../js/config.js) (`TOWERS`, `TOWER_ORDER`,
 | 😴 Sleepy | 210 | 58 | 7.2 | 0.34 | ground only | lobbed pillow, splash 3.4 |
 | 🎀 Ema | 190 | — | 5.6 | — | support | ribbon aura: +18/27/38% damage, +12/19/28% fire rate |
 | 💰 Sofija | 200 | — | 5.2 | — | support | purse: 🐟 12/19/28 every 8/6.5/5 s, +25/40/60% bounty nearby |
+| 🗡️ Simba-kun | 260 | 34 | 4.6 | 1.05 | ground only | cleaving katana (splash 1.9, 18% × 2.4 crit) + *bushido* every 14 s |
 | 🧙 Witch | 300 | — | 7.0 | — | ground + air | curse, once every 60 s |
 | 👑 Mimi-chan | 3000 | — | whole board | — | ground + air | royal bow, once every 10 s |
 
@@ -58,6 +59,14 @@ The other support cat. She digs up 🐟 12 every 8 seconds all on her own
 worth 25% more (60% at level 3). Purses do not stack either. During the queen's
 frenzy she counts down at double speed.
 
+### 🗡️ Simba-kun
+The samurai. His katana cuts everything in a 1.9 splash around whatever he hits,
+with an 18% chance of a 2.4× crit — ground only, because a sword cannot reach a
+bird. On top of the ordinary swings he charges **bushido**: every **14 seconds**,
+if anything at all is within 1.15× his range, he unsheathes for a ring of
+moonlight that deals **2.6× his damage** to every ground pest around him and
+**stuns them for 1.2 s**. The strike scales with his level and with his path.
+
 ### 🧙 Witch
 Does no damage at all. Every **60 seconds** she hexes the highest-HP pest in
 range (ground or air). What the hex does depends on her level:
@@ -73,6 +82,11 @@ already frogs or already made of stone. The curse timer keeps ticking while she
 has no legal target, so she fires the moment one walks in.
 
 ### 👑 Mimi-chan — the queen
+**One of a kind:** `TOWERS.queen.limit = 1`, so only one Mimi-chan may ever
+stand on the table. The shop button greys out (✓) while she is placed, the
+engine refuses a second one, and the button unlocks again if she is ever
+destroyed. Every other cat has no limit.
+
 Costs **ten times the priciest ordinary cat** (`10 × 300 = 3000 🐟`) and is
 computed that way in `js/config.js`, so she rescales automatically if the other
 cats do. She has exactly one ability and it covers the **entire board**, no
@@ -106,7 +120,7 @@ Tap a placed cat to inspect, upgrade or sell it.
 ## Shared mechanics
 
 - **Air targeting** — only cats with `air: true` (Archer, Wizard, Frost, Witch,
-  Mimi-chan) reach flying enemies. Ninja and Sleepy ignore 🐦 birds, 🐖 flying
+  Mimi-chan) reach flying enemies. Ninja, Sleepy and Simba-kun ignore 🐦 birds, 🐖 flying
   pigs and 🐉 Sophie completely.
 - **Ability cats** — cats with an `ability` (Witch, Mimi-chan) never fire a
   projectile. They charge a cooldown (visible in the tower panel) and then do
@@ -128,6 +142,10 @@ Tap a placed cat to inspect, upgrade or sell it.
     cat is destroyed with no refund. **👑 Mimi-chan is immune** — Sophie will
     not aim at the queen — which makes the most expensive cat the only one
     guaranteed to survive that wave.
+  - 💥 **Father** on wave 50 is the worst of them: he destroys **half of every
+    cat on the board** the moment he lands, swats one more every 12 seconds, and
+    when he first drops to 0 HP he heals to full and takes **75% of what is
+    left** with him. He does not spare the queen.
   - 🦋 **Emilija** never damages a cat on wave 30, but every 13 seconds she
     either **shuffles every cat onto a different tile** (squads, Ema's ribbon
     and Sofija's purse are all recalculated around the new layout, and no cat is
@@ -153,6 +171,9 @@ of the same cat. Active squads are listed in the tower panel with a ✦.
 | 🔮 Coven | Witch + Wizard | +20% range, +10% damage |
 | 💞 Charm | Ema + Sofija | +25% range (bigger ribbon and purse) |
 | 👑 Royal Court | Mimi-chan + Ema | +20% fire rate, +10% damage |
+| 🎋 Dojo | Simba-kun + Ninja | +20% damage, +15% fire rate |
+| 🗡️ Honour | Simba-kun + Mimi-chan | +18% damage |
+| 🌸 Kata | Simba-kun + Frost | +20% range, +12% damage |
 
 ## Hybrid upgrades (paths)
 
@@ -169,6 +190,7 @@ is shown with a ✧ and a floating gem above the cat.
 | 😴 Sleepy | 🌙 Dreamer / 🪨 Boulder | ×1.6 splash plus a slow / ×1.85 damage, ×0.75 rate |
 | 🎀 Ema | 📣 Anthem / 🎶 Duet | ×1.75 aura radius / ×1.55 aura strength |
 | 💰 Sofija | 🏦 Banker / 🏴‍☠️ Pirate | ×1.7 coins, faster / ×1.9 bounty, ×1.2 radius |
+| 🗡️ Simba-kun | 🌪️ Ronin / 🎋 Sensei | ×1.55 damage, ×1.25 range, ×0.85 rate and a ×1.3 bushido / ×1.35 rate, ×1.5 splash and bushido every 8.4 s |
 | 🧙 Witch | 🪄 Hexer / 💀 Doomsayer | ×0.55 cooldown / ×1.6 range |
 
 👑 Mimi-chan has no path — she is already at the top.
@@ -188,5 +210,6 @@ languages when a cat is added or renamed.
 | `sleepy` | Sleepy | Pospana |
 | `ema` | Ema | Ema |
 | `sofija` | Sofija | Sofija |
+| `simba` | Simba-kun | Simba-kun |
 | `witch` | Witch | Veštica |
 | `queen` | Mimi-chan | Mimi-čan |
