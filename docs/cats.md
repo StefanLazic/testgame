@@ -20,7 +20,7 @@ lives in [`js/config.js`](../js/config.js) (`TOWERS`, `TOWER_ORDER`,
 | 💰 Sofija | 200 | — | 4.6 | — | support | purse: 🐟 12/19/28 every 8/6.5/5 s, +25/40/60% bounty nearby |
 | 🗡️ Simba-kun | 250 | 33 | 4.2 | 1.05 | ground only | cleaving katana (splash 1.9, 18% × 3 crit) + *bushido* every 14 s |
 | 🧙 Witch | 300 | — | 6.2 | — | ground + air | hex field (+12/18/25% damage taken), area curse every 34 s |
-| 👑 Mimi-chan | 3000 | — | whole board | — | ground + air | royal bow, once every 10 s |
+| 👑 Mimi-chan | 3000 | — | whole board | — | ground + air | royal bow: 1.0/1.4/1.8 s every 10/9/8 s |
 
 ### 🏹 Archer
 Cheap, reliable single-target damage that hits flying pests. Fires an arrow at
@@ -110,16 +110,31 @@ destroyed. Every other cat has no limit.
 Costs **ten times the priciest ordinary cat** (`10 × 300 = 3000 🐟`) and is
 computed that way in `js/config.js`, so she rescales automatically if the other
 cats do. She has exactly one ability and it covers the **entire board**, no
-range ring required: every **10 seconds** every pest in the kitchen stops to
-**bow** for **1 second**. Bosses bow too. She cannot be upgraded (`maxLevel: 1`)
-— Her Majesty is already perfect.
+range ring required: every pest in the kitchen stops to **bow**. Bosses bow too.
+
+She wears collars like everybody else, but a collar cannot buy her damage — it
+buys a deeper bow that comes round sooner (`QUEEN` in `js/config.js`):
+
+| Collar | Bow | Every |
+| --- | --- | --- |
+| 1 | 1.0 s | 10 s |
+| 2 | 1.4 s | 9 s |
+| 3 | 1.8 s | 8 s |
+
+**Royalty pays a premium.** `TOWERS.queen.premium = 1.4` multiplies both her
+collar prices and her specialisation, so upgrading Her Majesty is the single
+biggest purchase in the game. No other cat has a premium.
+
+**Her paths buy safety, not numbers** — see *Hybrid upgrades* below. Until she
+specialises she is exactly as fragile as anybody else: Father can flatten her,
+Emilija can nap her, and only 🐉 Sophie has ever refused to aim at her.
 
 ## Upgrades
 
-Each cat can be upgraded to level 3 (`MAX_LEVEL`), except Mimi-chan, who is
-capped at level 1 (`maxLevel: 1`, read through the `maxLevel(kind)` helper). The
-upgrade cost scales with the cat's base cost: `cost × (0.75 + 0.45 × level)`,
-and every level adds a golden collar to the model.
+Every cat, Mimi-chan included, can be upgraded to level 3 (`MAX_LEVEL`, read
+through the `maxLevel(kind)` helper). The upgrade cost scales with the cat's base
+cost: `cost × (0.75 + 0.45 × level) × premium`, where `premium` is 1 for every
+cat except 👑 Mimi-chan (1.4). Every level adds a golden collar to the model.
 
 Per level above 1 (`l = level - 1`):
 
@@ -134,8 +149,8 @@ Per level above 1 (`l = level - 1`):
 
 Ability cats ignore the damage/rate growth: the Witch's cooldown stays at 34
 seconds, and her level decides which curse she casts, how wide the knot is and
-how deep her hex field bites. Mimi-chan's bow stays at 1 second every 10
-seconds.
+how deep her hex field bites. Mimi-chan's collars scale her bow instead (see
+above).
 
 Tap a placed cat to inspect, upgrade or sell it.
 
@@ -175,15 +190,22 @@ Tap a placed cat to inspect, upgrade or sell it.
   - 💥 **Father** on wave 50 is the worst of them: he destroys **half of every
     cat on the board** the moment he lands, swats one more every 12 seconds, and
     when he first drops to 0 HP he heals to full and takes **75% of what is
-    left** with him. He does not spare the queen.
+    left** with him. He spares an **unspecialised** queen no more than anybody
+    else — only a royal path puts her out of his reach.
   - 🦋 **Emilija** never damages a cat on wave 30, but every 13 seconds she
     either **shuffles every cat onto a different tile** (squads, Ema's ribbon
     and Sofija's purse are all recalculated around the new layout, and no cat is
     ever moved onto a lane) or **puts a third of your cats to sleep** until her
     next trick. A sleeping cat behaves exactly like a banana'd one — no shots,
     no ability charge — and wakes up the moment she plays her next trick.
-    👑 Mimi-chan can be shuffled and can nap like anyone else, but she works on
-    the whole board, so her position never matters.
+    👑 Mimi-chan is never shuffled (she works on the whole board, so her
+    position never matters) but she can nap like anyone else — unless she has
+    walked the 👑 Empress path.
+  - 🛡️ **Royal protection** — a specialised Mimi-chan can never be destroyed,
+    and a 🛡️ Regent's ward saves every cat around her too. All of it runs
+    through `_tryDestroy()` in `js/game.js` and the pure helpers
+    `immuneToDestroy` / `immuneToDisable` / `destructible` / `destroyTargets` /
+    `wardFor` in `js/rules.js`.
 
 ## Squads (synergies)
 
@@ -222,8 +244,23 @@ is shown with a ✧ and a floating gem above the cat.
 | 💰 Sofija | 🏦 Banker / 🏴‍☠️ Pirate | ×1.7 coins, faster / ×1.9 bounty, ×1.2 radius |
 | 🗡️ Simba-kun | 🌪️ Ronin / 🎋 Sensei | ×1.55 damage, ×1.25 range, ×0.85 rate and a ×1.3 bushido / ×1.35 rate, ×1.5 splash, ×0.72 damage, bushido every 8.4 s **and hits air** |
 | 🧙 Witch | 🪄 Hexer / 💀 Doomsayer | ×0.55 cooldown, ×1.6 curse radius / ×1.6 range, ×1.5 hex field |
+| 👑 Mimi-chan | 🛡️ Regent / 👑 Empress | **cannot be destroyed** + a ward for every cat within 5.5, ×1.15 bow cooldown, ×0.85 bow / **cannot be destroyed, shuffled or napped**, ×0.8 bow cooldown, ×1.35 bow |
 
-👑 Mimi-chan has no path — she is already at the top.
+### 👑 The royal paths
+
+Mimi-chan is a fortune, so her specialisation buys the one thing a fortune
+should buy: she is never destroyed again. Both paths cost `1.9 × 3000 × 1.4`.
+
+- 🛡️ **Regent** — untouchable herself, and her **royal ward** covers every cat
+  within `QUEEN.ward.radius` (5.5 world units). The first attempt on any warded
+  cat's life — Sophie's fire, Father's boot, his arrival, his revive — is turned
+  away and the ward then needs `QUEEN.ward.recharge` (25 s) before it can save
+  anybody again. One ward, one save, everybody covered. Her own bow is a little
+  shorter and a little rarer: holding the court together is work.
+- 👑 **Empress** — she protects nobody but herself, and **nothing** touches her:
+  no fire, no boot, no banana, no nap, no shuffle. In exchange her bow is the
+  best in the game — a 2.4 s bow every 6.4 s at the top collar (the Regent's is
+  1.5 s every 9.2 s).
 
 ## Serbian names
 

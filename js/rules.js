@@ -5,7 +5,7 @@
 
 import {
   TOWERS, towerStats, SUPPORT, SYNERGIES, SYNERGY_RANGE, BRANCHES, branchCost, maxLevel,
-  bountyScale, BOSS_LIFE_REWARD, START_LIVES,
+  bountyScale, BOSS_LIFE_REWARD, START_LIVES, QUEEN,
 } from './config.js';
 
 // ------------------------------------------------------------- the economy
@@ -236,8 +236,61 @@ export function branchStats(kind, branch) {
     damage: Math.round(st.damage), range: Number(st.range.toFixed(1)),
     rate: Number(st.rate.toFixed(2)), splash: Number((st.splash || 0).toFixed(1)),
     pierce: Number((st.pierce || 0).toFixed(2)),
+    // The royal paths sell safety instead of numbers, so the sheet needs to
+    // know about it: nothing else on a queen's card ever changes.
+    immuneDestroy: !!st.immuneDestroy,
+    immuneDisable: !!st.immuneDisable,
+    ward: !!st.ward,
     branch: st.branch,
   };
+}
+
+// ------------------------------------------------------- royal protection --
+// Mimi-chan costs a fortune, so once she specialises nothing on the board may
+// destroy her — and the Regent path extends that safety to every cat around
+// her. All of it is plain maths over plain tower data, so the engine only has
+// to ask "may this cat be destroyed?" and "did a ward save it?".
+
+// Towers carry a THREE.Vector3 `pos` in the engine and plain x/z in tests.
+const xz = (tw) => (tw && tw.pos ? { x: tw.pos.x, z: tw.pos.z } : { x: tw.x || 0, z: tw.z || 0 });
+
+export function towerProtection(tower) {
+  if (!tower || !TOWERS[tower.kind]) return { destroy: false, disable: false, ward: false };
+  const st = towerStats(tower.kind, tower.level || 1, tower.branch || null);
+  return { destroy: !!st.immuneDestroy, disable: !!st.immuneDisable, ward: !!st.ward };
+}
+
+// A specialised queen cannot be burned, stomped or flattened.
+export function immuneToDestroy(tower) { return towerProtection(tower).destroy; }
+
+// The Empress also refuses to nap, to be shuffled, or to wear a banana.
+export function immuneToDisable(tower) { return towerProtection(tower).disable; }
+
+// The cats a boss may actually reach.
+export function destructible(towers = []) {
+  return towers.filter((tw) => !immuneToDestroy(tw));
+}
+
+// Which cats a "destroy a share of the army" ability takes, immunity included.
+export function destroyTargets(towers = [], fraction = 0, rand = Math.random) {
+  const pool = destructible(towers);
+  return destroyPicks(pool.length, fraction, rand).map((i) => pool[i]);
+}
+
+// The charged ward that would save `tower`, or null when nobody can help it.
+// One ward covers every cat in its radius, but only for a single blow: the
+// engine puts it on cooldown the moment it is spent.
+export function wardFor(tower, towers = []) {
+  if (!tower) return null;
+  const here = xz(tower);
+  for (const tw of towers) {
+    if (tw === tower) continue;
+    if (!towerProtection(tw).ward) continue;
+    if ((tw.wardT || 0) > 0) continue;
+    const p = xz(tw);
+    if (Math.hypot(p.x - here.x, p.z - here.z) <= QUEEN.ward.radius + 1e-6) return tw;
+  }
+  return null;
 }
 
 // -------------------------------------------------------- pest counterplay

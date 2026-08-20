@@ -92,7 +92,10 @@ test('the two paths of a cat really pull in different directions', () => {
     const sb = towerStats(kind, top, b.id);
     assert.notDeepEqual(sa, sb, `${kind} branches are identical`);
     for (const st of [sa, sb]) {
-      assert.ok(st.damage >= 0 && st.range > 0, `${kind} branch has broken stats`);
+      // Mimi-chan works on the whole board, so she is the one cat with no
+      // range at all — her paths sell safety instead of reach.
+      const reach = TOWERS[kind].global ? st.range >= 0 : st.range > 0;
+      assert.ok(st.damage >= 0 && reach, `${kind} branch has broken stats`);
     }
     // Each path must actually change something — either the combat stats or,
     // for the support cats, their aura/purse numbers.
