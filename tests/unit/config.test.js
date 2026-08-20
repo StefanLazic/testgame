@@ -108,7 +108,7 @@ test('waves 1-20 are untouched by the new chapter', () => {
 test('difficulty ramps never go backwards', () => {
   for (let w = 2; w <= WAVES.length; w++) {
     assert.ok(hpScale(w) >= hpScale(w - 1), `hpScale wave ${w}`);
-    // The wave-clear bonus rises, then plateaus — see tests/unit/economy.test.js.
+    // The wave-clear bonus is a flat stipend — see tests/unit/economy.test.js.
     assert.ok(waveBonus(w) >= waveBonus(w - 1), `waveBonus wave ${w}`);
   }
   assert.equal(hpScale(1), 1);
