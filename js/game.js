@@ -3,6 +3,7 @@ import {
   TILE, COLS, ROWS, PATHS, SECOND_LANE_WAVE, THEME, START_LIVES, START_GOLD, PREP_TIME, FIRST_PREP,
   TOWERS, maxLevel, upgradeCost, towerStats, CURSES, STONE_TIME, HEX, branchCost, BRANCHES,
   ENEMIES, hpScale, WAVES, waveBonus, BANANA_STUN, DRAGON, EMILIJA, SIMONA, STEFO, FATHER,
+  QUEEN,
 } from './config.js';
 import {
   makeCatTower, makeEnemy, makeMap, makeMouseHole, makeMilkBowl, makeRangeRing,
@@ -17,7 +18,8 @@ import {
   synergyMultipliers, branchesFor, branchStats,
   healTargets, shieldAbsorb, shieldRegen, burrowedAt,
   shufflePlan, sleepPicks, nextTrick,
-  canPlaceTower, towerLimit, cloneStats, guardedDamage, starLeap, destroyPicks,
+  canPlaceTower, towerLimit, cloneStats, guardedDamage, starLeap,
+  immuneToDestroy, immuneToDisable, destructible, destroyTargets, wardFor,
   reviveFraction, nextTeleportSpot, slowFrom, bountyFor, lifeReward,
   armouredDamage, hexMultiplier, hexBonus,
 } from './rules.js';
@@ -589,7 +591,12 @@ export class Game {
         left: Math.max(0, tower.abilityCool || 0).toFixed(0),
       });
     } else if (base.ability === 'bow') {
-      ability = t('ability.bow', { stun: base.stun, cooldown: base.cooldown });
+      ability = t('ability.bow', {
+        stun: st.stun.toFixed(1), cooldown: Math.round(st.cooldown),
+      });
+      // Her paths sell safety, not numbers, so the card has to say so.
+      if (st.ward) ability += ` ${t('ability.ward', { radius: QUEEN.ward.radius.toFixed(1), recharge: QUEEN.ward.recharge })}`;
+      else if (st.immuneDisable) ability += ` ${t('ability.empress')}`;
     } else if (base.ability === 'aura') {
       const bonus = auraBonus('ema', tower.level, tower.branch);
       ability = t('ability.aura', {
@@ -687,6 +694,7 @@ export class Game {
       kind, level: 1, spent: cost, tile: tile.key,
       group: model.group, head: model.head, arm: model.arm, body: model.body,
       cool: 0, recoil: 0, pos: new THREE.Vector3(p.x, 0.9, p.z), pop: 0, disabledT: 0, asleep: false,
+      wardT: 0,
       abilityCool: TOWERS[kind].ability ? TOWERS[kind].cooldown : 0,
       bushidoT: TOWERS[kind].bushido ? TOWERS[kind].bushido.cooldown : 0,
       branch: null,
@@ -1407,6 +1415,7 @@ export class Game {
     const frenzy = this.frenzy > 0 ? 2 : 1;
     for (const t of this.towers) {
       const st = this._stats(t);
+      if (t.wardT > 0) t.wardT = Math.max(0, t.wardT - dt);
       // Banana'd: the cat sits there seeing stars and does nothing at all.
       if (t.disabledT > 0) {
         t.disabledT -= dt;
@@ -1786,7 +1795,8 @@ export class Game {
   _throwBanana(source) {
     const reach = 9;
     const here = source.group.position;
-    const options = this.towers.filter((tw) => tw.disabledT <= 0 && tw.pos.distanceTo(here) < reach);
+    const options = this.towers.filter((tw) => tw.disabledT <= 0 && !immuneToDisable(tw)
+      && tw.pos.distanceTo(here) < reach);
     if (!options.length) return;
     const volley = Math.min(source.def.bananaVolley || 1, options.length);
     for (let i = 0; i < volley; i++) {
@@ -1891,7 +1901,7 @@ export class Game {
   // Every 10 s she picks a cat and breathes fire on it. Mimi-chan is royalty:
   // even a dragon knows better than to aim at the queen.
   _dragonSmash(e) {
-    const targets = this.towers.filter((tw) => tw.kind !== 'queen');
+    const targets = destructible(this.towers).filter((tw) => tw.kind !== 'queen');
     if (!targets.length) { e.smashT = DRAGON.smashEvery - 2; return; }
     const tw = targets[Math.floor(Math.random() * targets.length)];
     this.effects.bolt(e.group.position.clone(), tw.pos.clone().setY(1), 0xff8a3d);
@@ -1899,8 +1909,30 @@ export class Game {
     this.effects.ring(tw.group.position, { color: 0xff5b3d, from: 0.4, to: 6, life: 0.6 });
     this.effects.kick(0.7);
     sfx.dragonFire();
-    this.ui.toast(t('toast.dragonSmash', { name: t(`tower.${tw.kind}.name`) }));
+    if (this._tryDestroy(tw)) this.ui.toast(t('toast.dragonSmash', { name: t(`tower.${tw.kind}.name`) }));
+  }
+
+  // Every attempt on a cat's life goes through here. A specialised Mimi-chan
+  // is untouchable, and a Regent's ward turns the first blow away from any cat
+  // standing near her — once, until it charges back up.
+  _tryDestroy(tw) {
+    if (!tw || !this.towers.includes(tw)) return false;
+    if (immuneToDestroy(tw)) {
+      this.effects.ring(tw.group.position, { color: 0xffd166, from: 0.3, to: 3.4, life: 0.5 });
+      this.ui.toast(t('toast.queenImmune'));
+      return false;
+    }
+    const ward = wardFor(tw, this.towers);
+    if (ward) {
+      ward.wardT = QUEEN.ward.recharge;
+      this.effects.ring(tw.group.position, { color: 0x9fe8ff, from: 0.3, to: 3.4, life: 0.55 });
+      this.effects.burst(tw.pos.clone().setY(1.2), { count: 16, color: 0x9fe8ff, speed: 5, size: 0.45 });
+      sfx.bow();
+      this.ui.toast(t('toast.wardSaved', { name: t(`tower.${tw.kind}.name`) }));
+      return false;
+    }
     this._destroyTower(tw);
+    return true;
   }
 
   _destroyTower(tw) {
@@ -1986,7 +2018,7 @@ export class Game {
 
   // Trick 1: every cat keeps its collar — and loses its spot.
   _emilijaShuffle(e) {
-    const cats = this.towers.filter((tw) => !TOWERS[tw.kind].global);
+    const cats = this.towers.filter((tw) => !TOWERS[tw.kind].global && !immuneToDisable(tw));
     if (cats.length < 2) { this._emilijaSpawn(e); return; }
     const tiles = cats.map((tw) => tw.tile);
     const plan = shufflePlan(tiles);
@@ -2012,7 +2044,7 @@ export class Game {
 
   // Trick 2: a third of the army curls up until her next trick.
   _emilijaSleep(e) {
-    const awake = this.towers.filter((tw) => tw.disabledT <= 0);
+    const awake = this.towers.filter((tw) => tw.disabledT <= 0 && !immuneToDisable(tw));
     if (!awake.length) { this._emilijaSpawn(e); return; }
     const picks = sleepPicks(awake.length, EMILIJA.sleepFraction);
     for (const i of picks) {
@@ -2253,31 +2285,31 @@ export class Game {
 
   // Flattens a share of the cats currently on the table.
   _fatherCrush(fraction) {
-    const picks = destroyPicks(this.towers.length, fraction);
-    const doomed = picks.map((i) => this.towers[i]).filter(Boolean);
-    for (const tw of doomed) {
+    let gone = 0;
+    for (const tw of destroyTargets(this.towers, fraction)) {
       this.effects.burst(tw.pos.clone().setY(0.8), { count: 20, color: 0xff3b6b, speed: 6, size: 0.6 });
-      this._destroyTower(tw);
+      if (this._tryDestroy(tw)) gone++;
     }
-    if (doomed.length) sfx.boom();
+    if (gone) sfx.boom();
     this.ui.refreshShop();
-    return doomed.length;
+    return gone;
   }
 
   _fatherBrain(e, dt) {
     e.stompT += dt;
     if (e.stompT < FATHER.stompEvery) return;
     e.stompT = 0;
-    if (!this.towers.length) return;
-    const victim = this.towers[Math.floor(Math.random() * this.towers.length)];
+    const reachable = destructible(this.towers);
+    if (!reachable.length) return;
+    const victim = reachable[Math.floor(Math.random() * reachable.length)];
     const name = t(`tower.${victim.kind}.name`);
     this.effects.burst(victim.pos.clone().setY(0.8), { count: 20, color: 0xff3b6b, speed: 6, size: 0.6 });
-    this._destroyTower(victim);
+    const crushed = this._tryDestroy(victim);
     this.ui.refreshShop();
     this.effects.ring(e.group.position.clone().setY(0.05), { color: 0xff3b6b, from: 0.6, to: 14, life: 0.7 });
     this.effects.kick(0.7);
     sfx.stomp();
-    this.ui.toast(t('toast.fatherStomp', { name }));
+    if (crushed) this.ui.toast(t('toast.fatherStomp', { name }));
   }
 
   // "I AM THE BOSS": he refuses to go down the first time.

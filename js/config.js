@@ -106,7 +106,7 @@ export const TOWERS = {
   queen: {
     name: 'Mimi-chan', icon: '👑', cost: 0, color: 0xffd9ef, accent: 0xd41f6b,
     damage: 0, range: 0, rate: 0, air: true, ability: 'bow', cooldown: 10, stun: 1,
-    global: true, maxLevel: 1, limit: 1,
+    global: true, limit: 1, premium: 1.4,
     blurb: 'Her Majesty. Every 10 s every pest on the board stops to bow.',
   },
 };
@@ -134,6 +134,20 @@ export const SUPPORT = {
   witch: {
     hex: [0.12, 0.18, 0.25],
   },
+};
+
+// Her Majesty, per collar (level 1 / 2 / 3). Mimi-chan never shoots, so a
+// collar cannot buy her damage: it buys a deeper bow and a shorter wait for it.
+//
+//   premium — see TOWERS.queen.premium: every collar and her specialisation
+//             cost extra on top of the usual formula. She is a fortune.
+//   ward    — the Regent path's royal ward: every cat inside `radius` survives
+//             one attempt on its life, after which the ward needs `recharge`
+//             seconds before it can save anybody again.
+export const QUEEN = {
+  stun: [1, 1.4, 1.8],
+  cooldown: [10, 9, 8],
+  ward: { radius: 5.5, recharge: 25 },
 };
 
 // ------------------------------------------------------------- synergies ---
@@ -207,18 +221,36 @@ export const BRANCHES = {
     // The boss path: she reaches further and her hex field bites much harder.
     doom: { icon: '💀', range: 1.6, cooldown: 0.85, hex: 1.5 },
   },
+  queen: {
+    // Both royal paths make Her Majesty untouchable: nothing on the board can
+    // destroy a specialised Mimi-chan. She is far too expensive to lose.
+    //
+    // The Regent rules for everybody: her ward covers every cat around her, so
+    // the first paw that reaches for one of them is turned away. Holding the
+    // whole court together leaves her less time for her own bow.
+    regent: {
+      icon: '🛡️', cooldown: 1.15, stun: 0.85,
+      grants: { immuneDestroy: 1, ward: 1 },
+    },
+    // The Empress protects nobody but herself — and nothing touches her at all:
+    // no fire, no boot, no nap, no shuffle. Her bow lands harder and sooner.
+    empress: {
+      icon: '👑', cooldown: 0.8, stun: 1.35,
+      grants: { immuneDestroy: 1, immuneDisable: 1 },
+    },
+  },
 };
 
 // Specialising costs a little more than a normal collar — it is the last thing
-// you will ever buy for that cat.
+// you will ever buy for that cat. Royalty pays a premium on top.
 export function branchCost(kind) {
-  return Math.round(TOWERS[kind].cost * 1.9);
+  return Math.round(TOWERS[kind].cost * 1.9 * (TOWERS[kind].premium || 1));
 }
 
 export const MAX_LEVEL = 3;
 export function maxLevel(kind) { return TOWERS[kind].maxLevel || MAX_LEVEL; }
 export function upgradeCost(kind, level) {
-  return Math.round(TOWERS[kind].cost * (0.75 + 0.45 * level));
+  return Math.round(TOWERS[kind].cost * (0.75 + 0.45 * level) * (TOWERS[kind].premium || 1));
 }
 // Multipliers applied at level 1 / 2 / 3, then the chosen hybrid path on top.
 export function towerStats(kind, level, branch = null) {
@@ -243,6 +275,12 @@ export function towerStats(kind, level, branch = null) {
       stun: b.bushido.stun * (1 + 0.15 * l),
     };
   }
+  // Mimi-chan's bow: a collar buys a longer, deeper bow that comes round sooner.
+  if (b.ability === 'bow') {
+    const i = Math.min(l, QUEEN.stun.length - 1);
+    st.stun = QUEEN.stun[i];
+    st.cooldown = QUEEN.cooldown[i];
+  }
   const mods = branch && BRANCHES[kind] && BRANCHES[kind][branch];
   if (!mods) return st;
   st.branch = branch;
@@ -252,7 +290,7 @@ export function towerStats(kind, level, branch = null) {
     if (!st[key]) st[key] = value;
   }
   if (mods.air) st.air = true;
-  for (const key of ['damage', 'range', 'rate', 'splash', 'slowTime', 'crit', 'cooldown', 'pierce', 'curseRadius']) {
+  for (const key of ['damage', 'range', 'rate', 'splash', 'slowTime', 'crit', 'cooldown', 'pierce', 'curseRadius', 'stun']) {
     if (mods[key] != null) st[key] = (st[key] || 0) * mods[key];
   }
   // Armour piercing is a fraction: none of it, all of it, or somewhere between.

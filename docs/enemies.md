@@ -151,7 +151,9 @@ she levels out above the kitchen. She has three abilities (`DRAGON` in
 
 - **Fire breath, every 10 s** — she burns one random cat to ash. The tower is
   destroyed, no refund. 👑 Mimi-chan is the one exception: even a dragon knows
-  better than to aim at the queen.
+  better than to aim at the queen. Cats covered by a 🛡️ Regent's ward survive
+  the first breath aimed at them, and any cat that has walked a royal path
+  cannot be burned at all.
 - **Swarm, every 20 s** — she summons two chicks, a chicken, two mice and a
   snake next to herself.
 - **Old friends** — at **75%** HP she calls back 🐶 Sir Barksalot, at **50%**
@@ -176,16 +178,19 @@ the same one twice in a row:
 
 - **🌪️ Shuffle** — every cat swaps tiles with another cat. Nobody keeps their
   own tile, nothing is sold, nothing is lost — but squads, Ema's ribbon and
-  Sofija's purse are all recalculated around the new layout.
+  Sofija's purse are all recalculated around the new layout. 👑 Mimi-chan works
+  on the whole board, so she is never moved.
 - **💤 Sleep** — a third of your cats (rounded up, never the whole army) fall
   asleep and stop shooting **until her next trick**, i.e. 13 seconds. Sleeping
-  cats snore blue Zs; the two disruptive tricks can never stack.
+  cats snore blue Zs; the two disruptive tricks can never stack. A 👑 Empress
+  never sleeps.
 - **🦋 Children** — three 🦋 Flutterlings peel off her wings next to her and fly
   for the milk.
 
 *Counter:* build redundancy instead of one perfect corner. A single stacked kill
 zone is worthless the moment it is shuffled somewhere else, and 👑 Mimi-chan
-works on the whole board no matter where she wakes up.
+works on the whole board no matter where she wakes up — and on the 👑 Empress
+path she does not even nap.
 
 ### 💪 Gym Rat
 A mouse that never skipped leg day: 900 HP, 10 armour and speed 3.6, and it
@@ -231,8 +236,9 @@ so spread out coverage instead of one deep kill corner.
 
 ### 💥 Father — final boss (wave 50)
 The head of the family: 260000 HP, 30 armour and speed 1.1. He crashes down out
-of the sky, and **the landing destroys 50% of every cat on the board** — the
-queen included. From then on he flattens one more cat every **12 seconds**.
+of the sky, and **the landing destroys 50% of every cat on the board** — an
+unspecialised queen included. From then on he flattens one more cat every
+**12 seconds**.
 
 **"I AM THE BOSS."** The first time his health hits zero he does not die: he
 **heals back to full** and destroys **75% of the cats that are left**
@@ -240,7 +246,10 @@ queen included. From then on he flattens one more cat every **12 seconds**.
 and the game is over.
 
 *Counter:* do not put your whole fortune on the board before he lands. Keep 🐟
-in the bank, rebuild after the crash, and rebuild again after the revive.
+in the bank, rebuild after the crash, and rebuild again after the revive. A
+specialised 👑 Mimi-chan is the one thing he can never touch, and a 🛡️ Regent's
+ward buys one free save for every cat standing around her (see
+[`cats.md`](cats.md)).
 
 ## Shared mechanics
 
