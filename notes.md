@@ -810,3 +810,48 @@ and inside the viewport by the new browser test, so the refill can never push
 the HUD off a phone. The `body.healed` bloom is a fixed-position overlay with
 `pointer-events: none`, so it cannot swallow a tap mid-boss — the moment when
 missing a tap would hurt most.
+
+## v1.5.0 — Flattening the income curve
+
+The v1.2.0 pass made gold grow *slower*; it did not stop it growing. A full run
+still paid ~217,000 🐟 — about **47 times** the 4,565 🐟 it costs to buy one of
+every cat — and the player could afford the whole roster by wave 10. Once you
+can buy everything, the only decision left is where to click.
+
+The root cause is compounding: late waves send five to ten times as many pests
+*and* paid more per pest, so the two curves multiplied. Three changes, written
+test-first in `tests/unit/economy.test.js`:
+
+**1. A bounty ramp that decays.** `bountyScale(wave)` used to be
+`1 + 0.012 × wave`. It is now `max(0.6, 1 - 0.008 × max(0, wave - 5))`
+(`BOUNTY_FULL_WAVE`, `BOUNTY_DECAY`, `BOUNTY_FLOOR`). Waves 1–5 pay face value,
+so the opening feels exactly as it did; by wave 50 a pest is worth `0.64×` its
+listed bounty. Sheer pest count still makes late waves the richest ones — it
+just no longer double-counts the difficulty curve.
+
+**2. A flat wave-clear stipend.** `waveBonus()` climbed to 495 and was a second
+income curve in disguise. It is now the constant `WAVE_BONUS = 70`: a small,
+predictable cushion that never scales away from the player. It keeps its `wave`
+argument at the call site in `js/game.js` and simply ignores it.
+`tests/unit/config.test.js` only ever asserted the bonus never goes *backwards*,
+which a constant satisfies.
+
+**3. Halved boss and golden payouts.** Bosses were the tallest spikes in the
+curve — a single Father paid 12,000 🐟, four whole boards. A loop after the
+`ENEMIES` table halves the bounty of everything flagged `boss` or `golden`
+(`BOSS_BOUNTY_CUT = 0.5`), the same trick the file already uses to derive
+Mimi-chan's price. Ordinary pests are untouched by design, and a test walks the
+roster to prove every boss still pays more than a mouse.
+
+Cumulative earnings across a full 50-wave run:
+
+| wave | before | after |
+| --- | --- | --- |
+| 10 | 5,879 | 4,347 |
+| 20 | 27,724 | 17,929 |
+| 50 | 216,741 | 98,577 |
+
+That is **45% of the old income**, and roughly 21 boards instead of 47 — still
+enough to fill and upgrade the table by the end, but no longer by wave 10.
+Deeper sinks (upgrade costs, sell refunds, per-copy pricing) are the next slice
+of the proposal and are deliberately not in this change.

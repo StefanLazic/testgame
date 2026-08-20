@@ -18,7 +18,7 @@ balance data lives in [`js/config.js`](../js/config.js) (`ENEMIES`, `WAVES`,
 | 🐍 Snake | 30 | 4.8 | 11 | — | 1 | no |
 | 🐶 Dog | 120 | 2.1 | 20 | 4 | 2 | no |
 | 🐦 Bird | 46 | 4.2 | 14 | — | 1 | **yes** |
-| 🌟 Golden Mouse | 40 | 6.4 | 90 | — | 0 | no |
+| 🌟 Golden Mouse | 40 | 6.4 | 45 | — | 0 | no |
 | 🐖 Flying Pig | 320 | 2.2 | 48 | 3 | 1 | **yes** |
 | 🐢 Turtle | 460 | 1.15 | 34 | 16 | 2 | no |
 | 🐎 Horse | 150 | 5.6 | 30 | 5 | 1 | no |
@@ -28,18 +28,18 @@ balance data lives in [`js/config.js`](../js/config.js) (`ENEMIES`, `WAVES`,
 | 💉 Nurse Hazel | 150 | 3.2 | 26 | — | 1 | no |
 | 🛡️ Shield Beetle | 190 (+260 shield) | 2.5 | 30 | 4 | 2 | no |
 | 🕳️ Mole | 200 | 3.1 | 28 | — | 1 | no |
-| 👑 Sir Barksalot (mini boss, wave 5) | 1200 | 1.7 | 220 | 8 | 3 | no |
-| 👑 The Rat King (boss, wave 10) | 6000 | 1.5 | 600 | 10 | 9 | no |
-| 🍌 Baron Bananas (mini boss, wave 15) | 5200 | 2.2 | 520 | 12 | 4 | no |
-| 🐉 Sophie (final boss, wave 20) | 24000 | 0.6 | 2000 | 18 | 9 | **yes** |
+| 👑 Sir Barksalot (mini boss, wave 5) | 1200 | 1.7 | 110 | 8 | 3 | no |
+| 👑 The Rat King (boss, wave 10) | 6000 | 1.5 | 300 | 10 | 9 | no |
+| 🍌 Baron Bananas (mini boss, wave 15) | 5200 | 2.2 | 260 | 12 | 4 | no |
+| 🐉 Sophie (final boss, wave 20) | 24000 | 0.6 | 1000 | 18 | 9 | **yes** |
 | 🦋 Flutterling | 620 | 3.4 | 42 | 4 | 1 | **yes** |
-| 🦋 Emilija (final boss, wave 30) | 52000 | 0.55 | 3200 | 22 | 9 | **yes** |
+| 🦋 Emilija (final boss, wave 30) | 52000 | 0.55 | 1600 | 22 | 9 | **yes** |
 | 💪 Gym Rat | 900 | 3.6 | 46 | 10 | 2 | no |
-| 🧶 Grandma Vera (mini boss, waves 35 & 45) | 14000 | 1.9 | 900 | 14 | 4 | no |
-| 🤸 Simona the Gymnast (boss, wave 40) | 96000 | 2.0 | 4200 | 20 | 9 | no |
+| 🧶 Grandma Vera (mini boss, waves 35 & 45) | 14000 | 1.9 | 450 | 14 | 4 | no |
+| 🤸 Simona the Gymnast (boss, wave 40) | 96000 | 2.0 | 2100 | 20 | 9 | no |
 | 🤸 Simona (clone) | 40000 | 2.2 | 320 | 12 | 3 | no |
-| 🏀 Stefo the Baller (boss, wave 40) | 120000 | — (never walks) | 6000 | 24 | 9 | no |
-| 💥 Father (final boss, wave 50) | 260000 | 1.1 | 12000 | 30 | 9 | no |
+| 🏀 Stefo the Baller (boss, wave 40) | 120000 | — (never walks) | 3000 | 24 | 9 | no |
+| 💥 Father (final boss, wave 50) | 260000 | 1.1 | 6000 | 30 | 9 | no |
 
 ### 🐭 Mouse
 The basic pest. Cheap, plentiful and slow enough that almost anything kills it.
@@ -71,7 +71,7 @@ never a wasted purchase.
 ### 🌟 Golden Mouse
 A bonus enemy: from wave 2 onwards there is a 75% chance one sneaks in at a
 random point in the wave. It is the fastest thing in the game (speed 6.4) and
-pays out 90 🐟, but it costs **no lives** if it escapes — it just gets away.
+pays out 45 🐟, but it costs **no lives** if it escapes — it just gets away.
 
 ### 👑 Sir Barksalot — mini boss (wave 5)
 An oversized dog with 1200 HP and 8 armour. Every 6 seconds he **howls**:
@@ -259,11 +259,16 @@ ward buys one free save for every cat standing around her (see
   pests already arrive with far more health and armour of their own, and a
   steeper `+0.16` per wave from wave 31 on, where the family's pests take over. Bosses
   ignore the scale entirely and use their flat HP.
-- **Bounty scaling** — the payout is `bounty × bountyScale(wave)`, i.e.
-  `1 + 0.012 × wave` (`BOUNTY_WAVE`). Late waves already pay far more simply by
-  sending far more pests, so the per-pest ramp is deliberately gentle.
-- **Wave-clear bonus** — `waveBonus(wave)` is `45 + 18 × min(wave, 25)`: it
-  climbs until the board can be filled (`BONUS_CAP_WAVE`), then holds flat.
+- **Bounty scaling** — the payout is `bounty × bountyScale(wave)`. Waves 1–5
+  pay face value (`BOUNTY_FULL_WAVE`), then every pest is worth `0.008` less per
+  wave (`BOUNTY_DECAY`) down to a floor of `0.6` (`BOUNTY_FLOOR`) — roughly
+  `0.64×` by wave 50. Late waves already pay far more simply by sending five to
+  ten times as many pests, so the per-pest payout *decays* instead of ramping.
+- **Boss and golden payouts** — every boss, mini-boss and the 🪙 Golden Mouse has
+  its listed bounty halved (`BOSS_BOUNTY_CUT`). They were the tallest spikes in
+  the income curve. Ordinary pests are untouched.
+- **Wave-clear bonus** — `waveBonus()` is a flat `70` (`WAVE_BONUS`). It used to
+  climb to 495, which made it a second income curve on top of the bounties.
 - **Armour** — armour is subtracted from every hit, with a floor of 25% of the
   raw damage.
 - **Slows** — Frost applies a temporary speed reduction to a single target; Sir

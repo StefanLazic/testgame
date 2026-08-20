@@ -4,20 +4,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  ENEMIES, WAVES, START_LIVES, START_GOLD, BOUNTY_WAVE, BONUS_CAP_WAVE,
-  BOSS_LIFE_REWARD, bountyScale, waveBonus,
+  ENEMIES, TOWERS, WAVES, START_LIVES, START_GOLD, BOUNTY_FULL_WAVE, BOUNTY_DECAY,
+  BOUNTY_FLOOR, BOSS_BOUNTY_CUT, WAVE_BONUS, BOSS_LIFE_REWARD, bountyScale, waveBonus,
 } from '../../js/config.js';
 import { bountyFor, livesAfterKill } from '../../js/rules.js';
 
-test('the bounty ramp is gentle enough that late waves do not print money', () => {
-  assert.equal(BOUNTY_WAVE, 0.012);
-  assert.equal(bountyScale(1), 1 + 0.012);
-  assert.equal(bountyScale(50), 1 + 0.012 * 50);
-  for (let w = 2; w <= WAVES.length; w++) {
-    assert.ok(bountyScale(w) > bountyScale(w - 1), `bountyScale wave ${w}`);
+test('the bounty ramp decays instead of growing, so late waves never print money', () => {
+  assert.equal(BOUNTY_FULL_WAVE, 5);
+  assert.equal(BOUNTY_DECAY, 0.008);
+  assert.equal(BOUNTY_FLOOR, 0.6);
+  // The first few waves pay full price: the opening is already tight.
+  for (let w = 1; w <= BOUNTY_FULL_WAVE; w++) assert.equal(bountyScale(w), 1, `wave ${w} pays full`);
+  // After that every pest is worth a shade less than the one before it, because
+  // late waves send five to ten times as many of them.
+  for (let w = BOUNTY_FULL_WAVE + 2; w <= WAVES.length; w++) {
+    assert.ok(bountyScale(w) < bountyScale(w - 1), `bountyScale should fall at wave ${w}`);
   }
-  // The old ramp handed out 2x base by wave 50; the new one stops well short.
-  assert.ok(bountyScale(WAVES.length) < 1.7);
+  const last = bountyScale(WAVES.length);
+  assert.ok(last >= 0.6 && last <= 0.7, `expected a mild decay by the last wave, got ${last}`);
+  // It is a decay, not a collapse: the floor holds however long the run gets.
+  assert.equal(bountyScale(500), BOUNTY_FLOOR);
 });
 
 test('bountyFor pays the pest bounty through the wave ramp and the purse', () => {
@@ -26,34 +32,58 @@ test('bountyFor pays the pest bounty through the wave ramp and the purse', () =>
   assert.equal(bountyFor(ENEMIES.mouse, 20, 2), Math.round(mouse * bountyScale(20) * 2));
   assert.equal(bountyFor(ENEMIES.mouse, 20, 1), bountyFor(ENEMIES.mouse, 20));
   assert.ok(bountyFor(ENEMIES.ratking, 10) > bountyFor(ENEMIES.mouse, 10));
+  // The same pest is worth less the later it dies.
+  assert.ok(bountyFor(ENEMIES.mouse, 40) < bountyFor(ENEMIES.mouse, 5));
 });
 
-test('the wave-clear bonus stops growing once the board is saturated', () => {
-  assert.equal(BONUS_CAP_WAVE, 25);
-  for (let w = 2; w <= BONUS_CAP_WAVE; w++) {
-    assert.ok(waveBonus(w) > waveBonus(w - 1), `waveBonus should rise at wave ${w}`);
+test('the wave-clear bonus is a flat stipend, not a second income curve', () => {
+  assert.ok(WAVE_BONUS > 0);
+  for (let w = 1; w <= WAVES.length; w++) {
+    assert.equal(waveBonus(w), WAVE_BONUS, `waveBonus flat at wave ${w}`);
   }
-  for (let w = BONUS_CAP_WAVE + 1; w <= WAVES.length; w++) {
-    assert.equal(waveBonus(w), waveBonus(BONUS_CAP_WAVE), `waveBonus flat at wave ${w}`);
-  }
-  assert.ok(waveBonus(1) > 0);
+  // Across a whole run the stipend must stay pocket change next to one cat.
+  assert.ok(WAVE_BONUS * WAVES.length < 10 * Math.max(...Object.values(TOWERS).map((t) => t.cost)));
 });
 
-test('the whole run earns far less than it used to', () => {
-  const earned = (bountyRamp, bonus) => {
+test('boss and golden-mouse payouts were cut proportionally', () => {
+  assert.equal(BOSS_BOUNTY_CUT, 0.5);
+  // The three biggest spikes in the old curve.
+  assert.equal(ENEMIES.ratking.bounty, 300);
+  assert.equal(ENEMIES.father.bounty, 6000);
+  assert.equal(ENEMIES.golden.bounty, 45);
+  // Ordinary pests are untouched: the early game should feel the same.
+  assert.equal(ENEMIES.mouse.bounty, 8);
+  assert.equal(ENEMIES.chicken.bounty, 12);
+  // Bosses still pay more than the pests they arrive with.
+  for (const [kind, def] of Object.entries(ENEMIES)) {
+    if (!def.boss) continue;
+    assert.ok(def.bounty > ENEMIES.mouse.bounty, `${kind} still pays like a boss`);
+  }
+});
+
+test('a whole run pays a fraction of what the old economy paid', () => {
+  const runTotal = (scale, bonus, cut) => {
     let gold = START_GOLD;
     for (let i = 0; i < WAVES.length; i++) {
       const w = i + 1;
       for (const [kind, count] of WAVES[i].groups) {
-        gold += Math.round(ENEMIES[kind].bounty * bountyRamp(w)) * count;
+        const def = ENEMIES[kind];
+        const base = def.boss || def.golden ? def.bounty / BOSS_BOUNTY_CUT * cut : def.bounty;
+        gold += Math.round(base * scale(w)) * count;
       }
       gold += bonus(w);
     }
     return gold;
   };
-  const before = earned((w) => 1 + 0.02 * w, (w) => 45 + w * 18);
-  const after = earned(bountyScale, waveBonus);
-  assert.ok(after < before * 0.95, `expected a real cut, got ${after} vs ${before}`);
+  // The old economy: a rising per-pest ramp, a bonus that climbed to 495, and
+  // uncut boss payouts.
+  const before = runTotal((w) => 1 + 0.012 * w, (w) => 45 + Math.min(w, 25) * 18, 1);
+  const after = runTotal(bountyScale, waveBonus, BOSS_BOUNTY_CUT);
+  assert.ok(after < before * 0.5, `expected less than half the old income, got ${after} vs ${before}`);
+  // But a run must still pay for a full board several times over, or the late
+  // waves become unwinnable rather than tight.
+  const board = Object.values(TOWERS).reduce((s, t) => s + t.cost, 0);
+  assert.ok(after > board * 3, `a full run pays ${after}, too poor to fill the board`);
 });
 
 test('killing a main boss hands a life back, up to the nine you started with', () => {

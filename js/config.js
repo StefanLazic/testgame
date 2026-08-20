@@ -426,6 +426,15 @@ export const ENEMIES = {
   },
 };
 
+// Bosses and the golden mouse used to be the tallest spikes in the income
+// curve: a single Father paid for four full boards of cats. Their payouts are
+// halved across the board so a boss is still a payday, not a jackpot that ends
+// the economy. Ordinary pests keep their bounty, so the early game is unchanged.
+export const BOSS_BOUNTY_CUT = 0.5;
+for (const def of Object.values(ENEMIES)) {
+  if (def.boss || def.golden) def.bounty = Math.round(def.bounty * BOSS_BOUNTY_CUT);
+}
+
 // How long a cat is knocked out by a banana to the head.
 export const BANANA_STUN = 3;
 
@@ -828,14 +837,21 @@ export const WAVES = [
 ];
 
 // ---------------------------------------------------------------- economy ---
-// Every pest is worth a little more on later waves, but only a little: the
-// board holds ~100 cats and there is nothing else to spend fish on, so a steep
-// ramp just buries the player in gold they can never use. Late waves already
-// pay more simply by sending far more pests.
-export const BOUNTY_WAVE = 0.012;
-export function bountyScale(wave) { return 1 + BOUNTY_WAVE * wave; }
+// Late waves already pay far more simply by sending five to ten times as many
+// pests, so a per-pest ramp on top of that compounds and buries the player in
+// fish they can never spend. The ramp therefore runs the other way: the first
+// few waves pay full price, then every pest is worth a shade less than the one
+// before it, down to a floor. Income still rises across a run — just slowly
+// enough that gold stays a decision.
+export const BOUNTY_FULL_WAVE = 5;   // waves paid at face value
+export const BOUNTY_DECAY = 0.008;   // lost per wave after that
+export const BOUNTY_FLOOR = 0.6;     // never worth less than this
+export function bountyScale(wave) {
+  return Math.max(BOUNTY_FLOOR, 1 - BOUNTY_DECAY * Math.max(0, wave - BOUNTY_FULL_WAVE));
+}
 
-// The wave-clear bonus climbs until the board can be filled, then holds. Past
-// wave 25 the bonus is rounding error next to the bounties anyway.
-export const BONUS_CAP_WAVE = 25;
-export function waveBonus(wave) { return 45 + Math.min(wave, BONUS_CAP_WAVE) * 18; }
+// Clearing a wave pays a flat stipend. It used to climb to 495, which made it a
+// second income curve on top of the bounties; as a constant it is a small,
+// predictable cushion that never scales away from the player.
+export const WAVE_BONUS = 70;
+export function waveBonus() { return WAVE_BONUS; }
